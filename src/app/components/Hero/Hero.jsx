@@ -34,6 +34,7 @@ const Home = () => {
         <div>
             <h1 className='text-white font-bold text-[2rem] text-center'>The Movies</h1>
             <div>
+                <div>{item.title}</div>
                 <Image className='w-[100%] h-screen object-cover' width={100} height={100} src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`} alt={item.title || "Movie Image"} />
             </div>
         </div>

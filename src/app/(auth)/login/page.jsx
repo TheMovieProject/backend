@@ -43,13 +43,14 @@ const Page = () => {
    }
 
   return (
-    <div>
+    <div className='bg-red-500 w-[50%] mx-auto flex items-center flex-col text-[1.1rem] gap-6'>
       <div>Dont have an account? <Link href='/signup'>Signup</Link></div>
       <input 
         value={user.email} 
         onChange={(e) => setUser({ ...user, email: e.target.value })} 
         type="text" 
         placeholder='Email' 
+        className='w-[90%] p-2 rounded-l-md outline-none'
       />
       <input 
         value={user.password} 

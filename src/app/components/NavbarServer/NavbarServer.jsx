@@ -4,6 +4,6 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import Navbar from '../Navbar/Navbar';
 
 export default async function NavbarServer() {
-    const session = await getServerSession(authOptions);
-    return <Navbar session={session} />;
+    const session = await getServerSession(authOptions); // Fetch server session
+    return <Navbar session={session} />; // Pass session to Navbar
 }

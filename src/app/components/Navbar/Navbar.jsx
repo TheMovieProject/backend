@@ -2,10 +2,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Logout from '../Logout/Logout';
+import { useSession } from 'next-auth/react';
 
-const Navbar = ({ session }) => {
+const Navbar = () => {
     const [query, setQuery] = useState('');
-
+    const { data: session, status } = useSession(); // Get session and status
+    console.log(session);
+    if (status === "loading") {
+        // Show a loading state while the session is being fetched
+        return <div>Loading...</div>;
+    }
     return (
         <div>
             {!session ? (
