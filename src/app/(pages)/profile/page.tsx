@@ -1,11 +1,9 @@
 "use client"
 import { useSession } from 'next-auth/react'
-import { useState } from 'react'
 import Logout from '@/app/components/Logout/Logout'
 import Image from 'next/image'
 export default function Page() {
   const { data: session , status } = useSession()
-  const [drop , setDrop]=useState(false);
 
   if(status === "unauthenticated"){
     return <div>Login first!!!</div>

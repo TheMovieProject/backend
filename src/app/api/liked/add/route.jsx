@@ -1,43 +1,45 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
 export async function POST(req) {
     try {
+        // Get session
         let session;
         try {
-            session = await getServerSession(authOptions);
+            session = await getAuthSession();
         } catch (error) {
             return new Response("Error getting session", { status: 500 });
         }
 
         if (!session || !session.user || !session.user.email) {
-            console.log("No session found or user email missing");
+            console.log("Unauthorized request");
             return new Response("Unauthorized", { status: 401 });
         }
 
+        // Parse and validate request body
         let body;
         try {
             body = await req.json();
+            if (!body || typeof body !== "object") {
+                throw new Error("Invalid request body");
+            }
         } catch (error) {
-            return new Response("Error parsing request body", { status: 400 });
+            return new Response("Invalid request body", { status: 400 });
         }
 
         const { movieId, title, posterUrl } = body;
 
-        if (!movieId || !title) {
-            console.log("Missing data");
-            return new Response("Missing data", { status: 400 });
+        if (!movieId || typeof movieId !== "string" || !title || typeof title !== "string") {
+            return new Response("Missing or invalid data", { status: 400 });
         }
 
-        // Fetch user ID using the email
+        // Fetch user by email
         let user;
         try {
             user = await prisma.user.findUnique({
-                where: {
-                    email: session.user.email,
-                },
+                where: { email: session.user.email },
             });
+
             if (!user) {
                 console.log("User not found");
                 return new Response("User not found", { status: 404 });
@@ -47,49 +49,52 @@ export async function POST(req) {
             return new Response("Error finding user", { status: 500 });
         }
 
-        // Ensure the movie exists in the database
+        // Find or create movie
         let movie;
         try {
-            movie = await prisma.movie.findUnique({ where: { tmdbId: movieId } });
-            if (!movie) {
-                movie = await prisma.movie.create({
-                    data: {
-                        tmdbId: movieId,
-                        title,
-                        posterUrl,
-                    },
-                });
-            }
+            movie = await prisma.movie.upsert({
+                where: { tmdbId: movieId },
+                update: {},
+                create: {
+                    tmdbId: movieId,
+                    title,
+                    posterUrl,
+                },
+            });
         } catch (error) {
             console.error("Error finding/creating movie:", error);
             return new Response("Error finding/creating movie", { status: 500 });
         }
 
-        // Check if the movie is already in the user's liked list
+        // Add to liked list in a transaction
         try {
-            const likedItem = await prisma.liked.findUnique({
-                where: {
-                    userId_movieId: {
+            const newLikedItem = await prisma.$transaction(async (prisma) => {
+                const likedItem = await prisma.liked.findUnique({
+                    where: {
+                        userId_movieId: {
+                            userId: user.id,
+                            movieId: movie.id,
+                        },
+                    },
+                });
+
+                if (likedItem) {
+                    throw new Error("Movie already in liked list");
+                }
+
+                return await prisma.liked.create({
+                    data: {
                         userId: user.id,
                         movieId: movie.id,
                     },
-                },
-            });
-
-            if (likedItem) {
-                return new Response("Movie already in liked list", { status: 409 }); // 409 Conflict
-            }
-
-            // Add movie to the user's liked list
-            const newLikedItem = await prisma.liked.create({
-                data: {
-                    userId: user.id,
-                    movieId: movie.id,
-                },
+                });
             });
 
             return new Response(JSON.stringify(newLikedItem), { status: 201 });
         } catch (error) {
+            if (error.message === "Movie already in liked list") {
+                return new Response(error.message, { status: 409 });
+            }
             console.error("Error adding to liked:", error);
             return new Response("Error adding to liked", { status: 500 });
         }

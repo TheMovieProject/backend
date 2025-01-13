@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 import WatchlistClient from "@/app/components/WatchListClient/WatchListClient";
 
 export default async function WatchlistPage() {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession()
 
     if (!session) {
         return <p>You need to log in to view your watchlist.</p>;

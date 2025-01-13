@@ -1,9 +1,9 @@
-import prisma from '@/app/libs/prismaDB'
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
-import NextAuth from "next-auth/next"
-import bcrypt from 'bcryptjs'
+import prisma from '@/app/libs/prismaDB';
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import bcrypt from 'bcryptjs';
+import { getServerSession } from "next-auth"; // Add this import
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -22,41 +22,41 @@ export const authOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter an email and password')
+          throw new Error('Please enter an email and password');
         }
 
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email,
           },
-        })
+        });
 
         if (!user) {
-          throw new Error('No user found')
+          throw new Error('No user found');
         }
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password)
+        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
 
         if (!passwordMatch) {
-          throw new Error('Incorrect password')
+          throw new Error('Incorrect password');
         }
 
-        return user
+        return user;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.email = user.email
+        token.email = user.email;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.email = token.email
+        session.user.email = token.email;
       }
-      return session
+      return session;
     },
   },
   secret: process.env.SECRET,
@@ -64,9 +64,9 @@ export const authOptions = {
     strategy: "jwt",
   },
   debug: process.env.NODE_ENV === "development",
-}
+};
 
 // const handler = NextAuth(authOptions)
 
 // export { handler as GET, handler as POST }
-export const getAuthSession = ()=>getServerSession(authOptions) 
+export const getAuthSession = () => getServerSession(authOptions); // Ensure getServerSession is defined

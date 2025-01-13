@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 import LikedListClient from '@/app/components/LikedListClient/LikedListClient'
 export default async function LikedPages(){
-  const session = await getServerSession(authOptions);
+    const session = await getAuthSession()
 
     if (!session) {
         return <p>You need to log in to view your watchlist.</p>;
@@ -18,7 +17,8 @@ export default async function LikedPages(){
     }
 
     const likedList = await prisma.liked.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id ,
+       },
       include: {
           movie: true,
       },

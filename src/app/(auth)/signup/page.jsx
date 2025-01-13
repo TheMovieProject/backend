@@ -18,7 +18,7 @@ const Page = () => {
     
     try{
       const response = await axios.post("/api/signup" , user)
-      // console.log("Signup success" , response.data)
+      console.log("Signup success" , response.data)
       toast.success("User has been registered");
       router.push("/login")
       

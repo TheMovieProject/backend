@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import nextConnect from 'next-connect';
-import fs from 'fs';
 import path from 'path';
 
 const prisma = new PrismaClient();
