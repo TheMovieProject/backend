@@ -30,7 +30,7 @@ export default function Page() {
         <div>Following</div>
         <p>{session?.user?.email}</p>
       </div>
-      {/* <Logout /> */}
+      <Logout />
     </div>
   );
 }
