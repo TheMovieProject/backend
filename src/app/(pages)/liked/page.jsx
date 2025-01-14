@@ -1,27 +1,33 @@
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
-import LikedListClient from '@/app/components/LikedListClient/LikedListClient'
-export default async function LikedPages(){
-    const session = await getAuthSession()
+import LikedListClient from "@/app/components/LikedListClient/LikedListClient";
 
-    if (!session) {
-        return <p>You need to log in to view your watchlist.</p>;
-    }
+export default async function LikedPages() {
+  const session = await getAuthSession();
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-    });
+  // Handle unauthenticated user
+  if (!session) {
+    return <p>You need to log in to view your liked movies.</p>;
+  }
 
-    if (!user) {
-        return <p>User not found. Please log in again.</p>;
-    }
-
-    const likedList = await prisma.liked.findMany({
-      where: { userId: user.id ,
-       },
-      include: {
-          movie: true,
-      },
+  // Find user by email
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
   });
-  return <LikedListClient initialLikedList={likedList}/>
+
+  // Handle missing user
+  if (!user) {
+    return <p>User not found. Please log in again.</p>;
+  }
+
+  // Fetch liked movies with movie details
+  const likedList = await prisma.liked.findMany({
+    where: { userId: user.id },
+    include: {
+        movie: true,
+    },
+  });
+
+  // Render the client component with the initial liked list
+  return <LikedListClient initialLikedList={likedList} />;
 }
