@@ -1,11 +1,12 @@
-import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
 export async function POST(req) {
    try {
     let session;
     try {
-        session = await getAuthSession()
+        session = await getServerSession(authOptions);
     } catch (error) {
       return new Response("Error getting session", { status: 500 });
     }
@@ -47,7 +48,7 @@ export async function POST(req) {
 
     let movie;
         try {
-            //console.log("Searching for movie with tmdbId:", movieId);
+            console.log("Searching for movie with tmdbId:", movieId);
             movie = await prisma.movie.findUnique({ where: { tmdbId: movieId } });
             console.log("Found movie:", movie);
 
