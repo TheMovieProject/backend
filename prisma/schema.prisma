@@ -111,6 +111,8 @@ model User {
   ratings       Rating[]
   reviews       Review[]    // Relationship to reviews
   reviewComment reviewComment[] // relationship to reviewComments
+  blogs         Blog[]         // Relationship to blogs
+  blogComments  BlogComment[]  // Relationship to blog comments
 
 
   // other fields...
@@ -134,4 +136,37 @@ model Account {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+model Blog {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  content     String
+  hashtags    String?
+  blogNumber  Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tags        String[]       // Tags like ['Review', 'Art', 'Drama']
+  thumbnail   String?        // Optional cover image for the blog
+  likes       Int           @default(0) // Number of likes
+  views       Int           @default(0)
+  comments    BlogComment[]  // Relationship to comments
+  
+  // Relations
+  userEmail   String
+  user        User          @relation(fields: [userEmail], references: [email])
+}
+
+model BlogComment {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  userId      String         @db.ObjectId
+  blogId      String         @db.ObjectId
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  user        User           @relation(fields: [userId], references: [id])
+  blog        Blog           @relation(fields: [blogId], references: [id])
+
+  @@index([blogId]) // Adding an index for quicker lookups by blogId
 }
