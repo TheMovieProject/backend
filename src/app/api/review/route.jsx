@@ -34,18 +34,28 @@ export async function GET(req) {
     try {
         const url = new URL(req.url);
         const tmdbId = url.searchParams.get("movieId");
+        const userEmail = url.searchParams.get("userEmail");
 
-        if (!tmdbId) {
-            return new Response("Missing movieId", { status: 400 });
+        // Build filters dynamically
+        const filters = {};
+        if (tmdbId) {
+            const movie = await getOrCreateMovie(tmdbId);
+            filters.movieId = movie.id;
+        }
+        if (userEmail) {
+            filters.user = { email: userEmail }; // Use nested filtering for user's email
         }
 
-        const movie = await getOrCreateMovie(tmdbId);
+        if (Object.keys(filters).length === 0) {
+            return new Response("Missing filter parameters", { status: 400 });
+        }
 
         // Fetch reviews with user data
         const reviews = await prisma.review.findMany({
-            where: { movieId: movie.id },
+            where: filters,
             include: {
                 user: true, // Include user information
+                movie:true,
             },
         });
 
@@ -55,7 +65,6 @@ export async function GET(req) {
         return new Response(error.message, { status: error.message === "Unauthorized" ? 401 : 500 });
     }
 }
-
 
 // Handle POST request
 export async function POST(req) {
@@ -68,7 +77,7 @@ export async function POST(req) {
         const body = await req.json();
         const { movieId: tmdbId, reviewText } = body;
 
-        if (!tmdbId || typeof reviewText !== 'string') {
+        if (!tmdbId || typeof reviewText !== "string") {
             return new Response("Missing or invalid data", { status: 400 });
         }
 
@@ -78,7 +87,7 @@ export async function POST(req) {
         // Check for existing review
         const existingReview = await prisma.review.findFirst({
             where: {
-                userId: user.id,
+                user: { email: user.email },
                 movieId: movie.id,
             },
         });
@@ -94,10 +103,14 @@ export async function POST(req) {
             // Create new review
             review = await prisma.review.create({
                 data: {
-                    userId: user.id,
-                    movieId: movie.id,
                     content: reviewText,
                     createdAt: new Date(),
+                    user: {
+                        connect: { email: user.email }, // Link review to user by email
+                    },
+                    movie: {
+                        connect: { id: movie.id }, // Link review to movie by ID
+                    },
                 },
             });
         }

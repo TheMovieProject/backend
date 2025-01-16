@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 
+
 // Separate data fetching function
 const getData = async (id) => {
   try {
