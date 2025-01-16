@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { storage } from "@/app/utils/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from '@/app/(pages)/write/firebaseConfig'
+import { ref, uploadBytesResumable, getDownloadURL } from '@/app/(pages)/write/firebaseConfig';
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -19,13 +19,12 @@ const QuillStyles = () => {
 };
 
 const Page = () => {
-  const router = useRouter()
+  const router = useRouter();
   const [title, setTitle] = useState('');
-  const [blogNumber , setblognumber]=useState(1);
+  const [blogNumber, setblognumber] = useState(1);
   const [hashtags, setHashtags] = useState('');
   const [content, setContent] = useState('');
   const [thumbnail, setThumbnail] = useState('');
-  // const [thumbnailURL, setThumbnailURL] = useState('');
   const [uploading, setUploading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { data: session, status } = useSession();
@@ -114,10 +113,6 @@ const Page = () => {
         blogNumber,
         userEmail: session.user.email, // Use email instead of ID
       };
-       console.log(session.user.email)
-      if (thumbnail) {
-        payload.thumbnail = thumbnail;
-      }
 
       console.log('Sending payload:', payload);
 
@@ -126,7 +121,8 @@ const Page = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      router.push('/')
+
+      router.push('/');
 
       console.log('API response received:', response);
 
@@ -144,7 +140,7 @@ const Page = () => {
       setHashtags('');
       setContent('');
       setThumbnail('');
-      setblognumber(blogNumber+1);
+      setblognumber(blogNumber + 1);
 
     } catch (error) {
       console.error('Error creating post:', error);
@@ -185,28 +181,27 @@ const Page = () => {
         </div>
 
         <div>
-  <label className="block text-sm font-medium mb-2">Thumbnail</label>
-  <input
-    type="file"
-    accept="image/*"
-    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-    onChange={handleFileChange}
-  />
-  {uploading && <p className="text-sm text-blue-500 mt-2">Uploading thumbnail...</p>}
-  {thumbnail && (
-    <div className="mt-4">
-      <p className="text-sm text-green-500">Thumbnail uploaded successfully:</p>
-      <Image
-        width={100}
-        height={100}
-        src={thumbnail}
-        alt="Thumbnail Preview"
-        className="w-32 h-32 object-cover rounded border mt-2"
-      />
-    </div>
-  )}
-</div>
-
+          <label className="block text-sm font-medium mb-2">Thumbnail</label>
+          <input
+            type="file"
+            accept="image/*"
+            className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={handleFileChange}
+          />
+          {uploading && <p className="text-sm text-blue-500 mt-2">Uploading thumbnail...</p>}
+          {thumbnail && (
+            <div className="mt-4">
+              <p className="text-sm text-green-500">Thumbnail uploaded successfully:</p>
+              <Image
+                width={100}
+                height={100}
+                src={thumbnail}
+                alt="Thumbnail Preview"
+                className="w-32 h-32 object-cover rounded border mt-2"
+              />
+            </div>
+          )}
+        </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Content</label>
