@@ -4,10 +4,9 @@ import Image from 'next/image';
 // Separate data fetching function
 const getData = async (id) => {
   try {
-    // const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '';
-    const res = await fetch(`/api/blog/${id}`, {
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/blog/${id}`, {
     cache: "no-store",
-    next: { revalidate: 0 }
+    // next: { revalidate: 0 }
     });
 
     if (!res.ok) {
@@ -25,17 +24,17 @@ const getData = async (id) => {
 
 const BlogPostPage = async ({ params }) => {
   const { id } = params;
-  let data;
+  // let data;
 
-  try {
-    data = await getData(id);
-  } catch (error) {
-    return (
-      <div className="p-4">
-        <p className="text-red-500">Error loading blog post. Please try again later.</p>
-      </div>
-    );
-  }
+  
+    const data = await getData(id);
+  //  catch (error) {
+  //   return (
+  //     <div className="p-4">
+  //       <p className="text-red-500">Error loading blog post. Please try again later.</p>
+  //     </div>
+  //   );
+  // }
 
   // Create markup for content instead of title
   function createMarkup() {
