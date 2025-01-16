@@ -4,8 +4,8 @@ import Image from 'next/image';
 // Separate data fetching function
 const getData = async (id) => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '';
-    const res = await fetch(`${baseUrl}/api/blog/${id}`, {
+    // const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '';
+    const res = await fetch(`/api/blog/${id}`, {
     cache: "no-store",
     next: { revalidate: 0 }
     });
