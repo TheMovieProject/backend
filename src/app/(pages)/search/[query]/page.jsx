@@ -29,20 +29,28 @@ const SearchedItems = () => {
     }, [query]);
 
     return (
-        <div>
-            <h1>There are {items.length} results for {query}</h1>
-            <div className='flex flex-col gap-4 p-3'>
-                {items.map((item , index) => (
-                    <div key={item.id} className='flex items-center gap-3'>
-                        <MovieBlock item={item} key={index}/>
-                        <div className='flex flex-col gap-1'>
-                            <h1 className='text-lg font-bold'>{item.original_title}</h1>
-                            <p className='text-sm'>{item.overview}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
+<div className="bg-gray-900 text-white p-6 shadow-lg w-full mx-auto">
+  <h1 className="text-2xl font-bold mb-6">
+    There are {items.length} results for <span className="text-blue-500">{query}</span>
+  </h1>
+  <div className="flex flex-col gap-6">
+    {items.map((item, index) => (
+      <div
+        key={item.id}
+        className="flex items-start gap-6 bg-gray-800 p-4 rounded-lg hover:shadow-xl transition-shadow"
+      >
+        <div className="flex-shrink-0">
+          <MovieBlock item={item} key={index} />
         </div>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-lg font-bold text-blue-400">{item.original_title}</h1>
+          <p className="text-sm text-gray-300 line-clamp-3">{item.overview}</p>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
     );
 };
 

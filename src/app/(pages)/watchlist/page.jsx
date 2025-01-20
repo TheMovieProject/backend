@@ -1,5 +1,5 @@
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/app/api/auth/[...nextauth]/connect";
 import WatchlistClient from "@/app/components/WatchListClient/WatchListClient";
 
 export default async function WatchlistPage() {
@@ -25,4 +25,4 @@ export default async function WatchlistPage() {
     });
 
     return <WatchlistClient initialWatchlist={watchlist} />;
-}
+} 

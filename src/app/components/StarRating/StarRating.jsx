@@ -32,7 +32,7 @@ const StarRating = ({ movieId, initialRating, onRatingChange }) => {
   };
 
   return (
-    <div>
+    <div className='text-gray-600 font-medium text-sm'>
       Your rating: <Rate 
         allowHalf 
         value={rating}

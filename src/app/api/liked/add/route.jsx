@@ -1,6 +1,5 @@
 import prisma from "@/app/libs/prismaDB";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
-
 export async function POST(req) {
    try {
     let session;

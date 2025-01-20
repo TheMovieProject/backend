@@ -1,35 +1,28 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Calendar, User } from "lucide-react"
 const Author = ({data}) => {
   return (
     <div>
       <Link href={`${process.env.NEXTAUTH_URL}/profile/${data.user.id}`} className="flex gap-3 items-center">
-            {data.user?.image ? (
-              <Image
-                className='rounded-full object-cover'
-                src={data.user.image}
-                alt={data.user.name || 'Author'}
-                width={35}
-                height={35}
-              />
-            ) : (
-              <Image
-              className='rounded-full object-cover'
-              src='img/NoImage.jpg'
-              alt={data.user.name || 'Author'}
-              width={35}
-              height={35}
-            />
-            )}
-            
-            <div className='flex flex-col gap-1 text-sm font-medium'>
-              <p className="font-bold">{data.userEmail}</p>
-              <p className="text-gray-600">
-                {new Date(data.createdAt).toLocaleDateString()}
-              </p>
-              <p className="text-gray-600">Views: {data.views}</p>
-            </div>
+      <Image
+        src={data.user.image || "/default-avatar.jpg"}
+        alt={data.user.name}
+        width={50}
+        height={50}
+        className="rounded-full"
+      />
+      <div>
+        <div className="flex items-center space-x-2">
+          <User className="h-4 w-4" />
+          <span className="font-medium">{data.user.name}</span>
+        </div>
+        <div className="flex items-center space-x-2 mt-1">
+          <Calendar className="h-4 w-4" />
+          <span>{new Date(data.createdAt).toLocaleDateString()}</span>
+        </div>
+      </div>
           </Link>
     </div>
   )

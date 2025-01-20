@@ -88,7 +88,6 @@ const UserBlogs = ({ id }) => {
       <h1 className="text-2xl font-bold mb-6">
         {userDetails ? `${userDetails.name}'s Blog Posts` : 'Your Blog Posts'}
       </h1>
-
       {blogs.length === 0 ? (
         <p className="text-gray-500">No blogs found.</p>
       ) : (
@@ -111,11 +110,11 @@ const UserBlogs = ({ id }) => {
               )}
               <div className="p-4">
                 <h3 className="text-lg font-semibold mb-2">{blog.title}</h3>
-                {blog.content && (
+                {/* {blog.content && (
                   <p className="text-sm text-gray-500 line-clamp-2">
                     {blog.content}
                   </p>
-                )}
+                )} */}
               </div>
             </div>
           ))}

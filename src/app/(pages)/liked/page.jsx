@@ -26,7 +26,7 @@ export default async function LikedPages() {
     include: {
         movie: true,
     },
-  });
+  })
 
   // Render the client component with the initial liked list
   return <LikedListClient initialLikedList={likedList} />;

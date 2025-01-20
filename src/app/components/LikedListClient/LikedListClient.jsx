@@ -31,7 +31,12 @@ export default function LikedListClient({ initialLikedList = [] }) {
         <div>
             <h1 className="text-white text-2xl mb-4">Your Liked List</h1>
             <p>You have {likedList.length} movies you liked!!!</p>
-            <div className="grid grid-cols-5 gap-2 p-5">
+            <p className="text-lg text-gray-300 text-center mb-8">
+            {likedList.length > 0 
+            ? `You liked ${likedList.length} movies!!!` 
+               : "Your liked list is empty."}
+            </p>
+            {likedList.length > 0 && (<div className="grid grid-cols-5 gap-2 p-5">
                 {likedList.length > 0 ? (
                     likedList.map((item) => (
                         <div key={item.id} className="relative">
@@ -61,7 +66,7 @@ export default function LikedListClient({ initialLikedList = [] }) {
                 ) : (
                     <p className="text-white">Your liked list is empty.</p>
                 )}
-            </div>
+            </div>)}
         </div>
     );
 }

@@ -132,52 +132,64 @@ const handleCommentSubmit = async (reviewId, commentText) => {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div>
-      <h2 className="text-[2rem] font-bold mb-4 p-2">Reviews</h2>
-      <div className="mb-4 flex items-center p-3 gap-2">
-        <input
-          type="text"
-          value={reviewText}
-          onChange={(e) => setReviewText(e.target.value)}
-          placeholder="Enter your review"
-          className="border p-2 rounded w-full"
-        />
-        <button 
-          onClick={handleSubmit}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Submit
-        </button>
-      </div>
-      {error && <p className="text-red-500">{error}</p>}
-      <div>
-        {reviews.map((review) => (
-          <div key={review.id} className="flex w-full gap-4 p-4 border-b border-gray-300">
-            <div className="w-[5%] h-[5%]">
-              {review.user?.image ? (
-                <Image 
-                  className='w-full h-full rounded-full' 
-                  src={review.user.image} 
-                  width={100} 
-                  height={100} 
-                  alt='Profile Image' 
-                />
-              ) : (
-                <Image 
-                  className='w-full h-full rounded-full border-2 border-gray-300' 
-                  src='/img/profile.png' 
-                  width={100} 
-                  height={100} 
-                  alt='Default Profile Image' 
-                />
-              )}
+    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm py-8">
+  <h2 className="text-3xl font-bold text-gray-800 mb-6 px-6">Reviews</h2>
+  
+  {/* Review Input Section */}
+  <div className="mb-8 px-6">
+    <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg w-full">
+      <input
+        type="text"
+        value={reviewText}
+        onChange={(e) => setReviewText(e.target.value)}
+        placeholder="Share your thoughts about the movie..."
+        className="flex-1 px-4 py-3 w-[65%] lg:w-[80%] border border-gray-200 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+      />
+      <button 
+        onClick={handleSubmit}
+        className="bg-blue-600 text-[0.8rem] md:text-lg w-[35%] lg:w-[20%] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200"
+      >
+        Post Review
+      </button>
+    </div>
+    {error && <p className="mt-2 text-red-500 text-sm">{error}</p>}
+  </div>
+
+  {/* Reviews List */}
+  <div className="space-y-6">
+    {reviews.map((review) => (
+      <div key={review.id} className="px-6 py-4 hover:bg-gray-50 transition duration-200 border-b border-gray-100">
+        <div className="flex gap-4">
+          {/* User Avatar */}
+          <div className="flex-shrink-0 w-12 h-12">
+            {review.user?.image ? (
+              <Image 
+                className="w-full h-full rounded-full object-cover border-2 border-gray-200"
+                src={review.user.image}
+                width={100}
+                height={100}
+                alt="Profile Image"
+              />
+            ) : (
+              <Image 
+                className="w-full h-full rounded-full object-cover border-2 border-gray-200"
+                src="/img/profile.png"
+                width={100}
+                height={100}
+                alt="Default Profile Image"
+              />
+            )}
+          </div>
+
+          {/* Review Content */}
+          <div className="flex-1">
+            <div className="mb-2">
+              <p className="font-semibold text-gray-900">{review.user?.name || 'Anonymous'}</p>
             </div>
-            <div className='w-[95%]'>
-              <div>
-                <p className="font-semibold">{review.user?.name || 'Anonymous'}</p>
-              </div>
-              <p className='italic'>{review.content}</p>
-              <div className='flex items-center gap-4'>
+            <p className="text-gray-700 mb-4 leading-relaxed">{review.content}</p>
+
+            {/* Reactions and Comment Button */}
+            <div className="flex items-center gap-6">
               <Reaction 
                 reviewId={review.id}
                 emojis={review.emojis}
@@ -185,45 +197,58 @@ const handleCommentSubmit = async (reviewId, commentText) => {
                 fire={review.fire}
                 onReact={handleReaction}
               />
-              <div>
+              <button 
+                onClick={() => toggleCommentVisibility(review.id)}
+                className="text-sm text-gray-600 hover:text-blue-600 transition duration-200 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Comment
+              </button>
+            </div>
+
+            {/* Comment Input */}
+            {commentVisibility[review.id] && (
+              <div className="mt-4 flex items-center gap-2">
+                <input 
+                  type="text"
+                  value={commentText[review.id] || ''}
+                  onChange={(e) => setCommentText(prev => ({ ...prev, [review.id]: e.target.value }))}
+                  placeholder="Add a comment..."
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
+                />
                 <button 
-                  onClick={() => toggleCommentVisibility(review.id)} 
-                  className='text-gray-500 text-[0.8rem] mt-5'
+                  onClick={() => handleCommentSubmit(review.id, commentText[review.id])}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
                 >
-                  Comment
+                  Post
                 </button>
               </div>
-              </div>
-              {commentVisibility[review.id] && (
-                <div className='mt-2 w-full flex items-center gap-2'>
-                  <input 
-                    type="text" 
-                    value={commentText[review.id] || ''} // Manage comment text state
-                    onChange={(e) => setCommentText(prev => ({ ...prev, [review.id]: e.target.value }))}
-                    placeholder='Comment your thoughts' 
-                    className='outline-none border-b-2 border-gray-400 w-[90%]'
-                  />
-                  <div>
-                    <button 
-                      onClick={() => handleCommentSubmit(review.id, commentText[review.id])} 
-                      className='bg-blue-500 p-1 text-white text-[0.8rem]'
-                    >
-                      Comment
-                    </button>
+            )}
+
+            {/* Comments List */}
+            {review.comments && review.comments.length > 0 && (
+              <div className="mt-4 space-y-3 pl-12 border-l-2 border-gray-100">
+                {review.comments.map(comment => (
+                  <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm text-gray-900">
+                        {comment.user.name}
+                      </span>
+                      <span className="text-xs text-gray-500">•</span>
+                    </div>
+                    <p className="text-sm text-gray-700">{comment.comment}</p>
                   </div>
-                </div>
-              )}
-              {/* Display existing comments */}
-              {review.comments && review.comments.map(comment => (
-              <div key={comment.id} className="mt-2 ml-6">
-              <p className="text-sm"><strong>{comment.user.name}:</strong> {comment.comment}</p>
+                ))}
               </div>
-              ))}
-            </div>
-          </div>      
-        ))}
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    ))}
+  </div>
+</div>
   );
 };
 

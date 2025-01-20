@@ -14,7 +14,6 @@ const UserReviews = ({id}) => {
         setLoading(false);
         return;
       }
-
       try {
         const response = id ? await fetch(`/api/review?userId=${id}`) : await fetch(`/api/review?userEmail=${session?.user?.email}`) ;
         if (!response.ok) throw new Error('Failed to fetch reviews');

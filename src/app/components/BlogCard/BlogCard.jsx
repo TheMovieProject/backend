@@ -1,12 +1,14 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Calendar, User } from "lucide-react"
 
 const BlogCard = ({ item }) => {
   return (
-    <Link href={`/blog/${item.id}`} className="mt-[0.8rem] flex flex-col lg:flex-row w-full gap-5">
-      <div className='border-2'>
-        {!item.thumbnail ? (
+    <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:scale-105">
+    <Link href={`/blog/${item.id}`}>
+      <div className="relative h-48">
+        {/* {!item.thumbnail ? (
           <Image
             src="img/NoImage.jpg"
             alt="no-image"
@@ -37,9 +39,22 @@ const BlogCard = ({ item }) => {
           )}
         </div>
         <div className="text-[0.9rem] text-gray-600">{item.desc}</div>
-        <div className="border-b-2 border-red-500">Read More</div>
+        <div className="border-b-2 border-red-500">Read More</div> */}
+        <Image src={item.thumbnail || "img/NoImage.jpg"} alt={item.title} layout="fill" objectFit="cover" />
+        </div>
+        <div className="p-6">
+          <h2 className="text-xl font-semibold text-white mb-2 line-clamp-2">{item.title}</h2>
+          <p className="text-gray-400 mb-4 line-clamp-3">{item.description}</p>
+          <div className="flex gap-2 items-center text-sm text-gray-500">
+            <User className="h-4 w-4 mr-1" />
+            <span className="mr-4">{item.author}</span>
+            <Calendar className="h-4 w-4 mr-1" />
+            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+            {/* <span className='text-white'>{item.hashtags}</span> */}
+        </div>
       </div>
     </Link>
+    </div>
   );
 };
 

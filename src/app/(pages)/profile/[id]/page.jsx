@@ -62,71 +62,102 @@ export default function UserProfilePage({ params }) {
 
   return (
     <>
-      <div>
-        <div className="flex items-center p-2 gap-[4rem] mx-auto w-[75%]">
-          {userData?.image ? (
-            <Image
-              className="rounded-[100%] cursor-pointer"
-              src={userData?.image}
-              width={100}
-              height={100}
-              alt="Profile Image"
-            />
-          ) : (
-            <Image
-              className="border-2 border-black rounded-[100%] p-2"
-              src="img/profile.png"
-              width={50}
-              height={50}
-              alt="Profile Image"
-            />
-          )}
-          <div className="profile-info flex items-center justify-between w-full p-2">
-            <p>{userData?.name}</p>
-            {/* <p>{userData?.email}</p> */}
-            <div className='bg-blue-600 text-white py-2 px-4 rounded-md font-semibold'>
-              <button>Follow</button>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Profile Header */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
+          {/* Profile Image */}
+          <div className="shrink-0">
+            {userData?.image ? (
+              <Image
+                className="rounded-full object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
+                src={userData.image}
+                width={120}
+                height={120}
+                alt="Profile Image"
+              />
+            ) : (
+              <Image
+                className="rounded-full border-2 border-gray-200 p-2 transition duration-300 hover:border-blue-200"
+                src="img/profile.png"
+                width={80}
+                height={80}
+                alt="Profile Image"
+              />
+            )}
+          </div>
+
+          {/* User Info and Stats */}
+          <div className="flex-1 w-full">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 text-center md:text-left mb-4 md:mb-0">
+                {userData?.name}
+              </h2>
+              <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg">
+                Follow
+              </button>
             </div>
-            <label className="flex flex-col items-center">
-              <p className="text-[1.5rem]">{blogCount}</p>
-              <p>Blogs or Posts</p>
-            </label>
-            <label className="flex flex-col items-center">
-              <p className="text-[1.5rem]">{reviewCount}</p>
-              <p>Reviews</p>
-            </label>
-            <div className="flex flex-col items-center">
-              <p className="text-[1.5rem]">0</p>
-              <p>Followers</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <p className="text-[1.5rem]">0</p>
-              <p>Following</p>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors">
+                <p className="text-2xl font-bold text-gray-900">{blogCount}</p>
+                <p className="text-sm text-gray-600 font-medium">Blogs</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors">
+                <p className="text-2xl font-bold text-gray-900">{reviewCount}</p>
+                <p className="text-sm text-gray-600 font-medium">Reviews</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors">
+                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm text-gray-600 font-medium">Followers</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors">
+                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm text-gray-600 font-medium">Following</p>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="bg-red-500 flex w-[13%] mt-20 mx-auto justify-between p-5">
-          <div onClick={() => setComponent(false)} className="flex flex-col items-center cursor-pointer">
-            <MdOutlineRateReview size={30} />
-            <p>Review</p>
-          </div>
-          <div onClick={() => setComponent(true)} className="flex flex-col items-center cursor-pointer">
-            <LiaBlogger size={30} />
-            <p>Blog</p>
-          </div>
+      {/* Toggle Buttons */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-1.5 flex gap-3">
+          <button
+            onClick={() => setComponent(false)}
+            className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
+              !component
+                ? 'bg-white text-red-500 shadow-md'
+                : 'text-white hover:bg-white/10'
+            }`}
+          >
+            <MdOutlineRateReview size={24} />
+            <span className="mt-1 font-medium">Review</span>
+          </button>
+          <button
+            onClick={() => setComponent(true)}
+            className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
+              component
+                ? 'bg-white text-red-500 shadow-md'
+                : 'text-white hover:bg-white/10'
+            }`}
+          >
+            <LiaBlogger size={24} />
+            <span className="mt-1 font-medium">Blog</span>
+          </button>
         </div>
+      </div>
 
+      {/* Content Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
         {component ? (
-          <div>
-            <UserBlogs id={id} />
-          </div>
+          <UserBlogs id={id} />
         ) : (
-          <div>
-            <UserReviews id={id} />
-          </div>
+          <UserReviews id={id} />
         )}
       </div>
+    </div>
     </>
   );
 }

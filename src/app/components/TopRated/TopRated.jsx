@@ -1,126 +1,137 @@
 "use client"
-import React, { useEffect, useState } from 'react';
-import requests from '@/app/helpers/Requests';
-import MovieBlock from '../MovieBlock/MovieBlock';
-import Image from 'next/image';
+
+import React, { useEffect, useState } from "react"
+import requests from "@/app/helpers/Requests"
+import MovieBlock from "../MovieBlock/MovieBlock"
+import Image from "next/image"
+
 const genresList = [
-    { id: 28, name: 'Action' },
-    { id: 12, name: 'Adventure' },
-    { id: 16, name: 'Animation' },
-    { id: 35, name: 'Comedy' },
-    { id: 80, name: 'Crime' },
-    { id: 99, name: 'Documentary' },
-    { id: 18, name: 'Drama' },
-    { id: 10751, name: 'Family' },
-    { id: 14, name: 'Fantasy' },
-    { id: 36, name: 'History' },
-    { id: 27, name: 'Horror' },
-    { id: 10402, name: 'Music' },
-    { id: 9648, name: 'Mystery' },
-    { id: 10749, name: 'Romance' },
-    { id: 878, name: 'Science Fiction' },
-    { id: 53, name: 'Thriller' },
-    { id: 10770, name: 'TV Movie' },
-    { id: 10752, name: 'War' },
-    { id: 37, name: 'Western' },
-];
+  { id: 28, name: "Action" },
+  { id: 12, name: "Adventure" },
+  { id: 16, name: "Animation" },
+  { id: 35, name: "Comedy" },
+  { id: 80, name: "Crime" },
+  { id: 99, name: "Documentary" },
+  { id: 18, name: "Drama" },
+  { id: 10751, name: "Family" },
+  { id: 14, name: "Fantasy" },
+  { id: 36, name: "History" },
+  { id: 27, name: "Horror" },
+  { id: 10402, name: "Music" },
+  { id: 9648, name: "Mystery" },
+  { id: 10749, name: "Romance" },
+  { id: 878, name: "Science Fiction" },
+  { id: 53, name: "Thriller" },
+  { id: 10770, name: "TV Movie" },
+  { id: 10752, name: "War" },
+  { id: 37, name: "Western" }, 
+]
 
 const TopRated = () => {
-    const [items, setItems] = useState([]);
-    const [page, setPage] = useState(1);
-    const [selectedGenres, setSelectedGenres] = useState([]);
+  const [items, setItems] = useState([])
+  const [page, setPage] = useState(1)
+  const [selectedGenres, setSelectedGenres] = useState([])
+  const [loading, setLoading] = useState(true)
 
-    const fetchData = async () => {
-        let allItems = [];
-        let page = 1;
-        while (allItems.length <= 100) {
-            const request = await fetch(`${requests.requestTopRated}&page=${page}`);
-            const data = await request.json();
-            allItems = [...allItems, ...data.results];
-            page++;
-        }
-        setItems(allItems.slice(0, 100)); // Make sure to limit to 100 movies
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const MoviesPerPage = 20;
-    let AllPages = [];
-    const totalPages = Math.ceil(items.length / MoviesPerPage);
-    for (let i = 0; i < totalPages; i++) {
-        AllPages.push(i + 1);
+  const fetchData = async () => {
+    setLoading(true)
+    let allItems = []
+    let currentPage = 1
+    while (allItems.length <= 100) {
+      const request = await fetch(`${requests.requestTopRated}&page=${currentPage}`)
+      const data = await request.json()
+      allItems = [...allItems, ...data.results]
+      currentPage++
     }
+    setItems(allItems.slice(0, 100)) // Make sure to limit to 100 movies
+    setLoading(false)
+  }
 
-    let firstIndex = (page - 1) * MoviesPerPage;
-    let lastIndex = page * MoviesPerPage;
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-    // Filter items based on selected genres
-    const filteredItems = selectedGenres.length > 0
-        ? items.filter(item =>
-            item.genre_ids.some(genre => selectedGenres.includes(genre))
-        )
-        : items;
+  const MoviesPerPage = 20
+  const totalPages = Math.ceil(items.length / MoviesPerPage)
+  const AllPages = Array.from({ length: totalPages }, (_, i) => i + 1)
 
-    let currentItems = filteredItems.slice(firstIndex, lastIndex);
+  const firstIndex = (page - 1) * MoviesPerPage
+  const lastIndex = page * MoviesPerPage
 
-    if (items.length === 0)
-        return (
-            <div className='text-center'>
-                <Image width={100} height={100} src='./img/NoImage' alt="No Image" />
-                <p className=''>No Movies Available</p>
-            </div>
-        );
+  // Filter items based on selected genres
+  const filteredItems =
+    selectedGenres.length > 0
+      ? items.filter((item) => item.genre_ids.some((genre) => selectedGenres.includes(genre)))
+      : items
 
-    const handleGenreSelect = (genreId) => {
-        setSelectedGenres(prev =>
-            prev.includes(genreId)
-                ? prev.filter(id => id !== genreId)
-                : [...prev, genreId]
-        );
-    };
+  const currentItems = filteredItems.slice(firstIndex, lastIndex)
 
+  if (loading) {
     return (
-        <div>
-            <h1 className='font-bold text-center'>Top Rated</h1>
+      <div className="flex justify-center items-center h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-white"></div>
+      </div>
+    )
+  }
 
-            {/* Genre Filters */}
-            <div className='flex flex-wrap gap-2 justify-center mb-5'>
-                {genresList.map((genre) => (
-                    <button
-                        key={genre.id}
-                        className={`px-4 py-2 border-2 ${selectedGenres.includes(genre.id) ? 'bg-white text-black' : ''} cursor-pointer`}
-                        onClick={() => handleGenreSelect(genre.id)}
-                    >
-                        {genre.name}
-                    </button>
-                ))}
-            </div>
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
+        <Image width={200} height={200} src="/img/NoImage.png" alt="No Image" className="mb-4" />
+        <p className="text-white text-2xl font-semibold">No Movies Available</p>
+      </div>
+    )
+  }
 
-            {/* Movies Grid */}
-            <div className='grid grid-cols-5 mx-auto w-[80%] gap-5'>
-                {currentItems.map((item, index) => (
-                    <MovieBlock item={item} key={index} />
-                ))}
-            </div>
+  const handleGenreSelect = (genreId) => {
+    setSelectedGenres((prev) => (prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]))
+  }
 
-            {/* Pagination */}
-            <div className='flex items-center font-bold  mx-auto w-[25%] mb-10 mt-10 gap-5'>
-                {AllPages.map((item) => (
-                    <div
-                        key={item}
-                        onClick={() => setPage(item)}
-                        className='border-2  px-4 py-3 cursor-pointer'
-                    >
-                        {item}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
+  return (
+    <div className="min-h-screen bg-gray-900 text-white py-8">
+      <h1 className="text-4xl font-bold text-center mb-8">Top Rated Movies</h1>
 
-export default TopRated;
+      {/* Genre Filters */}
+      <div className="flex flex-wrap gap-2 justify-center mb-8 px-4">
+        {genresList.map((genre) => (
+          <button
+            key={genre.id}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ease-in-out
+                            ${
+                              selectedGenres.includes(genre.id)
+                                ? "bg-red-600 text-white"
+                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            }`}
+            onClick={() => handleGenreSelect(genre.id)}
+          >
+            {genre.name}
+          </button>
+        ))}
+      </div>
 
+      {/* Movies Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6 mx-auto max-w-7xl px-4">
+        {currentItems.map((item, index) => (
+          <MovieBlock item={item} key={index} />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex flex-wrap justify-center items-center mt-12 mb-8 gap-2">
+        {AllPages.map((item) => (
+          <button
+            key={item}
+            onClick={() => setPage(item)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out
+                            ${page === item ? "bg-red-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default TopRated
 
