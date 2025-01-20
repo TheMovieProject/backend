@@ -49,7 +49,16 @@ const Navbar = () => {
                          Liked/Film Collection
                         </Link>
                     </li>
+
                     <li className='cursor-pointer'>About</li>
+                    <li className='cursor-pointer'>
+                        <Link href='poll' onClick={(e) => {
+                   e.preventDefault(); // Prevent the default link behavior // Trigger a reload
+                   window.location.href = '/poll';
+                   }}>
+                         Poll
+                        </Link>
+                    </li>
                     <li><Link href='/profile' className='cursor-pointer'>Profile</Link></li>
                     <li className='cursor-pointer'><Link href='/write' className='cursor-pointer'>Write</Link></li>
                     <li><Logout /></li>

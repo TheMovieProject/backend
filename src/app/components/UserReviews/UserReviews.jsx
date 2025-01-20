@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-const UserReviews = () => {
+const UserReviews = ({id}) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,9 +16,10 @@ const UserReviews = () => {
       }
 
       try {
-        const response = await fetch(`/api/review?userEmail=${session?.user?.email}`);
+        const response = id ? await fetch(`/api/review?userId=${id}`) : await fetch(`/api/review?userEmail=${session?.user?.email}`) ;
         if (!response.ok) throw new Error('Failed to fetch reviews');
         const data = await response.json();
+        console.log(data)
         setReviews(data);
       } catch (err) {
         setError(err.message);
@@ -26,6 +27,8 @@ const UserReviews = () => {
         setLoading(false);
       }
     };
+
+    // console.log(reviews[0].movie.posterUrl)
 
     fetchUserReviews();
   }, [session, status]);
@@ -45,6 +48,7 @@ const UserReviews = () => {
       </div>
     );
   }
+  
 
   return (
     <div className="space-y-6 p-4">
@@ -57,13 +61,21 @@ const UserReviews = () => {
           {reviews.map((review) => (
             <div key={review.id} className="flex flex-col bg-white rounded-lg shadow-md p-4">
               {/* Movie Poster */}
+              { review.movie.posterUrl?
               <Image
                 src={review.movie.posterUrl}
                 alt={review.movie.title}
                 className="w-full h-48 object-cover rounded-md mb-4"
                 width={200}
                 height={200}
+              />:
+              <Image
+              src='/img/NoImage.jpg'
+              alt='no image'
+              width={200}
+              height={200}
               />
+            }
               
               {/* Movie Title */}
               <h3 className="text-lg font-semibold mb-2">{review.movie.title}</h3>
@@ -84,3 +96,4 @@ const UserReviews = () => {
 };
 
 export default UserReviews;
+

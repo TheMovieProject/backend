@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
-
-
+import Link from 'next/link';
+import AuthorInfo from '@/app/components/AuthorInfo/author'
 // Separate data fetching function
 const getData = async (id) => {
   try {
@@ -57,33 +57,7 @@ const BlogPostPage = async ({ params }) => {
           <div className='prose max-w-none' dangerouslySetInnerHTML={createMarkup()} />
 
           {/* Author Info */}
-          <div className="flex gap-3 items-center">
-            {data.user?.image ? (
-              <Image
-                className='rounded-full object-cover'
-                src={data.user.image}
-                alt={data.user.name || 'Author'}
-                width={35}
-                height={35}
-              />
-            ) : (
-              <Image
-              className='rounded-full object-cover'
-              src='img/NoImage.jpg'
-              alt={data.user.name || 'Author'}
-              width={35}
-              height={35}
-            />
-            )}
-            
-            <div className='flex flex-col gap-1 text-sm font-medium'>
-              <p className="font-bold">{data.userEmail}</p>
-              <p className="text-gray-600">
-                {new Date(data.createdAt).toLocaleDateString()}
-              </p>
-              <p className="text-gray-600">Views: {data.views}</p>
-            </div>
-          </div>
+           <AuthorInfo data={data}/>
         </div>
 
         {/* Image Section */}

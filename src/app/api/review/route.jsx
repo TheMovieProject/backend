@@ -35,6 +35,7 @@ export async function GET(req) {
         const url = new URL(req.url);
         const tmdbId = url.searchParams.get("movieId");
         const userEmail = url.searchParams.get("userEmail");
+        const userId = url.searchParams.get("userId");
 
         // Build filters dynamically
         const filters = {};
@@ -45,6 +46,9 @@ export async function GET(req) {
         if (userEmail) {
             filters.user = { email: userEmail }; // Use nested filtering for user's email
         }
+        if (userId) {
+            filters.userId = userId; // Add direct userId filter
+        }
 
         if (Object.keys(filters).length === 0) {
             return new Response("Missing filter parameters", { status: 400 });
@@ -54,8 +58,8 @@ export async function GET(req) {
         const reviews = await prisma.review.findMany({
             where: filters,
             include: {
-                user: true, // Include user information
-                movie:true,
+                user: true,
+                movie: true,
             },
         });
 
