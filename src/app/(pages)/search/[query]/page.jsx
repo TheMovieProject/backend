@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import MovieBlock from "@/app/components/MovieBlock/MovieBlock"
@@ -55,30 +54,38 @@ const SearchedItems = () => {
     <div className="bg-gray-900 text-white p-4 md:p-6 lg:p-8 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 text-center lg:text-left">
-          {items.length} results for <span className="text-blue-500">{query}</span>
+          {items.length} {items.length === 1 ? "result" : "results"} for <span className="text-blue-500">{query}</span>
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out"
-            >
-              <div className="relative aspect-video">
-                <MovieBlock item={item} />
-              </div>
-              <div className="p-4">
-                <h2 className="text-lg md:text-xl font-bold text-blue-400 mb-2 line-clamp-1">{item.original_title}</h2>
-                <p className="text-sm text-gray-300 mb-4 line-clamp-3">{item.overview}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Release: {item.release_date}</span>
-                  <span className="text-sm bg-blue-600 px-2 py-1 rounded">Rating: {item.vote_average.toFixed(1)}</span>
+        {items.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out"
+              >
+                <div className="relative aspect-video">
+                  <MovieBlock item={item} />
+                </div>
+                <div className="p-4">
+                  <h2 className="text-lg md:text-xl font-bold text-blue-400 mb-2 line-clamp-1">
+                    {item.original_title}
+                  </h2>
+                  <p className="text-sm text-gray-300 mb-4 line-clamp-3">{item.overview}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Release: {item.release_date}</span>
+                    <span className="text-sm bg-blue-600 px-2 py-1 rounded">
+                      Rating: {item.vote_average.toFixed(1)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-        {items.length === 0 && (
-          <p className="text-center text-xl mt-8">No results found for "{query}". Try a different search term.</p>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-xl mt-8 mb-4">No results found for {query}.</p>
+            <p className="text-lg">Try a different search term or check your spelling.</p>
+          </div>
         )}
       </div>
     </div>
@@ -86,6 +93,3 @@ const SearchedItems = () => {
 }
 
 export default SearchedItems
-
-
-
