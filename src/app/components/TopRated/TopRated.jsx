@@ -24,12 +24,11 @@ const genresList = [
   { id: 53, name: "Thriller" },
   { id: 10770, name: "TV Movie" },
   { id: 10752, name: "War" },
-  { id: 37, name: "Western" }, 
+  { id: 37, name: "Western" },
 ]
 
 const TopRated = () => {
   const [items, setItems] = useState([])
-  const [page, setPage] = useState(1)
   const [selectedGenres, setSelectedGenres] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -43,7 +42,7 @@ const TopRated = () => {
       allItems = [...allItems, ...data.results]
       currentPage++
     }
-    setItems(allItems.slice(0, 100)) // Make sure to limit to 100 movies
+    setItems(allItems.slice(0, 100)) // Limit to 100 movies
     setLoading(false)
   }
 
@@ -51,20 +50,10 @@ const TopRated = () => {
     fetchData()
   }, [])
 
-  const MoviesPerPage = 20
-  const totalPages = Math.ceil(items.length / MoviesPerPage)
-  const AllPages = Array.from({ length: totalPages }, (_, i) => i + 1)
-
-  const firstIndex = (page - 1) * MoviesPerPage
-  const lastIndex = page * MoviesPerPage
-
-  // Filter items based on selected genres
   const filteredItems =
     selectedGenres.length > 0
       ? items.filter((item) => item.genre_ids.some((genre) => selectedGenres.includes(genre)))
       : items
-
-  const currentItems = filteredItems.slice(firstIndex, lastIndex)
 
   if (loading) {
     return (
@@ -110,23 +99,9 @@ const TopRated = () => {
       </div>
 
       {/* Movies Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6 mx-auto max-w-7xl px-4">
-        {currentItems.map((item, index) => (
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-6 mx-auto max-w-7xl px-4">
+        {filteredItems.map((item, index) => (
           <MovieBlock item={item} key={index} />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex flex-wrap justify-center items-center mt-12 mb-8 gap-2">
-        {AllPages.map((item) => (
-          <button
-            key={item}
-            onClick={() => setPage(item)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out
-                            ${page === item ? "bg-red-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-          >
-            {item}
-          </button>
         ))}
       </div>
     </div>
@@ -134,4 +109,3 @@ const TopRated = () => {
 }
 
 export default TopRated
-

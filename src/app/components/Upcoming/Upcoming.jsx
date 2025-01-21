@@ -3,11 +3,10 @@
 import React, { useEffect, useState } from "react"
 import requests from "@/app/helpers/Requests"
 import MovieBlock from "../MovieBlock/MovieBlock"
-import Image from "next/image" 
+import Image from "next/image"
 
 const Upcoming = () => {
   const [items, setItems] = useState([])
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -35,13 +34,6 @@ const Upcoming = () => {
     getData()
   }, [])
 
-  const ItemsPerPage = 20
-  const firstIndex = (page - 1) * ItemsPerPage
-  const lastIndex = page * ItemsPerPage
-  const NumberofPages = Math.ceil(items.length / ItemsPerPage)
-  const AllPages = Array.from({ length: NumberofPages }, (_, i) => i + 1)
-  const currentItems = items.slice(firstIndex, lastIndex)
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-900">
@@ -68,30 +60,11 @@ const Upcoming = () => {
           <p className="text-white text-2xl font-semibold">No Upcoming Movies Available</p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6 mx-auto max-w-7xl px-4">
-            {currentItems.map((item, index) => (
-              <MovieBlock item={item} key={index} />
-            ))}
-          </div>
-
-          <div className="flex flex-wrap justify-center items-center mt-12 mb-8 gap-2">
-            {AllPages.map((pageNum) => (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out
-                                    ${
-                                      page === pageNum
-                                        ? "bg-red-600 text-white"
-                                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                    }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-6 mx-auto max-w-7xl px-4">
+          {items.map((item, index) => (
+            <MovieBlock item={item} key={index} /> 
+          ))}
+        </div>
       )}
     </div>
   )
