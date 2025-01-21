@@ -1,43 +1,42 @@
-"use client"
-
-import React, { useState, useEffect } from "react"
-import Link from "next/link"
-import { signIn, useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import toast from "react-hot-toast"
+"use client";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 const LoginPage = () => {
-  const session = useSession()
-  const router = useRouter()
+  const { status } = useSession();
+  const router = useRouter();
   const [user, setUser] = useState({
     email: "",
     password: "",
-  })
+  });
 
   useEffect(() => {
-    if (session.status === "authenticated") {
-      router.push("/profile")
+    if (status === "authenticated") {
+      router.push("/profile");
     }
-  }, [session, router])
+  }, [status, router]);
 
   const userLogin = async (e) => {
-    e.preventDefault()
-    const result = await signIn("credentials", { ...user, redirect: false })
+    e.preventDefault();
+    const result = await signIn("credentials", { ...user, redirect: false });
 
     if (result?.error) {
-      toast.error("Login failed: " + result.error)
+      toast.error("Login failed: " + result.error);
     } else {
-      toast.success("Login successful!")
-      router.push("/profile")
+      toast.success("Login successful!");
+      router.push("/profile");
     }
-  }
+  };
 
   const googleLogin = () => {
     signIn("google", {
       callbackUrl: "/profile",
       redirect: true,
-    })
-  }
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -93,8 +92,7 @@ const LoginPage = () => {
         </p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
-
+export default LoginPage;
