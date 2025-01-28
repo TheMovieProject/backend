@@ -28,45 +28,47 @@ export default function LikedListClient({ initialLikedList = [] }) {
     }
 
     return (
-        <div>
-            <h1 className="text-white text-2xl mb-4">Your Liked List</h1>
-            <p>You have {likedList.length} movies you liked!!!</p>
+        <div className="bg-gray-900 h-screen text-white p-6 shadow-md w-full mx-auto">
+            <h1 className="text-3xl font-bold mb-6 text-center">Your Liked List</h1>
             <p className="text-lg text-gray-300 text-center mb-8">
-            {likedList.length > 0 
-            ? `You liked ${likedList.length} movies!!!` 
-               : "Your liked list is empty."}
+                {likedList.length > 0 
+                    ? `You liked ${likedList.length} movies!!!` 
+                    : "Your liked list is empty."}
             </p>
-            {likedList.length > 0 && (<div className="grid grid-cols-5 gap-2 p-5">
-                {likedList.length > 0 ? (
-                    likedList.map((item) => (
-                        <div key={item.id} className="relative">
-                            <Link href={`/movies/${item.movie.tmdbId}`}>
-                                <div className="relative h-[18rem] w-[12rem]">
+
+            {likedList.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+                    {likedList.map((item) => (
+                        <div 
+                            key={item.id} 
+                            className="relative group rounded-lg overflow-hidden shadow-lg transform transition-transform duration-200 hover:scale-105"
+                        >
+                            <Link href={`/movies/${item.movie.tmdbId}`} passHref>
+                                <div className="relative h-[18rem] w-full">
                                     <Image
-                                        width={100}
-                                        height={100}
-                                        className="absolute inset-0 h-full w-full object-cover"
+                                        width={300}
+                                        height={200}
+                                        className="absolute inset-0 h-full w-full object-cover rounded-lg"
                                         src={item.movie.posterUrl}
                                         alt={item.movie.title || "Movie Image"}
                                     />
-                                    <div className="absolute inset-0 hover:bg-black hover:bg-opacity-50 flex items-end justify-center p-2">
-                                        <button 
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity duration-200 flex items-end justify-center p-4">
+                                        <button
                                             onClick={(e) => {
                                                 e.preventDefault(); // Prevent navigation
                                                 removeFromLikedList(item.movieId);
-                                            }} 
-                                            className="bg-red-500 text-white px-2 py-1">
+                                            }}
+                                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md shadow-md"
+                                        >
                                             Remove From Liked List
                                         </button>
                                     </div>
                                 </div>
                             </Link>
                         </div>
-                    ))
-                ) : (
-                    <p className="text-white">Your liked list is empty.</p>
-                )}
-            </div>)}
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
