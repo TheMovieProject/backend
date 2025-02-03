@@ -102,6 +102,7 @@ model User {
   image         String?
   avatarUrl     String?
   emailVerified DateTime?
+  movieGenres   String[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   accounts      Account[]
@@ -112,6 +113,7 @@ model User {
   reviewComment reviewComment[] // relationship to reviewComments
   blogs         Blog[]         // Relationship to blogs
   blogComments  BlogComment[]  // Relationship to blog comments
+
 
 
   // other fields...

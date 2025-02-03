@@ -16,14 +16,13 @@ export default function UserProfilePage({ params }) {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch(`/api/profile/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch user data');
+      const response = await fetch(`/api/user/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch user data'); 
       const data = await response.json();
       console.log(data)
-      console.log(data.id)
       setUserData(data);
     } catch (err) {
-      console.error('Error fetching user data:', err);
+      console.error('Error fetching user data:', err); 
     }
   };
 
@@ -41,7 +40,7 @@ export default function UserProfilePage({ params }) {
 
   const fetchBlogCount = async () => {
     try {
-      const response = await fetch(`/api/blog?userEmail=${userData.email}`);
+      const response = await fetch(`/api/blog?userEmail=${userData?.email}`);
       if (!response.ok) throw new Error('Failed to fetch blog count');
       const data = await response.json();
       setBlogCount(data.length);
@@ -70,18 +69,18 @@ export default function UserProfilePage({ params }) {
           <div className="shrink-0">
             {userData?.image ? (
               <Image
-                className="rounded-full object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
-                src={userData.image}
+                className="rounded-full w-[10rem] h-[10rem] object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
+                src={userData.avatarUrl ? `${userData.avatarUrl}` :`${userData.image}`}
                 width={120}
-                height={120}
+                height={220}
                 alt="Profile Image"
               />
             ) : (
               <Image
-                className="rounded-full border-2 border-gray-200 p-2 transition duration-300 hover:border-blue-200"
+                className="rounded-full w-[2rem] h-[2rem] border-2 border-gray-200 p-2 transition duration-300 hover:border-blue-200"
                 src="img/profile.png"
-                width={80}
-                height={80}
+                width={100}
+                height={200}
                 alt="Profile Image"
               />
             )}
@@ -90,9 +89,21 @@ export default function UserProfilePage({ params }) {
           {/* User Info and Stats */}
           <div className="flex-1 w-full">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+              <div className='flex flex-col'>
               <h2 className="text-2xl font-bold text-gray-900 text-center md:text-left mb-4 md:mb-0">
-                {userData?.name}
+                {userData.username ? userData.username : userData.email}
               </h2>
+              <h3>
+                {userData.bio ? userData.bio : ""}
+              </h3>
+              {userData? <div className='flex gap-2'>Fav genres :{userData.movieGenres.map((item)=>(
+                    <>
+                    <div>
+                      {item}
+                    </div>
+                    </>
+                  ))}</div> : ''}
+              </div>
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg">
                 Follow
               </button>

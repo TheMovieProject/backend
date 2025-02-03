@@ -74,7 +74,7 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         // Fetch session and user
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession(authOptions); 
         const user = await getUser(session);
 
         // Parse request body

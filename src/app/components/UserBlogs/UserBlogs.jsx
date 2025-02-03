@@ -30,10 +30,12 @@ const UserBlogs = ({ id }) => {
           }
           userData = await userDetailsResponse.json();
           setUserDetails(userData);
+          console.log(userData)
         }
 
         // If no ID provided or fetching user details failed, use session user
         const emailToFetch = userData?.email || session?.user?.email;
+        console.log(emailToFetch)
         
         if (!emailToFetch) {
           throw new Error('No user email available');
@@ -86,7 +88,7 @@ const UserBlogs = ({ id }) => {
   return (
     <div className="space-y-6 p-4">
       <h1 className="text-2xl font-bold mb-6">
-        {userDetails ? `${userDetails.name}'s Blog Posts` : 'Your Blog Posts'}
+        {userDetails ? `${userDetails.username}'s Blog Posts` : 'Your Blog Posts'}
       </h1>
       {blogs.length === 0 ? (
         <p className="text-gray-500">No blogs found.</p>

@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { email, name, username, password } = body;
+    const { email, name, username, password , bio , avatarUrl } = body;
 
     // Validate input fields
     if (!name || !email || !password) {
@@ -33,6 +33,8 @@ export async function POST(request) {
         email,
         username,
         password: hashedPassword,
+        bio,
+        avatarUrl
       },
     });
 
