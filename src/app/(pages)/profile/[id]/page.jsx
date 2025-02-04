@@ -67,7 +67,7 @@ export default function UserProfilePage({ params }) {
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
           {/* Profile Image */}
           <div className="shrink-0">
-            {userData?.image ? (
+            {userData ? (
               <Image
                 className="rounded-full w-[10rem] h-[10rem] object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
                 src={userData.avatarUrl ? `${userData.avatarUrl}` :`${userData.image}`}
@@ -77,9 +77,9 @@ export default function UserProfilePage({ params }) {
               />
             ) : (
               <Image
-                className="rounded-full w-[2rem] h-[2rem] border-2 border-gray-200 p-2 transition duration-300 hover:border-blue-200"
+                className="rounded-full w-[10rem] h-[10rem] border-2 border-gray-200 p-2 transition duration-300 hover:border-blue-200"
                 src="img/profile.png"
-                width={100}
+                width={200}
                 height={200}
                 alt="Profile Image"
               />

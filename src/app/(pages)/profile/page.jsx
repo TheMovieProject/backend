@@ -82,7 +82,7 @@ export default function Page() {
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
             {/* Profile Image */}
             <div className="shrink-0">
-                        {userData?.image ? (
+                        {userData ? (
                           <Image
                             className="rounded-full w-[10rem] h-[10rem] object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
                             src={userData.avatarUrl ? `${userData.avatarUrl}` :`${userData.image}`}
