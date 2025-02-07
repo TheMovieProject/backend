@@ -93,30 +93,44 @@ model Movie {
 }
 
 model User {
-  id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  username      String?
-  email         String      @unique
-  password      String?
-  bio           String?
-  image         String?
-  avatarUrl     String?
-  emailVerified DateTime?
-  movieGenres   String[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  accounts      Account[]
-  watchlist     Watchlist[]
-  liked         Liked[]
-  ratings       Rating[]
-  reviews       Review[]    // Relationship to reviews
-  reviewComment reviewComment[] // relationship to reviewComments
-  blogs         Blog[]         // Relationship to blogs
-  blogComments  BlogComment[]  // Relationship to blog comments
+ id                     String         @id @default(auto()) @map("_id") @db.ObjectId
+ name                   String
+ username               String?
+ email                  String         @unique
+ password               String?
+ bio                    String?
+ image                  String?
+ avatarUrl             String?
+ emailVerified         DateTime?
+ movieGenres           String[]
+ createdAt             DateTime        @default(now())
+ updatedAt             DateTime        @updatedAt
+ accounts              Account[]
+ watchlist             Watchlist[]
+ liked                 Liked[]
+ ratings               Rating[]
+ reviews               Review[]
+ reviewComment         reviewComment[]
+ blogs                 Blog[]
+ blogComments          BlogComment[]
 
+ // Follower relationships
+ followedBy            Follow[]        @relation("followers")
+ following             Follow[]        @relation("following")
 
+}
 
-  // other fields...
+model Follow {
+ id          String   @id @default(auto()) @map("_id") @db.ObjectId
+ follower    User     @relation("following", fields: [followerId], references: [id])
+ followerId  String   @db.ObjectId
+ following   User     @relation("followers", fields: [followingId], references: [id]) 
+ followingId String   @db.ObjectId
+ createdAt   DateTime @default(now())
+
+ @@unique([followerId, followingId])
+ @@index([followerId])
+ @@index([followingId])
 }
 
 model Account {

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { Menu, X, Search } from "lucide-react"
 import Logout from "../Logout/Logout"
+import NotificationBell from '../Notification/Notification'
 
 const Navbar = () => {
   const [query, setQuery] = useState("")
@@ -18,7 +19,7 @@ const Navbar = () => {
     { href: "/", label: "Home" },
     { href: "/watchlist", label: "Watchlist" },
     { href: "/liked", label: "Liked/Film Collection" },
-    {href: "", label: "Notifications" },
+    {href: "", label: <NotificationBell/> },
     { href: "/poll", label: "Poll" },
     { href: "/profile", label: "Profile" },
     { href: "/write", label: "Write" },
