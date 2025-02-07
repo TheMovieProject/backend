@@ -93,12 +93,19 @@ export default function UserProfilePage({ params }) {
 
   const fetchBlogCount = async () => {
     try {
-      const response = await fetch(`/api/blog?userId=${id}`);
-      if (!response.ok) throw new Error('Failed to fetch blog count');
+      // Only proceed if we have userData and email
+      if (!userData?.email) {
+        console.log('Waiting for user email data...');
+        return;
+      }
+  
+      const response = await fetch(`/api/blog?userEmail=${userData.email}`);
+      if (!response.ok) throw new Error('Failed to fetch blog count'); 
       const data = await response.json();
       setBlogCount(data.length);
     } catch (err) {
       console.error('Error fetching blog count:', err);
+      toast.error('Failed to load blog count');
     }
   };
 
@@ -169,11 +176,17 @@ export default function UserProfilePage({ params }) {
       Promise.all([
         fetchUserData(),
         fetchReviewCount(),
-        fetchBlogCount(),
         fetchFollowData()
       ]);
     }
   }, [id, status]);
+
+    // Add a separate useEffect for blog count that depends on userData
+    useEffect(() => {
+      if (userData?.email) {
+        fetchBlogCount();
+      }
+    }, [userData]);
 
   if (status === 'loading' || !userData) {
     return (
