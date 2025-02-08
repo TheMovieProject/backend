@@ -173,7 +173,7 @@ const Page = () => {
           <label className="block text-sm font-medium mb-2">Hashtags</label>
           <input
             type="text"
-            placeholder="#nextjs #react"
+            placeholder="#thriller #mystery"
             className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             value={hashtags}
             onChange={(e) => setHashtags(e.target.value)}

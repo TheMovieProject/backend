@@ -10,7 +10,7 @@ const UserReviews = ({id}) => {
 
   useEffect(() => {
     const fetchUserReviews = async () => {
-      if (status !== 'authenticated' || !session?.user?.email) {
+      if (status !== 'authenticated' || !session?.user?.email) { 
         setLoading(false);
         return;
       }
