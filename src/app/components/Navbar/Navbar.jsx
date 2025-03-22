@@ -19,10 +19,11 @@ const Navbar = () => {
     { href: "/", label: "Home" },
     { href: "/watchlist", label: "Watchlist" },
     { href: "/liked", label: "Liked/Film Collection" },
-    {href: "", label: <NotificationBell/> },
+    // {href: "", label: <NotificationBell/> },
     { href: "/poll", label: "Poll" },
     { href: "/profile", label: "Profile" },
     { href: "/write", label: "Write" },
+    {href:"/future", label:"THE FUTURE"},
   ]
 
   return (

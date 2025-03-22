@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Reaction from '../Reactions/Reactions'; // Import the Reaction component
+import Link from 'next/link';
 
 const Review = ({ movieId }) => {
   const [reviews, setReviews] = useState([]);
@@ -19,6 +20,7 @@ const Review = ({ movieId }) => {
         }
         const data = await response.json();
         setReviews(data);
+        console.log(data)
       } catch (error) {
         console.error(error);
       } finally {
@@ -161,11 +163,11 @@ const handleCommentSubmit = async (reviewId, commentText) => {
       <div key={review.id} className="px-6 py-4 hover:bg-gray-50 transition duration-200 border-b border-gray-100">
         <div className="flex gap-4">
           {/* User Avatar */}
-          <div className="flex-shrink-0 w-12 h-12">
-            {review.user?.image ? (
+          <Link href={`/profile/${review.user?.id}`} className="flex-shrink-0 w-12 h-12">
+            {review.user?.avatarUrl ? (
               <Image 
                 className="w-full h-full rounded-full object-cover border-2 border-gray-200"
-                src={review.user.image}
+                src={review.user?.avatarUrl}
                 width={100}
                 height={100}
                 alt="Profile Image"
@@ -173,18 +175,18 @@ const handleCommentSubmit = async (reviewId, commentText) => {
             ) : (
               <Image 
                 className="w-full h-full rounded-full object-cover border-2 border-gray-200"
-                src="/img/profile.png"
+                src={review.user?.image}
                 width={100}
                 height={100}
                 alt="Default Profile Image"
               />
             )}
-          </div>
+          </Link>
 
           {/* Review Content */}
           <div className="flex-1">
             <div className="mb-2">
-              <p className="font-semibold text-gray-900">{review.user?.name || 'Anonymous'}</p>
+              <p className="font-semibold text-gray-900">{review.user?.username || 'Anonymous'}</p>
             </div>
             <p className="text-gray-700 mb-4 leading-relaxed">{review.content}</p>
 

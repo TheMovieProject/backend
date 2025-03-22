@@ -290,12 +290,12 @@ export default function UserProfilePage({ params }) {
         </div>
 
         <div className="flex justify-center mb-8">
-          <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-1.5 flex gap-3">
+          <div className="bg-gray-200 text-black rounded-lg p-1.5 flex gap-3">
             <button
               onClick={() => setComponent('reviews')}
               className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
                 component === 'reviews'
-                  ? 'bg-white text-red-500 shadow-md'
+                  ? 'bg-white shadow-md'
                   : 'text-white hover:bg-white/10'
               }`}
             >
@@ -306,8 +306,8 @@ export default function UserProfilePage({ params }) {
               onClick={() => setComponent('blogs')}
               className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
                 component === 'blogs'
-                  ? 'bg-white text-red-500 shadow-md'
-                  : 'text-white hover:bg-white/10'
+                  ? 'bg-white  shadow-md'
+                  : 'text-black hover:bg-white/10'
               }`}
             >
               <LiaBlogger size={24} />

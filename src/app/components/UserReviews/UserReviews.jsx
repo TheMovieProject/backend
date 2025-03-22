@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
+import Link from 'next/link';
 const UserReviews = ({id}) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,9 +59,9 @@ const UserReviews = ({id}) => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
-            <div key={review.id} className="flex flex-col bg-white rounded-lg shadow-md p-4">
+            <Link href={`/movies/${review.movie.tmdbId}`} key={review.id} className="flex flex-col bg-white rounded-lg shadow-md p-4">
               {/* Movie Poster */}
-              { review.movie.posterUrl?
+              {review.movie?
               <Image
                 src={review.movie.posterUrl}
                 alt={review.movie.title}
@@ -69,7 +70,7 @@ const UserReviews = ({id}) => {
                 height={200}
               />:
               <Image
-              src='/img/NoImage.jpg'
+              src='img/NoImage'
               alt='no image'
               width={200}
               height={200}
@@ -86,7 +87,7 @@ const UserReviews = ({id}) => {
               
               {/* Review Content */}
               <p className="text-gray-700">{review.content}</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
@@ -95,4 +96,3 @@ const UserReviews = ({id}) => {
 };
 
 export default UserReviews;
-
