@@ -1,36 +1,30 @@
-// components/Reaction.js
+"use client"
 
-import React from 'react';
-import { BsEmojiLaughing } from 'react-icons/bs';
-import { CiHeart } from 'react-icons/ci';
-import { AiOutlineFire } from 'react-icons/ai';
+const Reaction = ({ reviewId, emojis, likes, fire, onReact, className }) => {
+  const handleLike = () => {
+    onReact(reviewId, "like")
+  }
 
-const Reaction = ({ reviewId, emojis, likes, fire, onReact }) => {
+  const handleFire = () => {
+    onReact(reviewId, "fire")
+  }
+
+  const handleEmoji = (emojiType) => {
+    onReact(reviewId, emojiType)
+  }
+
   return (
-    <div className='flex items-center gap-4 mt-5'>
-      <div
-        className='cursor-pointer flex items-center'
-        onClick={() => onReact(reviewId, 'emojis')}
-      >
-        <BsEmojiLaughing size={15} />
-        <span className="ml-1">{emojis || 0}</span>
-      </div>
-      <div
-        className='cursor-pointer flex items-center'
-        onClick={() => onReact(reviewId, 'likes')}
-      >
-        <CiHeart size={17} />
-        <span className="ml-1">{likes || 0}</span>
-      </div>
-      <div
-        className='cursor-pointer flex items-center'
-        onClick={() => onReact(reviewId, 'fire')}
-      >
-        <AiOutlineFire size={15} />
-        <span className="ml-1">{fire || 0}</span>
-      </div>
+    <div className={`flex items-center gap-3 ${className}`}>
+      <button onClick={handleLike} className="flex items-center gap-1 hover:text-blue-600 transition duration-200">
+        👍 {likes || 0}
+      </button>
+      <button onClick={handleFire} className="flex items-center gap-1 hover:text-red-600 transition duration-200">
+        🔥 {fire || 0}
+      </button>
     </div>
-  );
-};
+  )
+}
 
-export default Reaction;
+export default Reaction
+
+

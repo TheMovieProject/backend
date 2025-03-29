@@ -69,39 +69,31 @@ export async function GET(req) {
     try {
         const url = new URL(req.url);
         const tmdbId = url.searchParams.get("movieId");
-        const userEmail = url.searchParams.get("userEmail");
-        const userId = url.searchParams.get("userId");
 
-        // Build filters dynamically
-        const filters = {};
-        if (tmdbId) {
-            const movie = await getOrCreateMovie(tmdbId);
-            filters.movieId = movie.id;
-        }
-        if (userEmail) {
-            filters.user = { email: userEmail }; // Use nested filtering for user's email
-        }
-        if (userId) {
-            filters.userId = userId; // Add direct userId filter
-        }
-
-        if (Object.keys(filters).length === 0) {
-            return new Response("Missing filter parameters", { status: 400 });
-        }
-
-        // Fetch reviews with user data
         const reviews = await prisma.review.findMany({
-            where: filters,
+            where: { movie: { tmdbId } },
             include: {
                 user: true,
-                movie: true,
+                reviewComments: {  // Add this include
+                    include: {
+                        user: true,
+                        childComments: {
+                            include: {
+                                user: true
+                            }
+                        }
+                    },
+                    orderBy: {
+                        createdAt: 'asc'
+                    }
+                }
             },
         });
 
         return new Response(JSON.stringify(reviews), { status: 200 });
     } catch (error) {
         console.error("Error in GET function:", error);
-        return new Response(error.message, { status: error.message === "Unauthorized" ? 401 : 500 });
+        return new Response(error.message, { status: 500 });
     }
 }
 

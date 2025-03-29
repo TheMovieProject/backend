@@ -31,6 +31,23 @@ model Liked {
   @@unique([userId, movieId])
 }
 
+// Add this new model to your schema.prisma file
+model EntityReaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  entityId    String   @db.ObjectId
+  entityType  String   // "review", "blog", etc.
+  reactionType String  // "likes", "fire", etc.
+  createdAt   DateTime @default(now())
+  
+  // Relation to user
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, entityId, entityType, reactionType])
+  @@index([entityId, entityType])
+  @@index([userId])
+}
+
 model Rating {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   value     Float
@@ -44,21 +61,24 @@ model Rating {
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
 }
-
+ 
 model Review {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   content   String
   userId    String    @db.ObjectId
   movieId   String    @db.ObjectId
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime @updatedAt
+
+  // Relations
   user      User      @relation(fields: [userId], references: [id])
   movie     Movie     @relation(fields: [movieId], references: [id])
+  reviewComments reviewComment[] 
+
+  // Engagement Metrics
   likes      Int       @default(0)
-  emojis     Int       @default(0)
   fire       Int       @default(0)
-  popularity Int       @default(0) 
-  reviewComment reviewComment[] //review comments 
+  popularity Int       @default(0)
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
 }
@@ -68,17 +88,21 @@ model reviewComment {
   comment   String
   userId    String   @db.ObjectId
   reviewId  String   @db.ObjectId
+  parentId  String?  @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relations
   user      User     @relation(fields: [userId], references: [id])
   review    Review   @relation(fields: [reviewId], references: [id])
+  
+  // Self-referencing relation (Fix: Add `onDelete` and `onUpdate`)
+  parentComment reviewComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childComments reviewComment[] @relation("CommentReplies")
 
-  @@index([reviewId]) // Adding an index for quicker lookups by reviewId
+  @@index([reviewId])
+  @@index([parentId])
 }
-
-
 model Movie {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   tmdbId    String   @unique
@@ -113,6 +137,8 @@ model User {
  reviewComment         reviewComment[]
  blogs                 Blog[]
  blogComments          BlogComment[]
+
+ entityReactions EntityReaction[]
 
  // Follower relationships
  followedBy            Follow[]        @relation("followers")
