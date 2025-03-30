@@ -4,11 +4,12 @@ import TopRated from '@/app/components/TopRated/TopRated'
 import Upcoming from '@/app/components/Upcoming/Upcoming'
 import Blogs from '@/app/components/Blogs/blogs'
 import RecentActivity from '@/app/components/RecentActivity/RecentActivity'
+import UserFeed from '@/app/components/UserFeed/UserFeed'
 const HomePage = () => {
   return (
     <div>
       <Hero />
-      <RecentActivity/>
+      <UserFeed/>
       <TopRated />
       <Upcoming />
       <Blogs/>

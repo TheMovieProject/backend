@@ -188,10 +188,11 @@ model Blog {
   updatedAt   DateTime       @updatedAt
   tags        String[]       // Tags like ['Review', 'Art', 'Drama']
   thumbnail   String?        // Optional cover image for the blog
-  likes       Int           @default(0) // Number of likes
+  likes      Int             @default(0)
+  fire       Int             @default(0)
   views       Int           @default(0)
   comments    BlogComment[]  // Relationship to comments
-  
+
   // Relations
   userEmail   String
   user        User          @relation(fields: [userEmail], references: [email])
@@ -205,9 +206,15 @@ model BlogComment {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  // **New Fields**
+  // likes       Int           @default(0)  // Likes on comments
+  taggedUsers String[] @db.ObjectId
+     // Stores @mentions (e.g., ["john_doe", "jane_smith"])
+
   // Relations
   user        User           @relation(fields: [userId], references: [id])
   blog        Blog           @relation(fields: [blogId], references: [id])
 
+  
   @@index([blogId]) // Adding an index for quicker lookups by blogId
 }

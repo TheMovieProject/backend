@@ -111,7 +111,7 @@ const FollowerActivity = () => {
     } catch (error) {
       console.error('Error fetching follower activities:', error);
       setError('Failed to load activities. Please try again later.');
-    } finally {
+    } finally { 
       setLoading(false);
     }
   };
