@@ -65,7 +65,7 @@ export default function Page() {
   const fetchReviewCount = async () => {
     if (status !== 'authenticated' || !session?.user?.email) return;
     try {
-      const response = await fetch(`/api/review?userEmail=${session.user.email}`);
+      const response = await fetch(`/api/review?userId=${session.user.id}`);
       if (!response.ok) throw new Error('Failed to fetch review count');
       const data = await response.json();
       setReviewCount(data.length);

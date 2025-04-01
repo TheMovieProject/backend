@@ -16,7 +16,7 @@ const UserReviews = ({id}) => {
         return;
       }
       try {
-        const response = id ? await fetch(`/api/review?userId=${id}`) : await fetch(`/api/review?userEmail=${session?.user?.email}`) ;
+        const response = id ? await fetch(`/api/review?userId=${id}`) : await fetch(`/api/review?userId=${session?.user?.id}`) ;
         if (!response.ok) throw new Error('Failed to fetch reviews');
         const data = await response.json();
         console.log(data)

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { MdOutlineRateReview, MdClose } from "react-icons/md";
 import { LiaBlogger } from "react-icons/lia";
 import { useSession } from 'next-auth/react';
-import toast from 'react-hot-toast';
+import toast from 'react-hot-toast'; 
 import UserBlogs from '@/app/components/UserBlogs/UserBlogs';
 import UserReviews from '@/app/components/UserReviews/UserReviews';
 import EditProfile from '@/app/components/EditProfile/EditProfile';

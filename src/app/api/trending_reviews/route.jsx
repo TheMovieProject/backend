@@ -6,21 +6,28 @@ const calculateTrendingScore = (likes, comments, views, createdAt) => {
   };
   
   export async function GET() {
-    try {
+    try {  
       console.log("Fetching trending reviews...");
   
       const reviews = await prisma.review.findMany({
+        where: {
+          user: { is: {} } // Ensures that user relation is not null
+        },
         include: {
-          user: true, // Include user details
-          reviewComments: true, // Include comments count
-          movie: true, // Include movie details
+          user: true,
+          reviewComments: true,
+          movie: true,
         },
         orderBy: { createdAt: "desc" },
         take: 50,
       });
+      
+      
+            
   
       const trendingReviews = reviews.map((review) => ({
         ...review,
+        user: review.user || { name: "Unknown User", avatarUrl: "/default-avatar.png" },
         trendingScore: calculateTrendingScore(
           review.likes || 0,
           review.reviewComments.length || 0,
@@ -28,6 +35,7 @@ const calculateTrendingScore = (likes, comments, views, createdAt) => {
           review.createdAt
         ),
       }));
+      
   
       trendingReviews.sort((a, b) => b.trendingScore - a.trendingScore);
   

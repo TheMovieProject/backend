@@ -5,7 +5,7 @@ const calculateTrendingScore = (likes, comments, views, createdAt) => {
   const hoursSincePosted = Math.max((Date.now() - new Date(createdAt)) / (1000 * 60 * 60), 1);
   return (likes * 3) + (comments * 2) + (views * 1) / hoursSincePosted;
 };
-
+ 
 export const GET = async () => {
   try {
     console.log("Fetching trending blogs...");

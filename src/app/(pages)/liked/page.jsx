@@ -16,17 +16,21 @@ export default async function LikedPages() {
   });
 
   // Handle missing user
-  if (!user) {
+  if (!user) { 
     return <p>User not found. Please log in again.</p>;
   }
 
   // Fetch liked movies with movie details
   const likedList = await prisma.liked.findMany({
-    where: { userId: user.id },
-    include: {
-        movie: true,
+    where: {
+      userId: user.id,
+      movie: { is: {} }, // Ensures the movie relation is not null
     },
-  })
+    include: {
+      movie: true,
+    },
+  });
+  
 
   // Render the client component with the initial liked list
   return <LikedListClient initialLikedList={likedList} />;
