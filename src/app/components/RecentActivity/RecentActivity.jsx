@@ -197,7 +197,7 @@ const FollowerActivity = () => {
     <div className="p-6 bg-gradient-to-br from-gray-900 to-black rounded-xl">
       <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2 border-b border-gray-800 pb-4">
         <span className="bg-gradient-to-r from-orange-500 to-pink-500 text-transparent bg-clip-text">
-          Friend's Activity
+          Friends Activity
         </span>
       </h2>
 
