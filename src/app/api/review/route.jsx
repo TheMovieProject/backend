@@ -3,13 +3,13 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
 // Configure API to handle larger request bodies
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '2mb',
-    },
-  },
-};
+// export const config = {
+//   api: {
+//     bodyParser: {
+//       sizeLimit: '2mb',
+//     },
+//   },
+// };
 
 // Helper function to get user
 async function getUser(session) {
