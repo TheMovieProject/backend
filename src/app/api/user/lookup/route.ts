@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/api/auth/[...nextauth]/connect";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 
-export async function GET(req: { url: string | URL; }) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("query") || "").trim();
@@ -33,7 +33,7 @@ export async function GET(req: { url: string | URL; }) {
           AND: [
             { username: { equals: q, mode: "insensitive" } },
             meId ? { id: { not: meId } } : {},
-          ],
+          ].filter(Boolean), // Remove empty objects
         },
         take: 1,
         select: {
@@ -55,7 +55,7 @@ export async function GET(req: { url: string | URL; }) {
               ],
             },
             meId ? { id: { not: meId } } : {},
-          ],
+          ].filter(Boolean), // Remove empty objects
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -78,7 +78,7 @@ export async function GET(req: { url: string | URL; }) {
 
     return NextResponse.json(result);
   } catch (e) {
-    console.error("user lookup error:", e);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("[USER_LOOKUP_ERROR]", e);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

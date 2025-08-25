@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Menu, X, Search, ChevronDown } from "lucide-react";
 import Logout from "../Logout/Logout";
-
+import logo from '../../../../public/img/logo.png'
 function cx(...s) {
   return s.filter(Boolean).join(" ");
 }
@@ -119,9 +119,10 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-white hover:opacity-90"
+            className="text-lg font-semibold tracking-tight text-white hover:opacity-90 flex items-center gap-2"
           >
-            Movie Project
+            <div><Image src={logo} alt="" width={40}/></div>
+            <div>Movie Project</div>
           </Link>
         </div>
 
