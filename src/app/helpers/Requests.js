@@ -5,6 +5,7 @@ const requests = {
     requestTopRated: `https://api.themoviedb.org/3/movie/top_rated?api_key=${apiKey}&language=en-US&page=1`,
     requestUpcoming: `https://api.themoviedb.org/3/movie/upcoming?api_key=${apiKey}&language=en-US&page=1`,
     requestNowPlaying: `https://api.themoviedb.org/3/movie/now_playing?api_key=${apiKey}&language=en-US&page=1`,
+    requestTrendingWeek: `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`,
     
     // New functions for fetching movie details and credits
     getMovieDetails: (movieId) => `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,

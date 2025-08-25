@@ -6,7 +6,7 @@ import MovieInfo from "@/app/components/InfoComponents/MovieInfo/MovieInfo"
 import Reviews from "@/app/components/Reviews/review"
 import Hero from "@/app/components/InfoComponents/Hero/Hero"
 import { Loader2 } from "lucide-react"
-
+import SimilarMovies from '@/app/components/SimilarMovies/SimilarMovies'
 const Info = () => {
   const [item, setItem] = useState({})
   const [loading, setLoading] = useState(true)
@@ -65,7 +65,7 @@ const Info = () => {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-900">
         <div className="bg-red-900 border-l-4 border-red-500 text-red-100 p-4 rounded" role="alert">
-          <p className="font-bold">Error</p>
+          <p className="font-bold">Error in loading </p>
           <p>{error}</p>
         </div>
       </div>
@@ -84,6 +84,8 @@ const Info = () => {
           ratingCount={ratingCount}
           onRatingChange={setUserRating}
         />
+
+        <SimilarMovies movieId={movieId} />
 
         <div className="mt-16">
           <Reviews movieId={movieId} />

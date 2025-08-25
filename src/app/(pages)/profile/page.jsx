@@ -29,13 +29,13 @@ const FollowList = ({ type, data, onClose }) => {
                 key={user.id}
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg"
               >
-                <Image
-                  src={user.avatarUrl || user.image || '/img/profile.png'}
-                  width={40}
-                  height={40}
-                  alt={user.username || 'Profile'}
-                  className="rounded-full"
-                />
+                <Image 
+  src={user.avatarUrl || user.image || '/img/profile.png'}
+  width={32}
+  height={32}
+  alt={user.username || 'Profile'}
+  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+/>
                 <div>
                   <p className="font-medium">{user.username || user.email}</p>
                 </div>

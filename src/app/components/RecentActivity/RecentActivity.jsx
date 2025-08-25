@@ -30,7 +30,7 @@ const FollowerActivity = () => {
 
     // Prevent scrolling when modal is open
     if (isModalOpen) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = "hidden" 
     } else {
       document.body.style.overflow = "auto"
     }
