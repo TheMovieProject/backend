@@ -42,7 +42,7 @@ export default function SignupPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users/check-username?u=${encodeURIComponent(user.username)}`);
+        const res = await fetch(`/api/user/check-username?u=${encodeURIComponent(user.username)}`);
         const { available } = await res.json();
         setAvailable(available);
       } catch {
