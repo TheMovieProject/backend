@@ -32,7 +32,7 @@ const Footer = () => {
 
         {/* Social Media */}
         <div className="flex justify-center md:justify-end gap-4">
-          <a
+          {/* <a
             href="https://github.com/Aditya30december2003"
             target="_blank"
             rel="noopener noreferrer"
@@ -55,7 +55,7 @@ const Footer = () => {
             className="text-white/60 hover:text-white"
           >
             <Twitter className="h-5 w-5" />
-          </a>
+          </a> */}
         </div>
       </div>
     </footer>
