@@ -1,340 +1,503 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Reaction from "../Reactions/Reactions"
-import Link from "next/link"
-import { IoIosArrowDown } from "react-icons/io";
-import { IoIosArrowUp } from "react-icons/io";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { AiOutlineFire, AiFillFire, AiOutlineDelete } from "react-icons/ai";
+import { CiHeart } from "react-icons/ci";
+import { FaHeart } from "react-icons/fa";
 
-const Review = ({ movieId }) => {
-  const [reviews, setReviews] = useState([])
-  const [reviewText, setReviewText] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [commentSectionVisibility, setCommentSectionVisibility] = useState({})
-  const [commentInputVisibility, setCommentInputVisibility] = useState({})
-  const [commentText, setCommentText] = useState({})
-  const [error, setError] = useState(null)
-  const [arrow , setArrow] = useState(true)
+/* ---------- local reply input ---------- */
+const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
+  const [val, setVal] = useState("");
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const response = await fetch(`/api/review?movieId=${movieId}`)
-        if (!response.ok) throw new Error("Failed to fetch reviews")
-        const data = await response.json()
+    if (open) inputRef.current?.focus();
+  }, [open]);
 
-        const formattedReviews = data.map((review) => ({
-          ...review,
-          comments: review.reviewComments || [],
-        }))
+  if (!open) return null;
 
-        // Sort by trending score (likes + fire + comments)
-        formattedReviews.sort((a, b) => {
-          const aScore = (a.likes || 0) + (a.fire || 0) + ((a.comments || []).length)
-          const bScore = (b.likes || 0) + (b.fire || 0) + ((b.comments || []).length)
-          return bScore - aScore
-        })
-        
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <input
+        ref={inputRef}
+        className="flex-1 px-3 py-2 rounded-lg bg-gray-600/50 text-white border border-yellow-500/30 text-sm"
+        placeholder="Reply…"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+      />
+      <button
+        onClick={() => {
+          const t = val.trim();
+          if (!t) return;
+          onSubmit(t);
+          setVal("");
+          requestAnimationFrame(() => inputRef.current?.focus());
+        }}
+        className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-2 rounded-lg text-sm font-bold"
+      >
+        Post
+      </button>
+    </div>
+  );
+});
 
-        setReviews(formattedReviews)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
+export default function Review({ movieId, currentUserId }) {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [reviewText, setReviewText] = useState("");
+  const [error, setError] = useState(null);
+
+  const [openComments, setOpenComments] = useState({});
+  const [replyOpen, setReplyOpen] = useState({});
+
+  const inflight = useRef(new Map()); // reviewId -> { controller, pending, lastAction }
+
+  const engagementScore = (r) =>
+    (r.likes || 0) + (r.fire || 0) + (r.commentsCount || 0);
+
+  const sortByEngagement = (arr) =>
+    [...arr].sort(
+      (a, b) =>
+        engagementScore(b) - engagementScore(a) ||
+        +new Date(b.createdAt) - +new Date(a.createdAt)
+    );
+
+  const displayReviews = useMemo(() => {
+    if (!currentUserId) return reviews;
+    const mine = reviews.find((r) => r.user?.id === currentUserId);
+    if (!mine) return reviews;
+    const rest = reviews.filter((r) => r.id !== mine.id);
+    return [mine, ...rest];
+  }, [reviews, currentUserId]);
+
+
+/* ---------- initial load ---------- */
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch reviews");
+      const data = await res.json();
+      if (cancelled) return;
+
+      // Get IDs to hydrate reactions for logged-in user
+      const ids = data.map((r) => r.id).join(",");
+      let reactionMap = {};
+      if (ids) {
+        try {
+          const rx = await fetch(`/api/reaction?entityType=review&ids=${ids}`, { cache: "no-store" });
+          if (rx.ok) reactionMap = await rx.json();
+        } catch (err) {
+          console.warn("Reaction hydration failed", err);
+        }
+      }
+
+      // Merge reactions
+      const hydrated = data.map((r) => ({
+        ...r,
+        likedByMe: reactionMap[r.id]?.likedByMe ?? false,
+        firedByMe: reactionMap[r.id]?.firedByMe ?? false,
+      }));
+
+      setReviews(sortByEngagement(hydrated));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+    for (const { controller } of inflight.current.values()) controller?.abort();
+    inflight.current.clear();
+  };
+}, [movieId]);
+
+
+
+  /* ---------- tiny burst anim ---------- */
+  const burst = (el) => {
+    if (!el) return;
+    const dot = document.createElement("span");
+    Object.assign(dot.style, {
+      position: "absolute",
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      background: "#f59e0b",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%,-50%)",
+      opacity: "0.9",
+      pointerEvents: "none",
+    });
+    el.appendChild(dot);
+    const a = dot.animate(
+      [
+        { transform: "translate(-50%,-50%) scale(1)", opacity: 0.9 },
+        { transform: "translate(-50%,-90%) scale(0)", opacity: 0 },
+      ],
+      { duration: 260, easing: "ease-out" }
+    );
+    a.onfinish = () => dot.remove();
+  };
+
+  /* ---------- reactions (spam-safe + MERGE ONLY) ---------- */
+  const toggleReaction = async (reviewId, kind, buttonEl) => {
+    const field = kind === "like" ? "likes" : "fire";
+    const activeField = kind === "like" ? "likedByMe" : "firedByMe";
+
+    const prev = inflight.current.get(reviewId);
+    if (prev?.pending) prev.controller?.abort();
+    const controller = new AbortController();
+    inflight.current.set(reviewId, { controller, pending: true, lastAction: kind });
+
+    // optimistic flip
+    setReviews((prevList) =>
+      prevList.map((r) =>
+        r.id !== reviewId
+          ? r
+          : {
+              ...r,
+              [field]: r[activeField] ? Math.max(0, (r[field] || 0) - 1) : (r[field] || 0) + 1,
+              [activeField]: !r[activeField],
+            }
+      )
+    );
+
+    if (buttonEl) {
+      buttonEl.style.transform = "scale(1.06)";
+      setTimeout(() => (buttonEl.style.transform = ""), 120);
+      burst(buttonEl);
+    }
+
+    try {
+      const res = await fetch("/api/reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          entityId: reviewId,
+          entityType: "review",
+          type: kind,
+        }),
+      });
+      if (!res.ok) throw new Error("Reaction failed");
+
+      const srv = await res.json();
+      const cur = inflight.current.get(reviewId);
+      if (!cur || cur.controller !== controller) return;
+
+      // IMPORTANT: merge just the counters/flags so user/avatar fields are preserved
+      setReviews((prevList) =>
+        sortByEngagement(
+          prevList.map((r) =>
+            r.id === reviewId
+              ? {
+                  ...r,
+                  likes: srv.likes ?? r.likes,
+                  fire: srv.fire ?? r.fire,
+                  likedByMe:
+                    typeof srv.likedByMe === "boolean" ? !!srv.likedByMe : r.likedByMe,
+                  firedByMe:
+                    typeof srv.firedByMe === "boolean" ? !!srv.firedByMe : r.firedByMe,
+                  commentsCount: srv.commentsCount ?? r.commentsCount,
+                }
+              : r
+          )
+        )
+      );
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        console.error(e);
+        const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        if (res.ok) setReviews(sortByEngagement(await res.json()));
+      }
+    } finally {
+      const cur = inflight.current.get(reviewId);
+      if (cur && cur.controller === controller) {
+        inflight.current.set(reviewId, { ...cur, pending: false });
       }
     }
+  };
 
-    movieId && fetchReviews()
-  }, [movieId])
-
-  const toggleCommentSection = (reviewId) => {
-    setCommentSectionVisibility((prev) => ({
-      ...prev,
-      [reviewId]: !prev[reviewId],
-    }))
-    setArrow(!arrow)
-  }
-
-  const toggleCommentInput = (reviewId) => {
-    setCommentInputVisibility((prev) => ({
-      ...prev,
-      [reviewId]: !prev[reviewId],
-    }))
-
-    // If we're opening the comment input, also make sure the comment section is visible
-    if (!commentSectionVisibility[reviewId]) {
-      setCommentSectionVisibility((prev) => ({
-        ...prev,
-        [reviewId]: true,
-      }))
-    }
-  }
-
-  const handleReaction = async (reviewId, type) => {
-    window.location.reload()
+  /* ---------- create review ---------- */
+  const submitReview = async () => {
+    if (!reviewText.trim()) return;
+    setError(null);
     try {
-      const payload = { 
-        entityId: reviewId,
-        entityType: 'review',
-        type: type
-      };
-      
-      const response = await fetch('/api/reaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) throw new Error(`Failed to update reaction`)
-
-      // Get updated review from backend
-      const updatedReview = await response.json()
-
-      // Update reviews list with proper sorting
-      setReviews(prevReviews => {
-        const updated = prevReviews.map(review => 
-          review.id === reviewId ? { ...updatedReview, comments: updatedReview.comments || [] } : review
-        )
-        return updated.sort((a, b) => {
-          const aScore = (a.likes || 0) + (a.fire || 0) + ((a.comments || []).length)
-          const bScore = (b.likes || 0) + (b.fire || 0) + ((b.comments || []).length)
-          return bScore - aScore
-        })
-      })
-    } catch (error) {
-      console.error("Reaction error:", error)
-    }
-  }
-
-  const handleSubmit = async () => {
-    window.location.reload()
-    if (!reviewText.trim()) return
-    setError(null) // Clear previous errors
-
-    try {
-      const response = await fetch("/api/review", {
+      const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ movieId, reviewText }),
-      })
-
-      if (!response.ok) throw new Error("Failed to submit review")
-
-      const newReview = await response.json()
-      setReviews([...reviews, { ...newReview, comments: [] }])
-      setReviewText("")
-    } catch (error) {
-      setError(error.message)
-      console.error(error)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const newR = await res.json();
+      setReviews((prev) => sortByEngagement([newR, ...prev.filter((r) => r.id !== newR.id)]));
+      setReviewText("");
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "Something went wrong");
     }
-  }
+  };
 
-  const handleCommentSubmit = async (reviewId) => {
-    const comment = commentText[reviewId]?.trim()
+  /* ---------- comments ---------- */
+  const toggleComments = (reviewId) =>
+    setOpenComments((p) => ({ ...p, [reviewId]: !p[reviewId] }));
 
-    if (!comment) {
-      console.error("Comment is empty")
-      return
-    }
+  const toggleReplyBox = (id) => setReplyOpen((p) => ({ ...p, [id]: !p[id] }));
 
+  const submitComment = async (reviewId, parentId, text) => {
+    const content = (text ?? "").trim();
+    if (!content) return;
     try {
-      const response = await fetch("/api/reviewComments", {
+      const res = await fetch("/api/reviewComments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reviewId,
-          comment,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Comment Submission Error:", errorText)
-        return
-      }
-
-      // Completely refetch reviews to ensure latest data
-      const reviewsResponse = await fetch(`/api/review?movieId=${movieId}`)
-      if (!reviewsResponse.ok) {
-        console.error("Failed to fetch updated reviews")
-        return
-      }
-
-      const updatedReviews = await reviewsResponse.json()
-      const formattedReviews = updatedReviews.map((review) => ({
-        ...review,
-        comments: review.reviewComments || [],
-      }))
-
-      setReviews(formattedReviews)
-
-      // Clear comment input
-      setCommentText((prev) => ({
-        ...prev,
-        [reviewId]: "",
-      }))
-    } catch (error) {
-      console.error("Comprehensive Comment Submission Error:", error)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId, comment: content, parentId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const shapedReview = await res.json(); // full shaped review with commentsTree
+      setReviews((prev) =>
+        sortByEngagement(prev.map((r) => (r.id === reviewId ? shapedReview : r)))
+      );
+      if (parentId) setReplyOpen((p) => ({ ...p, [parentId]: false }));
+    } catch (e) {
+      console.error(e);
     }
-  }
+  };
 
-  if (loading) return <p>Loading...</p>
+  /* ---------- delete review/comment (unchanged) ---------- */
+  const deleteReview = async (reviewId) => {
+    if (!confirm("Delete your review?")) return;
+    try {
+      const res = await fetch(`/api/review?reviewId=${reviewId}`, { method: "DELETE" });
+      if (res.ok) setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    if (!confirm("Delete this comment?")) return;
+    try {
+      const rs = await fetch(`/api/reviewComments?commentId=${commentId}`, { method: "DELETE" });
+      if (rs.ok) {
+        const rr = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        if (rr.ok) setReviews(sortByEngagement(await rr.json()));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  /* ---------- recursive comment node ---------- */
+  const CommentNode = memo(function CommentNode({
+    node,
+    reviewId,
+    depth = 0,
+  }) {
+    const key = node.id;
+    const avatarSrc = node.user?.avatarUrl || node.user?.image || "/default-avatar.png";
+    const uid = node.user?.id;
+
+    return (
+      <div className="mt-3" style={{ marginLeft: depth ? 16 : 0 }}>
+        <div className="flex items-start gap-2">
+          <Link href={uid ? `/profile/${uid}` : "#"} className="shrink-0">
+            <Image
+              src={avatarSrc}
+              alt="avatar"
+              width={48}
+              height={48}
+              className="w-12 h-12 rounded-full border border-yellow-500/30 object-cover"
+            />
+          </Link>
+          <div className="flex-1">
+            <div className="text-sm">
+              <Link
+                href={uid ? `/profile/${uid}` : "#"}
+                className="font-semibold text-yellow-400 mr-2 hover:underline"
+              >
+                {node.user?.username || "User"}
+              </Link>
+              <span className="text-gray-300">{node.comment || node.content}</span>
+            </div>
+
+            <div className="mt-1 flex items-center gap-3">
+              <button
+                onClick={() => toggleReplyBox(key)}
+                className="text-xs text-gray-400 hover:text-yellow-400"
+              >
+                Reply
+              </button>
+              {uid === currentUserId && (
+                <button
+                  onClick={() => deleteComment(node.id)}
+                  className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                >
+                  <AiOutlineDelete /> Delete
+                </button>
+              )}
+            </div>
+
+            <ReplyBox open={!!replyOpen[key]} onSubmit={(t) => submitComment(reviewId, key, t)} />
+
+            {node.children?.length > 0 &&
+              node.children.map((child) => (
+                <CommentNode key={child.id} node={child} reviewId={reviewId} depth={depth + 1} />
+              ))}
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm py-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 px-6">Reviews</h2>
+    <div className="mx-auto rounded-2xl shadow-2xl py-8 border border-yellow-500/20">
+      <h2 className="text-4xl font-bold text-white mb-8 px-8 border-l-4 border-yellow-500 pl-4">
+        Reviews &amp; Discussions
+      </h2>
 
-      {/* Review Input Section */}
-      <div className="mb-8 px-6">
-        <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg w-full">
+      {/* create review */}
+      <div className="mb-8 px-8">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-700/50 p-6 rounded-xl w-full border border-yellow-500/20">
           <input
-            type="text"
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
-            placeholder="Share your thoughts about the movie..."
-            className="flex-1 px-4 py-3 w-[65%] lg:w-[80%] border border-gray-200 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            placeholder="Share your thoughts about the movie…"
+            className="flex-1 px-4 py-3 w-full bg-gray-600/50 border border-yellow-500/30 text-white rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all placeholder-gray-400"
           />
           <button
-            onClick={handleSubmit}
-            className="bg-blue-600 text-[0.8rem] md:text-lg w-[35%] lg:w-[20%] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200"
+            onClick={submitReview}
+            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-8 py-3 rounded-lg font-bold transition duration-200 w-full sm:w-auto"
           >
             Post Review
           </button>
         </div>
-        {error && <p className="mt-2 text-red-500 text-sm">{error}</p>}
+        {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
       </div>
 
-      {/* Reviews List */}
+      {/* reviews */}
       <div className="space-y-6">
-        {reviews.map((review) => (
-          <div key={review.id} className="px-6 py-4 hover:bg-gray-50 transition duration-200 border-b border-gray-100">
-            <div className="flex gap-4">
-              {/* User Avatar */}
-              <Link href={`/profile/${review.user?.id}`}>
-                <Image
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                  src={review.user?.avatarUrl || "/default-avatar.png"}
-                  width={48}
-                  height={48}
-                  alt="Profile Image"
-                />
-              </Link>
+        {displayReviews.map((r) => {
+          const avatarSrc = r.user?.avatarUrl || r.user?.image || "/default-avatar.png";
+          const likeActive = !!r.likedByMe;
+          const fireActive = !!r.firedByMe;
 
-              {/* Review Content */}
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">{review.user?.username || "Anonymous"}</p>
-                <p className="text-gray-700 mb-4 leading-relaxed">{review.content}</p>
+          return (
+            <div key={r.id} className="px-8 py-6 hover:bg-gray-700/30 transition duration-200 border-b border-yellow-500/10">
+              <div className="flex gap-4">
+                <Link href={`/profile/${r.user?.id}`} className="shrink-0">
+                  <Image
+                    className="w-12 h-12 rounded-full object-cover border-2 border-yellow-500/50"
+                    src={avatarSrc}
+                    width={48}
+                    height={48}
+                    alt="Profile Image"
+                  />
+                </Link>
 
-                {/* Reactions and Comment Button */}
-                <div className="flex items-center gap-6 text-black">
-                <Reaction
-                reviewId={review.id}
-                emojis={review.emojis}
-                likes={review.likes || 0} // Ensure default value
-                fire={review.fire || 0}   // Ensure default value
-                onReact={handleReaction}
-                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <Link href={`/profile/${r.user?.id}`} className="font-semibold text-yellow-400 hover:underline">
+                      {r.user?.username || "Anonymous"}
+                    </Link>
 
-                  <button
-                    onClick={() => toggleCommentInput(review.id)}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition duration-200 flex items-center gap-2"
-                  >
-                    💬 Comment
-                  </button>
+                    {r.user?.id === currentUserId && (
+                      <button
+                        onClick={() => deleteReview(r.id)}
+                        className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                      >
+                        <AiOutlineDelete /> Delete
+                      </button>
+                    )}
+                  </div>
 
-                  {/* Comment Counter Button - YouTube Style */}
-                </div>
+                  <p className="text-gray-300 mb-4 leading-relaxed">{r.content}</p>
 
-                <div className="mt-5">
-                {review.comments?.length > 0 && (
+                  {/* reactions */}
+                  <div className="flex items-center gap-4">
+                    <ReactionButton
+                      count={r.likes}
+                      label="Like"
+                      active={likeActive}
+                      outlineIcon={<CiHeart size={18} />}
+                      fillIcon={<FaHeart size={18} />}
+                      onClick={(btn) => toggleReaction(r.id, "like", btn)}
+                    />
+                    <ReactionButton
+                      count={r.fire}
+                      label="Fire"
+                      active={fireActive}
+                      outlineIcon={<AiOutlineFire size={18} />}
+                      fillIcon={<AiFillFire size={18} />}
+                      onClick={(btn) => toggleReaction(r.id, "fire", btn)}
+                    />
+
                     <button
-                      onClick={() => toggleCommentSection(review.id)}
-                      className="text-sm text-gray-600 hover:text-blue-600 transition duration-200 flex items-center gap-2"
+                      onClick={() => toggleComments(r.id)}
+                      className="text-sm text-gray-400 hover:text-yellow-400 transition duration-200 flex items-center gap-2"
                     >
-                      <div>{arrow ? <IoIosArrowDown/>: <IoIosArrowUp/>}</div>
-                      {review.comments.length} {review.comments.length === 1 ? "comment" : "comments"}
+                      <span className="inline-block">{openComments[r.id] ? "▴" : "▾"}</span>
+                      {r.commentsCount} {r.commentsCount === 1 ? "comment" : "comments"}
                     </button>
+                  </div>
+
+                  {/* comments */}
+                  {openComments[r.id] && (
+                    <div className="mt-4 space-y-4 pl-6 border-l-2 border-yellow-500/30">
+                      <ReplyBox open={true} onSubmit={(text) => submitComment(r.id, undefined, text)} />
+
+                      {r.commentsTree?.length > 0 &&
+                        r.commentsTree.map((n) => (
+                          <CommentNode key={n.id} node={n} reviewId={r.id} />
+                        ))}
+                    </div>
                   )}
                 </div>
-
-                {/* Comment Input */}
-                {commentInputVisibility[review.id] && (
-                  <div className="mt-4 flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={commentText[review.id] || ""}
-                      onChange={(e) =>
-                        setCommentText((prev) => ({
-                          ...prev,
-                          [review.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="Add a comment..."
-                      className="flex-1 px-4 py-2 border text-black border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
-                    />
-                    <button
-                      onClick={() => handleCommentSubmit(review.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
-                    >
-                      Post
-                    </button>
-                  </div>
-                )}
-
-                {/* Comments Section */}
-                {commentSectionVisibility[review.id] && review.comments?.length > 0 && (
-                  <div className="mt-4 space-y-7 pl-6 border-l-2 border-gray-200">
-                    {review.comments.map((comment) => (
-                      <div key={comment.id} className="comment">
-                        <div className="flex items-start gap-2">
-                          <Image
-                            src={comment.user?.avatarUrl || "/default-avatar.png"}
-                            alt="Commenter Avatar"
-                            className="w-8 h-8 rounded-full object-cover"
-                            width={32}
-                            height={32}
-                          />
-                          <div>
-                            <span className="font-semibold text-black text-sm">{comment.user?.username}</span>
-                            <p className="text-gray-700 text-sm">{comment.comment}</p>
-                          </div>
-                        </div>
-
-                        {/* Nested Comments (if applicable) */}
-                        {comment.childComments && comment.childComments.length > 0 && (
-                          <div className="ml-10 mt-2 space-y-6">
-                            {comment.childComments.map((childComment) => (
-                              <div key={childComment.id} className="flex items-start gap-2">
-                                <Image
-                                  src={childComment.user?.image || "/default-avatar.png"}
-                                  alt="Child Commenter Avatar"
-                                  className="w-6 h-6 rounded-full object-cover"
-                                  width={24}
-                                  height={24}
-                                />
-                                <div>
-                                  <span className="font-semibold text-black text-xs">{childComment.user?.name}</span>
-                                  <p className="text-gray-700 text-xs">{childComment.comment}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+
+        {displayReviews.length === 0 && (
+          <div className="px-8 text-gray-300">No reviews yet. Be the first!</div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
-export default Review
-
+/* ---------- generic reaction button ---------- */
+function ReactionButton({ count, label, active, outlineIcon, fillIcon, onClick }) {
+  return (
+    <button
+      onClick={(e) => onClick(e.currentTarget)}
+      className={`relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition
+        ${
+          active
+            ? "bg-yellow-500 text-gray-900 border-yellow-400"
+            : "bg-white/10 border-yellow-500/30 hover:bg-white/20 text-gray-200"
+        }`}
+      aria-label={label}
+      title={label}
+      style={{ position: "relative" }}
+    >
+      <span className="relative top-[1px]">{active ? fillIcon : outlineIcon}</span>
+      <span>{count}</span>
+    </button>
+  );
+}

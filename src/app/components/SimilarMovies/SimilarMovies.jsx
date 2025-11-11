@@ -18,7 +18,7 @@ export default function SimilarMovies({ movieId }) {
         setSimilar(data);
       } catch (err) {
         console.error("Failed to fetch similar movies:", err);
-      }
+      } 
     };
     
     if (movieId) fetchSimilar();
@@ -70,7 +70,7 @@ export default function SimilarMovies({ movieId }) {
           {similar.map((movie) => (
             <Link href={`/movies/${movie.id}`}
               key={movie.id}
-              className="flex-shrink-0 w-32 bg-gray-800 p-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+              className="flex-shrink-0 w-32  p-2 rounded-lg bg-gray-600 bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-20 border border-gray-100 transition-colors duration-200 cursor-pointer"
             >
               <div className="relative aspect-[2/3] mb-2">
                 <Image

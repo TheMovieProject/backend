@@ -42,7 +42,7 @@ export default function SignupPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/user/check-username?u=${encodeURIComponent(user.username)}`);
+        const res = await fetch(`/api/user/check-username?u=${encodeURIComponent(user.username)}`); 
         const { available } = await res.json();
         setAvailable(available);
       } catch {
@@ -89,7 +89,7 @@ export default function SignupPage() {
       : "bg-emerald-500 w-full";
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#0b1220] via-[#0b0f14] to-black text-white">
+    <div className="pt-20 pb-20 min-h-screen relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#dbb304] via-[#a99801] to-yellow-600 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_260px_at_85%_-10%,rgba(255,200,100,.16),transparent),radial-gradient(600px_260px_at_0%_110%,rgba(70,120,255,.16),transparent)]" />
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">

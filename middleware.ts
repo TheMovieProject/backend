@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
     if (!token) {
-      const loginUrl = new URL("/login", req.url);
+      const loginUrl = new URL("/", req.url);
       loginUrl.searchParams.set("from", pathname); // redirect back after login
       return NextResponse.redirect(loginUrl);
     }

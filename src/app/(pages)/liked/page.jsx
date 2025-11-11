@@ -12,7 +12,7 @@ export default async function LikedPages() {
 
   // Find user by email
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { email: session.user.email }, 
   });
 
   // Handle missing user

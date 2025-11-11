@@ -11,7 +11,7 @@ export default async function WatchlistPage() {
 
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-    });
+    }); 
 
     if (!user) {
         return <p>User not found. Please log in again.</p>;

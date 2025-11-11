@@ -1,6 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-body{
-    background: rgb(0, 0, 35);
+
+/* ===== Design tokens ===== */
+:root {
+  --bg-0: #13140a;         /* deep indigo “cinema dark” */
+  --bg-1: #0c1218;         /* slightly lighter for panels */
+  --txt:  #e7e7ea;         /* soft white */
+  --muted:#b4b6c0;         /* muted text */
+  --ring: rgba(255,255,255,.28);
+  --brand:#b8a4ff;         /* subtle lilac accent */
+  --accent:#ffd479;        /* warm highlight (stars, hints) */
+}
+
+/* ===== Base reset + skin ===== */
+html, body, #__next {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply antialiased;
+  color: var(--txt);
+  background:
+    radial-gradient(120% 80% at 50% 100%, rgba(0,0,0,0.75) 0%, transparent 70%),
+    radial-gradient(900px 240px at 8% 88%, rgba(255,200,120,0.06), transparent 60%),
+    linear-gradient(180deg, #0a0f14 0%, #0a0f14 40%, #090e13 100%);
+  background-color: var(--bg-0);
+}
+
+/* Selection & focus feel */
+::selection { background: rgba(184,164,255,.28); color: var(--txt); }
+*:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); border-radius: 10px; }
+
+/* Scrollbar (subtle) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Typography rhythm */
+h1,h2,h3 { letter-spacing: -0.02em; }
+p { color: rgba(231,231,234,.88); }
+
+/* Panel surface */
+.cinema-surface {
+  background: color-mix(in oklab, var(--bg-1) 92%, white 8%);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(8px);
+}
+
+/* Button primitives */
+.btn {
+  @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition;
+}
+.btn-outline {
+  @apply border border-white/20 bg-black/40 hover:border-white/40;
+}
+.btn-ghost {
+  @apply border border-white/10 bg-white/5 hover:bg-white/10;
+}
+
+/* Reduce motion friendly */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }

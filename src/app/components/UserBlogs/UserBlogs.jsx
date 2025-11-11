@@ -1,8 +1,8 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const UserBlogs = ({ id }) => {
   const [blogs, setBlogs] = useState([]);
@@ -21,7 +21,6 @@ const UserBlogs = ({ id }) => {
       try {
         let userData = null;
         
-        // Only fetch user details if an ID is provided
         if (id && id !== 'undefined') {
           const userDetailsResponse = await fetch(`/api/user/${id}`);
           if (!userDetailsResponse.ok) {
@@ -30,12 +29,9 @@ const UserBlogs = ({ id }) => {
           }
           userData = await userDetailsResponse.json();
           setUserDetails(userData);
-          console.log(userData)
         }
 
-        // If no ID provided or fetching user details failed, use session user
         const emailToFetch = userData?.email || session?.user?.email;
-        console.log(emailToFetch)
         
         if (!emailToFetch) {
           throw new Error('No user email available');
@@ -64,7 +60,17 @@ const UserBlogs = ({ id }) => {
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <p className="text-gray-500">Loading session...</p>
+        <div className="animate-pulse flex space-x-4">
+          <div className="flex-1 space-y-6 py-1">
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -72,7 +78,17 @@ const UserBlogs = ({ id }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <p className="text-gray-500">Loading blogs...</p>
+        <div className="animate-pulse flex space-x-4">
+          <div className="flex-1 space-y-6 py-1">
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -80,45 +96,62 @@ const UserBlogs = ({ id }) => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <p className="text-red-500">Error: {error}</p>
+        <p className="text-red-400">Error: {error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-2xl font-bold mb-6">
-        {userDetails ? `${userDetails.username}'s Blog Posts` : 'Your Blog Posts'}
+    <div className="p-4">
+      <h1 className="text-2xl font-bold text-white mb-8">
+        {userDetails ? `${userDetails.username}'s Stories` : 'Your Stories'}
       </h1>
+      
       {blogs.length === 0 ? (
-        <p className="text-gray-500">No blogs found.</p>
+        <div className="text-center py-12">
+          <p className="text-gray-400 text-lg">No stories yet</p>
+          <p className="text-gray-500 text-sm mt-2">Start writing your cinematic journey</p>
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {blogs.map((blog) => (
-            <div 
+            <Link 
+              href={`/blog/${blog.id}`} 
               key={blog.id} 
-              className="flex flex-col bg-white rounded-lg shadow-md overflow-hidden"
+              className="group"
             >
-              {blog.thumbnail && (
-                <div className="relative w-full h-48">
-                  <Image
-                    src={blog.thumbnail}
-                    alt={blog.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
+              <div className="bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
+                {/* Blog Thumbnail Polaroid */}
+                <div className="aspect-[3/4]  overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-pink-500">
+                  {blog.thumbnail ? (
+                    <Image
+                      src={blog.thumbnail}
+                      alt={blog.title}
+                      width={200}
+                      height={300}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white text-center p-4">
+                      <div>
+                        <h3 className="font-bold text-sm mb-1 line-clamp-2">{blog.title}</h3>
+                        <p className="text-xs opacity-90">No thumbnail</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold mb-2">{blog.title}</h3>
-                {/* {blog.content && (
-                  <p className="text-sm text-gray-500 line-clamp-2">
-                    {blog.content}
+                
+                {/* Blog Title */}
+                <div className="text-center">
+                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight">
+                    {blog.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(blog.createdAt).toLocaleDateString()}
                   </p>
-                )} */}
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

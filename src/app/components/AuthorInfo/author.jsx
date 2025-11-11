@@ -5,7 +5,7 @@ import { Calendar, User } from "lucide-react"
 const Author = ({data}) => {
   return (
     <div>
-      <Link href={`${process.env.NEXTAUTH_URL}/profile/${data.user.id}`} className="flex gap-3 items-center">
+      <Link href={`/profile/${data.user.id}`} className="flex gap-3 items-center"> 
       <div className=''>
       <Image
         src={data.user.avatarUrl || "/default-avatar.jpg"}

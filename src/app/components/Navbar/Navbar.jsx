@@ -5,12 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { Menu, X, Search, ChevronDown } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import Logout from "../Logout/Logout";
 import logo from '../../../../public/img/logo.png'
-function cx(...s) {
-  return s.filter(Boolean).join(" ");
-}
+import gsap from "gsap";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -18,62 +16,91 @@ export default function Navbar() {
   const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [userData, setUserData] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
 
-  // NEW: user search suggestions
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggest, setShowSuggest] = useState(false);
-  const suggestBoxRef = useRef(null);
-  const userMenuRef = useRef(null);
-  const debounceRef = useRef(null);
+  const searchOverlayRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const navbarRef = useRef(null);
 
+  // Scroll effect for glassmorphism
   useEffect(() => {
-    function onDocClick(e) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setUserOpen(false);
-      }
-      if (suggestBoxRef.current && !suggestBoxRef.current.contains(e.target)) {
-        setShowSuggest(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // fetch userData (username + avatar)
+  // GSAP Animation for Search Overlay
   useEffect(() => {
-    if (session?.user?.id) {
-      fetch(`/api/user/${session.user.id}`)
-        .then((res) => res.json())
-        .then((data) => setUserData(data))
-        .catch((err) => console.error("Error fetching navbar user:", err));
-    }
-  }, [session?.user?.id]);
+    if (!searchOverlayRef.current) return;
 
-  // NEW: debounced user suggestions
-  useEffect(() => {
-    if (!query?.trim()) {
-      setSuggestions([]);
-      return;
+    if (searchOpen) {
+      // Animate in
+      gsap.fromTo(searchOverlayRef.current,
+        { 
+          y: -100,
+          opacity: 0,
+          scale: 0.95
+        },
+        { 
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.4,
+          ease: "power2.out"
+        }
+      );
+      
+      // Focus input after animation
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 400);
+    } else {
+      // Animate out
+      gsap.to(searchOverlayRef.current, {
+        y: -100,
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.3,
+        ease: "power2.in"
+      });
     }
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const r = await fetch(`/api/user/lookup?query=${encodeURIComponent(query.trim())}&limit=5`);
-        if (!r.ok) return;
-        const list = await r.json();
-        setSuggestions(list || []);
-        setShowSuggest(true);
-      } catch (_) {}
-    }, 200);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
+  }, [searchOpen]);
+
+  const openSearch = () => {
+    setSearchOpen(true);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+  };
+
+  async function submitSearch(e) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+
+    router.push(`/search/${encodeURIComponent(q)}`);
+    setQuery("");
+    setSearchOpen(false);
+    setMobileOpen(false);
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+  };
 
   if (status === "loading") {
     return (
-      <div className="sticky top-0 z-40 flex h-14 items-center justify-center bg-[#0B0F14] text-white">
+      <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-center bg-yellow-600 text-white">
         Loading…
       </div>
     );
@@ -83,281 +110,194 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/movies", label: "Movies" },
     { href: "/write", label: "Write" },
+    // { href: "/poll", label: "Poll" }
   ];
 
-  async function submitSearch(e) {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-
-    // 1) exact username match? go to profile
-    try {
-      const r = await fetch(`/api/user/lookup?query=${encodeURIComponent(q)}&limit=1&exact=1`);
-      if (r.ok) {
-        const match = await r.json();
-        if (match?.length === 1) {
-          router.push(`/profile/${match[0].id}`);
-          setQuery("");
-          setShowSuggest(false);
-          setMobileOpen(false);
-          return;
-        }
-      }
-    } catch {}
-
-    // 2) otherwise go to movies search page (keep your existing route)
-    router.push(`/search/${encodeURIComponent(q)}`);
-    setQuery("");
-    setShowSuggest(false);
-    setMobileOpen(false);
-  }
-
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur supports-[backdrop-filter]:bg-[#0B0F14]/70">
-      <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-3 px-3 sm:px-4">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            className="text-lg font-semibold tracking-tight text-white hover:opacity-90 flex items-center gap-2"
-          >
-            <div><Image src={logo} alt="" width={40}/></div>
-            <div>Movie Project</div>
-          </Link>
-        </div>
-
-        {/* Desktop links */}
-        <div className="hidden md:flex md:items-center md:gap-2">
-          {mainLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cx(
-                "rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white",
-                pathname === l.href && "bg-white/10 text-white"
-              )}
+    <>
+      {/* Top Bar with Glassmorphism on Scroll */}
+      <div 
+        ref={navbarRef}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled 
+            ? 'bg-white/10 backdrop-blur-xl shadow-lg' 
+            : 'bg-transparent'
+        }`}
+      >
+        <div className="flex justify-between items-center h-16 px-6">
+          {/* Left: Hamburger Menu */}
+          <div className="flex-1 flex justify-start">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className={`transition-colors duration-300 ${
+                scrolled 
+                  ? 'text-white hover:text-gray-200' 
+                  : 'text-white hover:opacity-80'
+              }`}
             >
-              {l.label}
-            </Link>
-          ))}
-        </div>
-
-        {/* Right side */}
-        <div className="ms-auto flex items-center gap-2">
-          {/* Search */}
-          <div className="relative hidden sm:block" ref={suggestBoxRef}>
-            <form onSubmit={submitSearch}>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => suggestions.length && setShowSuggest(true)}
-                type="search"
-                placeholder="Search movies or users…"
-                className="w-56 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/30 sm:w-64"
-              />
-              <button
-                type="submit"
-                className="absolute right-1 top-1.5 rounded-md p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-                aria-label="Search"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            </form>
-
-            {/* Suggestions dropdown */}
-            {showSuggest && suggestions.length > 0 && (
-              <div className="absolute z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/10 bg-[#0B0F14] shadow-xl">
-                <ul className="max-h-80 overflow-auto">
-                  {suggestions.map((u) => (
-                    <li key={u.id}>
-                      <Link
-                        href={`/profile/${u.id}`}
-                        onClick={() => {
-                          setShowSuggest(false);
-                          setQuery("");
-                        }}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-white/10"
-                      >
-                        <Image
-                          src={u.avatarUrl || "/img/profile.png"}
-                          alt={u.username}
-                          width={32}
-                          height={32}
-                          className="h-8 w-8 rounded-full object-cover"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm text-white">{u.username}</p>
-                          {u.name ? (
-                            <p className="truncate text-xs text-white/60">{u.name}</p>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={submitSearch}
-                  className="block w-full border-t border-white/10 px-3 py-2 text-left text-xs text-white/70 hover:bg-white/10"
-                >
-                  Search movies for “{query}”
-                </button>
-              </div>
-            )}
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* User */}
-          {session ? (
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setUserOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-sm text-white/90 hover:bg-white/10"
-              >
-                <Image
-                  src={
-                    userData?.avatarUrl ||
-                    userData?.image ||
-                    session.user?.image ||
-                    "/img/profile.png"
-                  }
-                  width={28}
-                  height={28}
-                  alt="avatar"
-                  className="h-7 w-7 rounded-full object-cover"
-                />
-                <span className="hidden sm:inline font-medium">
-                  {userData?.username || session.user?.name || "Account"}
+          {/* Center: Small Logo */}
+          <div className="flex-1 flex justify-center">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity duration-300"
+            >
+              <Image 
+                src={logo} 
+                alt="Movie Project Logo" 
+                width={16} 
+                height={16} 
+              />
+              <span className="text-xs font-light tracking-widest text-white">
+                MOVIE PROJECT
+              </span>
+            </Link>
+          </div>
+
+          {/* Right: Search Button */}
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={openSearch}
+              className={`transition-colors duration-300 group ${
+                scrolled 
+                  ? 'text-white hover:text-gray-200' 
+                  : 'text-white hover:opacity-80'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-light tracking-widest transition-all duration-300 ${
+                  scrolled 
+                    ? 'text-white opacity-0 group-hover:opacity-70' 
+                    : 'text-white opacity-0 group-hover:opacity-100'
+                }`}>
+                  SEARCH
                 </span>
-                <ChevronDown className="h-4 w-4 opacity-70" />
-              </button>
-
-              {userOpen && (
-                <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-white/10 bg-[#0B0F14] shadow-lg">
-                  <div className="p-1">
-                    <Link
-                      href={`/profile/${session.user.id}`}
-                      onClick={() => setUserOpen(false)}
-                      className="block rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                    >
-                      Profile
-                    </Link>
-                    <Link
-                      href="/watchlist"
-                      onClick={() => setUserOpen(false)}
-                      className="block rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                    >
-                      Watchlist
-                    </Link>
-                    <Link
-                      href="/liked"
-                      onClick={() => setUserOpen(false)}
-                      className="block rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                    >
-                      Liked
-                    </Link>
-                    <div className="mt-1 border-t border-white/10 pt-1 w-full">
-                      <Logout />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="hidden items-center gap-2 sm:flex">
-              <Link
-                href="/login"
-                className="rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-md bg-white/90 px-3 py-2 text-sm font-medium text-black hover:bg-white"
-              >
-                Sign up
-              </Link>
-            </div>
-          )}
-
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            className="inline-flex items-center rounded-md p-2 text-white/80 hover:bg-white/10 md:hidden"
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+                <Search className="h-5 w-5" />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-white/10 bg-[#0B0F14] md:hidden">
-          <div className="mx-auto max-w-[1200px] px-3 py-3">
-            <form onSubmit={submitSearch} className="relative mb-3">
+      {/* Search Overlay - Glassmorphism */}
+      {searchOpen && (
+        <div 
+          ref={searchOverlayRef}
+          className="fixed top-0 left-0 right-0 z-[60] bg-white/10 backdrop-blur-xl border-b border-white/20 h-[20%]"
+        >
+          <div className="flex items-center h-16 px-6">
+            {/* Close Button */}
+            <button
+              onClick={closeSearch}
+              className="text-white hover:text-gray-200 transition-colors mr-4"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Search Form */}
+            <form onSubmit={submitSearch} className="flex-1 outline-none">
               <input
+                ref={searchInputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                type="search"
-                placeholder="Search movies or users…"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/30"
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search movies or users..."
+                className="w-full bg-transparent border-b border-white/30 px-2 py-2 text-white placeholder:text-white/50 outline-none focus:outline-none focus:border-white/60 transition-colors text-lg"
               />
-              <button
-                type="submit"
-                className="absolute right-1 top-1.5 rounded-md p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-              >
-                <Search className="h-4 w-4" />
-              </button>
             </form>
 
-            <div className="flex flex-col gap-1">
+            {/* Search Button in Overlay */}
+            <button
+              onClick={submitSearch}
+              className="text-white hover:text-gray-200 transition-colors ml-4"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Menu - Glassmorphism */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl">
+          {/* Close Button */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="absolute top-4 right-6 text-white hover:text-gray-200 z-50 transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* Menu Content */}
+          <div className="flex flex-col items-center justify-center h-full px-6">
+            {/* Navigation Links */}
+            {session? <div className="flex flex-col items-center gap-8 mb-16">
               {mainLinks.map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileOpen(false)}
-                  className={cx(
-                    "rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10",
-                    pathname === l.href && "bg-white/10 text-white"
-                  )}
+                  className="text-2xl text-white/80 hover:text-white transition-colors font-light"
                 >
                   {l.label}
                 </Link>
               ))}
+            </div>:(<>
+            <Image width={70} height={70} src={logo} className="mb-20"/>
+            </>)}
 
-              {session && (
-                <>
-                  <div className="mt-2 border-t border-white/10 pt-2 text-xs uppercase tracking-wide text-white/50">
-                    You
-                  </div>
-                  <Link
-                    href={`/profile/${session.user.id}`}
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    href="/watchlist"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                  >
-                    Watchlist
-                  </Link>
-                  <Link
-                    href="/liked"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-                  >
-                    Liked
-                  </Link>
-                  <div className="mt-1">
-                    <Logout />
-                  </div>
-                </>
-              )}
-            </div>
+            {/* User Section */}
+            {session ? (
+              <div className="flex flex-col items-center gap-6 border-t border-white/20 pt-8">
+                <Link
+                  href={`/profile/${session.user.id}`}
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/watchlist"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Watchlist
+                </Link>
+                <Link
+                  href="/liked"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Liked
+                </Link>
+                <div className="mt-4">
+                  <Logout />
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-8 border-t border-white/20 pt-8">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }

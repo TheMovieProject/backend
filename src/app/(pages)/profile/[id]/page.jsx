@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MdOutlineRateReview, MdClose } from "react-icons/md";
-import { LiaBlogger } from "react-icons/lia";
+import { MdLocalMovies, MdArticle, MdClose, MdEdit } from "react-icons/md";
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast'; 
 import UserBlogs from '@/app/components/UserBlogs/UserBlogs';
@@ -12,34 +11,34 @@ import EditProfile from '@/app/components/EditProfile/EditProfile';
 
 const FollowList = ({ type, data, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl w-full max-w-md p-6 shadow-2xl border border-white/20">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold">{type}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+          <h3 className="text-lg font-bold text-white">{type}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full text-white">
             <MdClose size={24} />
           </button>
         </div>
         <div className="max-h-96 overflow-y-auto">
           {!data || data.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">No {type.toLowerCase()} yet</p>
+            <p className="text-center text-gray-300 py-4">No {type.toLowerCase()} yet</p>
           ) : (
             data.map((user) => (
               <Link 
                 href={`/profile/${user.id}`} 
                 key={user.id}
                 onClick={onClose}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg"
+                className="flex items-center gap-3 p-3 hover:bg-white/10 rounded-lg transition-colors"
               >
                 <Image 
                   src={user.avatarUrl || user.image || '/img/profile.png'}
                   width={32}
                   height={32}
                   alt={user.username || 'Profile'}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                  className="w-8 h-8 rounded-full object-cover border border-white/30"
                 />
                 <div>
-                  <p className="font-medium">{user.username || user.email}</p>
+                  <p className="font-medium text-white">{user.username || user.email}</p>
                 </div>
               </Link>
             ))
@@ -53,7 +52,7 @@ const FollowList = ({ type, data, onClose }) => {
 export default function UserProfilePage({ params }) {
   const { data: session, status } = useSession();
   const [userData, setUserData] = useState(null);
-  const [component, setComponent] = useState('reviews');
+  const [activeTab, setActiveTab] = useState('reviews');
   const [reviewCount, setReviewCount] = useState(0);
   const [blogCount, setBlogCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -93,7 +92,6 @@ export default function UserProfilePage({ params }) {
 
   const fetchBlogCount = async () => {
     try {
-      // Only proceed if we have userData and email
       if (!userData?.email) {
         console.log('Waiting for user email data...');
         return;
@@ -150,7 +148,6 @@ export default function UserProfilePage({ params }) {
   
       if (!response.ok) throw new Error('Failed to update follow status');
   
-      // If we're following (not unfollowing), create a notification
       if (!isFollowing) {
         await fetch('/api/notifications', {
           method: 'POST',
@@ -181,18 +178,17 @@ export default function UserProfilePage({ params }) {
     }
   }, [id, status]);
 
-    // Add a separate useEffect for blog count that depends on userData
-    useEffect(() => {
-      if (userData?.email) {
-        fetchBlogCount();
-      }
-    }, [userData]);
+  useEffect(() => {
+    if (userData?.email) {
+      fetchBlogCount();
+    }
+  }, [userData]);
 
   if (status === 'loading' || !userData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-500 to-yellow-600">
         <div className="text-center">
-          <p className="text-lg text-gray-600">Loading profile...</p>
+          <p className="text-lg text-white">Loading profile...</p>
         </div>
       </div>
     );
@@ -200,54 +196,60 @@ export default function UserProfilePage({ params }) {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-            <div className="shrink-0">
-              <Image
-                className="rounded-full w-[10rem] h-[10rem] object-cover ring-4 ring-blue-100 transition duration-300 hover:ring-blue-200"
-                src={userData.avatarUrl || userData.image || '/img/profile.png'}
-                width={120}
-                height={120}
-                alt="Profile Image"
-              />
-            </div>
-
-            <div className="flex-1 w-full">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                <div className='flex flex-col'>
-                  <h2 className="text-2xl font-bold text-gray-900 text-center md:text-left mb-4 md:mb-0">
-                    {userData.username || userData.email}
-                  </h2>
-                  <h3 className="text-gray-600">{userData.bio || ""}</h3>
-                  {userData.movieGenres?.length > 0 && (
-                    <div className='flex flex-wrap gap-2 mt-2'>
-                      <span className="text-gray-600">Fav genres:</span>
-                      {userData.movieGenres.map((genre, index) => (
-                        <span 
-                          key={index}
-                          className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm"
-                        >
-                          {genre}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+      <div className="min-h-screen bg-gradient-to-br from-black via-yellow-700 to-yellow-900 p-6 pt-20 font-sans">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Left Sidebar - Glassmorphism Profile Section */}
+          <div className="lg:col-span-1">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 sticky top-6 shadow-2xl">
+              {/* Profile Header */}
+              <div className="text-center mb-6">
+                <div className="relative inline-block mb-4">
+                  <Image
+                    className="rounded-full w-24 h-24 object-cover border-4 border-white/30 shadow-2xl"
+                    src={userData.avatarUrl || userData.image || '/img/profile.png'}
+                    width={96}
+                    height={96}
+                    alt="Profile Image"
+                  />
                 </div>
+                
+                <h2 className="text-xl font-bold text-white mb-2">
+                  {userData.username || userData.email}
+                </h2>
+                
+                <p className="text-gray-200 text-sm mb-4">
+                  {userData.bio || "Share your cinematic journey..."}
+                </p>
+
+                {userData.movieGenres?.length > 0 && (
+                  <div className='flex flex-wrap justify-center gap-2 mb-4'>
+                    {userData.movieGenres.map((genre, index) => (
+                      <span 
+                        key={index}
+                        className="px-2 py-1 bg-white/20 text-white rounded-full text-xs border border-white/30 font-medium"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {isOwnProfile ? (
                   <button 
                     onClick={() => setProfile(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                    className="w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-2 rounded-lg transition-all border border-white/30 hover:border-white/40 flex items-center justify-center gap-2"
                   >
+                    <MdEdit size={18} />
                     Edit Profile
                   </button>
                 ) : session && (
                   <button
                     onClick={handleFollow}
-                    className={`font-semibold px-8 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg
+                    className={`w-full font-semibold py-2 rounded-lg transition-all border flex items-center justify-center gap-2
                       ${isFollowing 
-                        ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' 
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'}`
+                        ? 'bg-white/10 hover:bg-white/20 text-white border-white/30' 
+                        : 'bg-white hover:bg-white/90 text-black border-white'}`
                     }
                   >
                     {isFollowing ? 'Unfollow' : 'Follow'}
@@ -255,74 +257,119 @@ export default function UserProfilePage({ params }) {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button 
-                  onClick={() => setComponent('blogs')}
-                  className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-2xl font-bold text-gray-900">{blogCount}</p>
-                  <p className="text-sm text-gray-600 font-medium">Blogs</p>
-                </button>
-                <button 
-                  onClick={() => setComponent('reviews')}
-                  className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-2xl font-bold text-gray-900">{reviewCount}</p>
-                  <p className="text-sm text-gray-600 font-medium">Reviews</p>
-                </button>
-                <button 
+              {/* Stats */}
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
+                  <span className="text-gray-200">Stories</span>
+                  <span className="text-white font-bold">{blogCount}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
+                  <span className="text-gray-200">Reviews</span>
+                  <span className="text-white font-bold">{reviewCount}</span>
+                </div>
+              </div>
+
+              {/* Follow Section */}
+              <div className="space-y-4">
+                {/* Followers */}
+                <div 
+                  className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
                   onClick={() => isOwnProfile || isFollowing ? setShowFollowers(true) : toast.error('Follow to see followers')}
-                  className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors"
                 >
-                  <p className="text-2xl font-bold text-gray-900">{followerCount}</p>
-                  <p className="text-sm text-gray-600 font-medium">Followers</p>
-                </button>
-                <button 
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-200">Followers</span>
+                    <span className="text-white font-bold">{followerCount}</span>
+                  </div>
+                  <div className="flex -space-x-2">
+                    {followers.slice(0, 5).map((follower, index) => (
+                      <Image
+                        key={follower.id}
+                        src={follower.avatarUrl || follower.image || '/img/profile.png'}
+                        width={32}
+                        height={32}
+                        alt={follower.username}
+                        className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
+                        style={{ zIndex: 5 - index }}
+                      />
+                    ))}
+                    {followers.length > 5 && (
+                      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
+                        +{followers.length - 5}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Following */}
+                <div 
+                  className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
                   onClick={() => isOwnProfile || isFollowing ? setShowFollowing(true) : toast.error('Follow to see following')}
-                  className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors"
                 >
-                  <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
-                  <p className="text-sm text-gray-600 font-medium">Following</p>
-                </button>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-200">Following</span>
+                    <span className="text-white font-bold">{followingCount}</span>
+                  </div>
+                  <div className="flex -space-x-2">
+                    {following.slice(0, 5).map((follow, index) => (
+                      <Image
+                        key={follow.id}
+                        src={follow.avatarUrl || follow.image || '/img/profile.png'}
+                        width={32}
+                        height={32}
+                        alt={follow.username}
+                        className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
+                        style={{ zIndex: 5 - index }}
+                      />
+                    ))}
+                    {following.length > 5 && (
+                      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
+                        +{following.length - 5}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-center mb-8">
-          <div className="bg-gray-200 text-black rounded-lg p-1.5 flex gap-3">
-            <button
-              onClick={() => setComponent('reviews')}
-              className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
-                component === 'reviews'
-                  ? 'bg-white shadow-md'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              <MdOutlineRateReview size={24} />
-              <span className="mt-1 font-medium">Review</span>
-            </button>
-            <button
-              onClick={() => setComponent('blogs')}
-              className={`flex flex-col items-center px-6 py-3 rounded-lg transition-all ${
-                component === 'blogs'
-                  ? 'bg-white  shadow-md'
-                  : 'text-black hover:bg-white/10'
-              }`}
-            >
-              <LiaBlogger size={24} />
-              <span className="mt-1 font-medium">Blog</span>
-            </button>
+          {/* Right Content - Polaroid Grid */}
+          <div className="lg:col-span-3">
+            {/* Sleek Tab Navigation */}
+            <div className="flex gap-4 mb-8">
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
+                  activeTab === 'reviews'
+                    ? 'bg-white text-black border-white shadow-lg font-medium'
+                    : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
+                }`}
+              >
+                <MdLocalMovies size={20} />
+                <span className="font-medium">Reviews</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('blogs')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
+                  activeTab === 'blogs'
+                    ? 'bg-white text-black border-white shadow-lg font-medium'
+                    : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
+                }`}
+              >
+                <MdArticle size={20} />
+                <span className="font-medium">Stories</span>
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-transparent rounded-2xl">
+              {activeTab === 'blogs' ? <UserBlogs id={id} /> : <UserReviews id={id} />}
+            </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          {component === 'blogs' ? <UserBlogs id={id} /> : <UserReviews id={id} />}
         </div>
       </div>
 
       {profile && (
-        <div className='fixed inset-0 bg-black/80 p-3 z-50'>
+        <div className='fixed inset-0 bg-black/90 p-3 z-50'>
           <EditProfile userId={id} setProfile={setProfile} />
         </div>
       )}

@@ -11,38 +11,39 @@ datasource db {
 }
 
 model Watchlist {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  movieId   String   @db.ObjectId
-  addedAt   DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  movie     Movie    @relation(fields: [movieId], references: [id])
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String   @db.ObjectId
+  movieId String   @db.ObjectId
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id])
+  movie   Movie    @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId])
 }
+
 model Liked {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  movieId   String   @db.ObjectId
-  addedAt   DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  movie     Movie    @relation(fields: [movieId], references: [id])
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String   @db.ObjectId
+  movieId String   @db.ObjectId
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id])
+  movie   Movie    @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId])
 }
 
 // Add this new model to your schema.prisma file
 model EntityReaction {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  entityId    String   @db.ObjectId
-  entityType  String   // "review", "blog", etc.
-  reactionType String  // "likes", "fire", etc.
-  createdAt   DateTime @default(now())
-  
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  entityId     String   @db.ObjectId
+  entityType   String // "review", "blog", etc.
+  reactionType String // "likes", "fire", etc.
+  createdAt    DateTime @default(now())
+
   // Relation to user
-  user        User     @relation(fields: [userId], references: [id])
-  
+  user User @relation(fields: [userId], references: [id])
+
   @@unique([userId, entityId, entityType, reactionType])
   @@index([entityId, entityType])
   @@index([userId])
@@ -56,29 +57,29 @@ model Rating {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
-  movie     Movie    @relation(fields: [movieId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
 }
- 
+
 model Review {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   content   String
-  userId    String    @db.ObjectId
-  movieId   String    @db.ObjectId
-  createdAt DateTime  @default(now())
+  userId    String   @db.ObjectId
+  movieId   String   @db.ObjectId
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id])
-  movie     Movie     @relation(fields: [movieId], references: [id])
-  reviewComments reviewComment[] 
+  user           User            @relation(fields: [userId], references: [id])
+  movie          Movie           @relation(fields: [movieId], references: [id])
+  reviewComments reviewComment[]
 
   // Engagement Metrics
-  likes      Int       @default(0)
-  fire       Int       @default(0)
-  popularity Int       @default(0)
+  likes      Int @default(0)
+  fire       Int @default(0)
+  popularity Int @default(0)
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
 }
@@ -93,9 +94,9 @@ model reviewComment {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id])
-  review    Review   @relation(fields: [reviewId], references: [id])
-  
+  user   User   @relation(fields: [userId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id])
+
   // Self-referencing relation (Fix: Add `onDelete` and `onUpdate`)
   parentComment reviewComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   childComments reviewComment[] @relation("CommentReplies")
@@ -103,9 +104,10 @@ model reviewComment {
   @@index([reviewId])
   @@index([parentId])
 }
+
 model Movie {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  tmdbId    String   @unique
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  tmdbId    String      @unique
   title     String
   posterUrl String?
   watchlist Watchlist[]
@@ -113,50 +115,70 @@ model Movie {
   ratings   Rating[]
   reviews   Review[] // Relationship to reviews
 
-  // other fields...
+  // cached leaderboard counter (non-null with 0 default for easy sorting)
+  votes Int @default(0)
+
+  // relation
+  movieVotes MovieVote[]
+
+  // optional: speed up sorts
+  @@index([votes])
 }
 
 model User {
- id                    String         @id @default(auto()) @map("_id") @db.ObjectId
- name                  String
- username              String?        @unique
- email                 String         @unique
- password              String?
- bio                   String?
- image                 String?
- avatarUrl             String?
- emailVerified         DateTime?
- movieGenres           String[]
- createdAt             DateTime        @default(now())
- updatedAt             DateTime        @updatedAt
- accounts              Account[]
- watchlist             Watchlist[]
- liked                 Liked[]
- ratings               Rating[]
- reviews               Review[]
- reviewComment         reviewComment[]
- blogs                 Blog[]
- blogComments          BlogComment[]
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  username        String?          @unique
+  email           String           @unique
+  password        String?
+  bio             String?
+  image           String?
+  avatarUrl       String?
+  emailVerified   DateTime?
+  movieGenres     String[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  accounts        Account[]
+  watchlist       Watchlist[]
+  liked           Liked[]
+  ratings         Rating[]
+  reviews         Review[]
+  reviewComment   reviewComment[]
+  blogs           Blog[]
+  blogComments    BlogComment[]
+  entityReactions EntityReaction[]
 
- entityReactions EntityReaction[]
+  followedBy Follow[] @relation("followers")
+  following  Follow[] @relation("following")
 
- // Follower relationships
- followedBy            Follow[]        @relation("followers")
- following             Follow[]        @relation("following")
+  movieVotes MovieVote[]
+}
 
+model MovieVote {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  movieId   String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
+
+  @@unique([userId, movieId]) // 1 vote per user per movie
+  @@index([movieId])
+  @@index([userId])
 }
 
 model Follow {
- id          String   @id @default(auto()) @map("_id") @db.ObjectId
- follower    User     @relation("following", fields: [followerId], references: [id])
- followerId  String   @db.ObjectId
- following   User     @relation("followers", fields: [followingId], references: [id]) 
- followingId String   @db.ObjectId
- createdAt   DateTime @default(now())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  follower    User     @relation("following", fields: [followerId], references: [id])
+  followerId  String   @db.ObjectId
+  following   User     @relation("followers", fields: [followingId], references: [id])
+  followingId String   @db.ObjectId
+  createdAt   DateTime @default(now())
 
- @@unique([followerId, followingId])
- @@index([followerId])
- @@index([followingId])
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 model Account {
@@ -178,43 +200,48 @@ model Account {
 
   @@unique([provider, providerAccountId])
 }
+
 model Blog {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  content     String
-  hashtags    String?
-  blogNumber  Int
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  tags        String[]       // Tags like ['Review', 'Art', 'Drama']
-  thumbnail   String?        // Optional cover image for the blog
-  likes      Int             @default(0)
-  fire       Int             @default(0)
-  views       Int           @default(0)
-  comments    BlogComment[]  // Relationship to comments
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  content    String
+  hashtags   String?
+  blogNumber Int
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tags       String[] // Tags like ['Review', 'Art', 'Drama']
+  thumbnail  String? // Optional cover image for the blog
+  likes      Int           @default(0)
+  fire       Int           @default(0)
+  views      Int           @default(0)
+  comments   BlogComment[] // Relationship to comments
 
   // Relations
-  userEmail   String
-  user        User          @relation(fields: [userEmail], references: [email])
+  userEmail String
+  user      User   @relation(fields: [userEmail], references: [email])
 }
 
 model BlogComment {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  content     String
-  userId      String         @db.ObjectId
-  blogId      String         @db.ObjectId
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  userId    String   @db.ObjectId
+  blogId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parentId      String?       @db.ObjectId
+  parentComment BlogComment?  @relation("BlogCommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childComments BlogComment[] @relation("BlogCommentReplies")
 
   // **New Fields**
   // likes       Int           @default(0)  // Likes on comments
   taggedUsers String[] @db.ObjectId
-     // Stores @mentions (e.g., ["john_doe", "jane_smith"])
+  // Stores @mentions (e.g., ["john_doe", "jane_smith"])
 
   // Relations
-  user        User           @relation(fields: [userId], references: [id])
-  blog        Blog           @relation(fields: [blogId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  blog Blog @relation(fields: [blogId], references: [id])
 
-  
   @@index([blogId]) // Adding an index for quicker lookups by blogId
+  @@index([parentId])
 }

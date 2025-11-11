@@ -55,7 +55,7 @@ const Info = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900">
+      <div className="flex justify-center items-center h-screen bg-yellow-600">
         <Loader2 className="h-12 w-12 animate-spin text-red-500" />
       </div>
     )
@@ -73,7 +73,7 @@ const Info = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-yellow-600 text-white">
       <Hero item={item} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -88,7 +88,7 @@ const Info = () => {
         <SimilarMovies movieId={movieId} />
 
         <div className="mt-16">
-          <Reviews movieId={movieId} />
+          <Reviews movieId={movieId} /> 
         </div>
       </div>
     </div>
