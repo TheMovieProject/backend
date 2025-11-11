@@ -35,26 +35,26 @@ export const authOptions: NextAuthOptions = {
         if (!ok) {
           throw new Error("Incorrect password");
         }
-        return user; // must return a plain object; Prisma returns one
+        return user;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id;
+        token.id = user.id;
         token.email = user.email ?? null;
-        token.username = (user as any).username ?? null;
-        token.bio = (user as any).bio ?? null;
+        token.username = user.username ?? null;
+        token.bio = user.bio ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
-        session.user.email = (token.email as string) ?? null;
-        (session.user as any).username = (token as any).username ?? null;
-        (session.user as any).bio = (token as any).bio ?? null;
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.username = token.username as string;
+        session.user.bio = token.bio as string;
       }
       return session;
     },
