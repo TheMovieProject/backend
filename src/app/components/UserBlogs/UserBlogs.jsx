@@ -122,7 +122,7 @@ const UserBlogs = ({ id }) => {
             >
               <div className="bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
                 {/* Blog Thumbnail Polaroid */}
-                <div className="aspect-[3/4]  overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-pink-500">
+                <div className="aspect-[3/4]  overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-yellow-500">
                   {blog.thumbnail ? (
                     <Image
                       src={blog.thumbnail}
@@ -148,7 +148,7 @@ const UserBlogs = ({ id }) => {
                   </h3>
                   <p className="text-xs text-gray-500 mt-2">
                     {new Date(blog.createdAt).toLocaleDateString()}
-                  </p>
+                  </p> 
                 </div>
               </div>
             </Link>

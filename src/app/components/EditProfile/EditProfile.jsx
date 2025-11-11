@@ -202,7 +202,7 @@ const EditProfile = ({ setProfile , userId }) => {
             <div className="flex-grow">
               <label
                 htmlFor="avatar"
-                className="cursor-pointer bg-blue-900 text-white hover:bg-blue-600 px-3 py-1 rounded-md transition duration-300 text-sm inline-block"
+                className="cursor-pointer bg-yellow-900 text-white hover:bg-yellow-600 px-3 py-1 rounded-md transition duration-300 text-sm inline-block"
               >
                 Upload Image
               </label>
@@ -229,7 +229,7 @@ const EditProfile = ({ setProfile , userId }) => {
                 setErrors(prev => ({ ...prev, username: null }));
               }}
               placeholder="Your username"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-900 text-sm"
             />
             {errors.username && (
               <p className="mt-1 text-xs text-red-500">{errors.username}</p>
@@ -246,7 +246,7 @@ const EditProfile = ({ setProfile , userId }) => {
               }}
               placeholder="Tell us about yourself"
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm"
             />
             {errors.bio && (
               <p className="mt-1 text-xs text-red-500">{errors.bio}</p>
@@ -267,12 +267,12 @@ const EditProfile = ({ setProfile , userId }) => {
                   setErrors(prev => ({ ...prev, movieGenres: null }));
                 }}
                 placeholder="Add a movie genre"
-                className="flex-grow px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="flex-grow px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm"
               />
               <button
                 type="button"
                 onClick={addGenre}
-                className="px-3 py-1 bg-blue-900 text-white rounded-md hover:bg-blue-600 transition duration-300 text-sm"
+                className="px-3 py-1 bg-yellow-900 text-white rounded-md hover:bg-yellow-600 transition duration-300 text-sm"
               >
                 Add
               </button>
@@ -307,7 +307,7 @@ const EditProfile = ({ setProfile , userId }) => {
         <button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="w-full bg-blue-900 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 text-sm disabled:opacity-50"
+          className="w-full bg-yellow-900 text-white py-2 px-4 rounded-md hover:bg-yellow-600 transition duration-300 text-sm disabled:opacity-50"
         >
           {isLoading ? "Saving..." : "Save Changes"}
         </button>

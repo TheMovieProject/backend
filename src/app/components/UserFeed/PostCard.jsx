@@ -211,7 +211,7 @@ export default function PostCard({ item, onOpenPost }) {
       {/* Body */}
       <div className="px-4 py-4">
         <h3 className="text-white font-semibold leading-snug">{title}</h3>
-        {item.excerpt && <p className="text-white/60 text-sm mt-2 line-clamp-2">{item.excerpt}</p>}
+        {item.excerpt && <p className="text-white/60 text-sm mt-2 line-clamp-2">{item.excerpt}</p>} 
 
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-5 text-sm">

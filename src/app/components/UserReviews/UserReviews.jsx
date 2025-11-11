@@ -173,14 +173,14 @@ export default function UserReviews({ id }) {
 
                   <div className="mt-1 flex items-center justify-between text-[11px] text-gray-400">
                     <span>{new Date(review.createdAt).toLocaleDateString()}</span>
-                    <div className="flex items-center gap-3">
+                    {/* <div className="flex items-center gap-3">
                       <span className="inline-flex items-center gap-1">
                         <AiOutlineLike /> {review.likes || 0}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <AiOutlineFire /> {review.fire || 0}
                       </span>
-                    </div>
+                    </div> */}
                   </div>
 
                   {review.content && (

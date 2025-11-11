@@ -267,20 +267,22 @@ async function react(kind) {
         <div className="bg-black rounded-2xl border border-white/10 shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex">
           {/* LEFT: Image */}
           <div className="flex-1 bg-black flex items-center justify-center min-w-0">
-            {hasImage ? (
-              <div className="relative w-full h-full">
-                <Image
-                  src={post.thumbnail}
-                  alt={post.title}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            ) : (
-              <div className="h-full w-full grid place-items-center text-white/40">No image</div>
-            )}
-          </div>
+  {hasImage ? (
+    <div className="relative w-full h-full hidden lg:block"> {/* Hide on mobile, show on lg and up */}
+      <Image
+        src={post.thumbnail}
+        alt={post.title}
+        fill
+        className="object-contain"
+        sizes="(max-width: 768px) 100vw, 50vw"
+      />
+    </div>
+  ) : (
+    <div className="h-full w-full grid place-items-center text-white/40">
+      No image
+    </div>
+  )}
+</div>
 
           {/* RIGHT: Content */}
           <div className="flex flex-col w-96 min-w-96 border-l border-white/10">
@@ -309,7 +311,7 @@ async function react(kind) {
             </div>
 
             {/* Post text */}
-            <div className="px-4 py-3 border-b border-white/10">
+            <div className="px-4 py-3 border-b border-white/10"> 
               <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
                 {post.content || post.excerpt || post.title}
               </p>
