@@ -60,10 +60,10 @@ export default function LoginGate({ threshold = 0.2, once = true }: Props) {
         className="absolute inset-0 bg-black/90"
       />
       {/* Modal */}
-      <div className="absolute inset-0 flex items-center justify-center p-10">
-        <div className="w-full max-w-xl p-5">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-full max-w-xl ">
           <div className="mb-4 text-center text-white p-4">
-            <h3 className="text-2xl font-semibold">Sign in to continue</h3>
+            <h3 className="text-lg md:text-2xl font-semibold">Sign in to continue</h3>
             <p className="text-white/70 mt-1">
               You&apos;ve reached the free preview. Create an account or log in to keep scrolling.
             </p>
