@@ -102,7 +102,7 @@ export default function SearchedItems() {
               {total} {total === 1 ? "result" : "results"} for
             </p>
             <p className="text-md md:text-md font-bold text-yellow-400 break-words">
-              "{q}"
+              &quot;{q}&quot;
             </p>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function SearchedItems() {
                 No Results Found
               </h3>
               <p className="text-gray-300 text-lg mb-2">
-                We could not find any matches for <span className="text-yellow-400">"{q}"</span>
+                We could not find any matches for <span className="text-yellow-400">&quot;{q}&quot;</span>
               </p>
               <p className="text-gray-400">
                 Try adjusting your search terms or explore different keywords.
