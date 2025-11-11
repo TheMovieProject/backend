@@ -278,7 +278,7 @@ async function react(kind) {
       />
     </div>
   ) : (
-    <div className="h-full w-full hidden lg:block grid place-items-center text-white/40">
+    <div className="h-full w-full hidden lg:grid place-items-center text-white/40">
       No image
     </div>
   )}
