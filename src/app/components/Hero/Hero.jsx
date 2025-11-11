@@ -197,46 +197,46 @@ export default function Hero() {
             <span className="uppercase tracking-wider">{item.original_language}</span>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 mt-16">
-            {/* Left Column - Features */}
-            <div className="space-y-6">
-              <h3 className="text-2xl text-white font-light mb-4">Featured Content</h3>
-              <div className="space-y-4">
-                <p className="text-white/80 text-lg leading-relaxed">
-                  Hundreds of exclusive shows and movies, with new releases weekly.
-                </p>
-                <p className="text-white/80 text-lg leading-relaxed">
-                  Thrilling dramas, epic sci-fi and feel-good comedies — no ads.
-                </p>
-                <p className="text-white/80 text-lg leading-relaxed">
-                  Stream on all your favorite devices, smart TVs and sticks.
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mt-12 md:mt-16">
+  {/* Left Column - Core Features */}
+ <div className="space-y-4 md:space-y-6">
+  <h3 className="text-xl md:text-2xl text-white font-light mb-3 md:mb-4">Platform Features</h3>
+  <div className="space-y-3 md:space-y-4">
+    <p className="text-white/80 text-base md:text-lg leading-relaxed">
+      Share your movie insights through blogs and engage in discussions with fellow cinephiles.
+    </p>
+    <p className="text-white/80 text-base md:text-lg leading-relaxed">
+      Publish in-depth blogs and spark conversations about your favorite films.
+    </p>
+    <p className="text-white/80 text-base md:text-lg leading-relaxed">
+      Follow friends, discover reviews, read blogs, and rate movies in your personalized feed.
+    </p>
+  </div>
+</div>
 
-            {/* Right Column - Stats */}
-            <div className="space-y-6">
-              <h3 className="text-2xl text-white font-light mb-4">Why Watch With Us</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                  <p className="text-white/80 text-lg">Curated content selection</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                  <p className="text-white/80 text-lg">4K Ultra HD quality</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                  <p className="text-white/80 text-lg">Available on all devices</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                  <p className="text-white/80 text-lg">No advertisements</p>
-                </div>
-              </div>
-            </div>
-          </div>
+  {/* Right Column - Community Benefits */}
+ <div className="space-y-4 md:space-y-6">
+  <h3 className="text-xl md:text-2xl text-white font-light mb-3 md:mb-4">Why Join Our Community</h3>
+  <div className="space-y-3 md:space-y-4">
+    <div className="flex items-start gap-3 md:gap-4">
+      <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+      <p className="text-white/80 text-base md:text-lg">Connect with fellow movie enthusiasts and cinephiles</p>
+    </div>
+    <div className="flex items-start gap-3 md:gap-4">
+      <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+      <p className="text-white/80 text-base md:text-lg">Collaborate on reviews and creative projects</p>
+    </div>
+    <div className="flex items-start gap-3 md:gap-4">
+      <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+      <p className="text-white/80 text-base md:text-lg">Share your passion and discover hidden cinematic gems</p>
+    </div>
+    <div className="flex items-start gap-3 md:gap-4">
+      <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+      <p className="text-white/80 text-base md:text-lg">Build your reputation as a film critic and content creator</p>
+    </div>
+  </div>
+</div>
+</div>
         </div>
       </div>
 

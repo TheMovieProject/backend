@@ -13,20 +13,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Remove bg-yellow-600 from here and move it inside UserFeed */}
       <div className="min-h-screen">
-        <div className="mx-auto grid max-w-[2000px] grid-cols-12 gap-8 px-6 py-8">
-          {/* Main Movie Reel Feed */}
-          <main className="col-span-12 lg:col-span-8">
-            <FeedList />
-          </main>
-          
-          {/* Sidebar */}
-          <aside className="sticky top-24 hidden h-fit space-y-6 lg:col-span-4 lg:block"> 
-            {/* <FollowSuggestions /> */}
-            <TrendingMoviesMini />
-          </aside>
-        </div> 
+        <div className="mx-auto max-w-[2000px] px-4 sm:px-6 py-8">
+          {/* Mobile: Stack layout */}
+          <div className="block lg:hidden space-y-8">
+            <div>
+              <FeedList />
+            </div>
+            <div className="space-y-6">
+              {/* <FollowSuggestions /> */}
+              <TrendingMoviesMini />
+            </div>
+          </div>
+
+          {/* Desktop: Grid layout */}
+          <div className="hidden lg:grid grid-cols-12 gap-8">
+            {/* Main Movie Reel Feed */}
+            <main className="col-span-8">
+              <FeedList />
+            </main>
+            
+            {/* Sidebar */}
+            <aside className="sticky top-24 h-fit space-y-6 col-span-4"> 
+              {/* <FollowSuggestions /> */}
+              <TrendingMoviesMini />
+            </aside>
+          </div> 
+        </div>
       </div>
     </div>
   );

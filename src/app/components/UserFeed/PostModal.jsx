@@ -263,7 +263,7 @@ async function react(kind) {
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center">
         <div className="bg-black rounded-2xl border border-white/10 shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex">
           {/* LEFT: Image */}
           <div className="flex-1 bg-black flex items-center justify-center min-w-0">
@@ -278,7 +278,7 @@ async function react(kind) {
       />
     </div>
   ) : (
-    <div className="h-full w-full grid place-items-center text-white/40">
+    <div className="h-full w-full hidden lg:block grid place-items-center text-white/40">
       No image
     </div>
   )}

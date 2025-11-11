@@ -56,7 +56,7 @@ const Footer = () => {
           </nav>
 
           {/* Social Media - Right */}
-          <div className="flex justify-center lg:justify-end gap-4">
+          {/* <div className="flex justify-center lg:justify-end gap-4">
             <a
               href="https://github.com/Aditya30december2003"
               target="_blank"
@@ -81,7 +81,7 @@ const Footer = () => {
             >
               <Twitter className="h-4 w-4 text-white/70 group-hover:text-white" />
             </a>
-          </div>
+          </div> */}
         </div>
 
         {/* Bottom Bar - Similar to Navbar */}
@@ -93,7 +93,7 @@ const Footer = () => {
             </div>
 
             {/* Additional Links */}
-            <div className="flex flex-wrap justify-center gap-4 text-white/40 font-light">
+            {/* <div className="flex flex-wrap justify-center gap-4 text-white/40 font-light">
               <Link href="/login" className="hover:text-white/60 transition-colors">
                 Login
               </Link>
@@ -103,12 +103,12 @@ const Footer = () => {
               <Link href="/search" className="hover:text-white/60 transition-colors">
                 Search
               </Link>
-            </div>
+            </div> */}
 
             {/* Version/Build Info */}
-            <div className="text-white/30 font-light text-center md:text-right">
+            {/* <div className="text-white/30 font-light text-center md:text-right">
               v1.0.0 • Built with Next.js
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
