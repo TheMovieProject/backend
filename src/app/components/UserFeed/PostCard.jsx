@@ -194,7 +194,9 @@ export default function PostCard({ item, onOpenPost }) {
           <Image src={avatar} alt={username} fill className="object-cover" />
         </div>
         <div>
+          <Link href={`/profile/${item.userId}`}>
           <span className="text-white/90 font-medium">@{username}</span>
+          </Link>
           <p className="text-white/50 text-xs flex items-center gap-1">
             <Clock className="w-3 h-3" /> {timeAgo(item?.createdAt || item?.created_at)}
           </p>
@@ -221,7 +223,7 @@ export default function PostCard({ item, onOpenPost }) {
                 likedByMe ? "text-red-500 scale-110" : "text-white/70 hover:text-white"
               }`}
             >
-              <Heart className={`w-4 h-4 ${likedByMe ? "fill-current" : ""}`} /> {likes}
+              <Heart className={`w-6 h-6 ${likedByMe ? "fill-current" : ""}`} /> {likes}
             </button>
 
             <button
@@ -230,11 +232,11 @@ export default function PostCard({ item, onOpenPost }) {
                 firedByMe ? "text-orange-500 scale-110" : "text-white/70 hover:text-white"
               }`}
             >
-              <Flame className={`w-4 h-4 ${firedByMe ? "fill-current" : ""}`} /> {fire}
+              <Flame className={`w-6 h-6 ${firedByMe ? "fill-current" : ""}`} /> {fire}
             </button>
 
             <button onClick={openAsModal} className="flex items-center gap-1 text-white/70 hover:text-white">
-              <MessageCircle className="w-4 h-4" /> {commentsCount}
+              <MessageCircle className="w-6 h-6" /> {commentsCount}
             </button>
           </div>
 

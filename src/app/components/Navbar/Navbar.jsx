@@ -110,7 +110,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/movies", label: "Movies" },
     { href: "/write", label: "Write" },
-    // { href: "/poll", label: "Poll" }
+    { href: "/theater", label: "Theater" }
   ];
 
   return (
