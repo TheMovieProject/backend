@@ -16,7 +16,7 @@ export default function HomePage() {
       <div className="min-h-screen">
         <div className="mx-auto max-w-[2000px] px-4 sm:px-6 py-8">
           {/* Mobile: Stack layout */}
-          <div className="block lg:hidden space-y-8">
+          <div className="block  lg:hidden lg:flex-row space-y-8">
             <div>
               <FeedList />
             </div>

@@ -48,7 +48,7 @@ const WritingAssistant = ({ content, title }) => {
     
     if (words.length > 0) {
       if (words.length < 100) {
-        newSuggestions.push('Consider writing a more detailed review or analysis');
+        newSuggestions.push('Consider writing a more detailed blog or analysis');
       }
       
       const avgSentenceLength = words.length / sentences.length;
@@ -79,7 +79,7 @@ const WritingAssistant = ({ content, title }) => {
     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4 mb-6">
       <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2 text-sm md:text-base">
         <HelpCircle size={16} />
-        Writing Tips for Movie Review
+        Writing Tips for Movie blog
       </h4>
       <ul className="text-xs md:text-sm text-yellow-800 space-y-1">
         {suggestions.map((suggestion, index) => (
@@ -317,7 +317,7 @@ const Page = () => {
               className="w-full px-4 py-2 bg-yellow-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               <Film size={16} />
-              {isPublishing ? 'Publishing...' : 'Publish Movie Review'}
+              {isPublishing ? 'Publishing...' : 'Publish Movie Blog'}
             </button>
           </div>
         </div>
@@ -347,7 +347,7 @@ const Page = () => {
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <Star className="text-yellow-500 md:size-6" size={18}  />
                 <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">
-                  {title || 'Untitled Movie Review'}
+                  {title || 'Untitled Movie Blog'}
                 </h1>
               </div>
               
@@ -427,11 +427,11 @@ const Page = () => {
             <div className="rounded-xl shadow-lg border border-yellow-500/20 p-4 md:p-6">
               <div className="flex items-center gap-3 mb-3 md:mb-4">
                 <Type size={18} className="md:size-6 text-yellow-500" />
-                <h3 className="font-semibold text-white text-sm md:text-base">Review Title</h3>
+                <h3 className="font-semibold text-white text-sm md:text-base">Blog Title</h3>
               </div>
               <input
                 type="text"
-                placeholder="An Honest Review of [Movie Title]..."
+                placeholder="An Honest Blog of [Movie Title]..."
                 className="w-full text-xl md:text-3xl font-bold bg-transparent text-white placeholder-gray-500 outline-none border-none focus:ring-0 p-0"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -456,7 +456,7 @@ const Page = () => {
             {/* Content Editor */}
             <div className="rounded-xl shadow-lg border border-yellow-500/20 overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 md:p-6 border-b border-yellow-500/20">
-                <h3 className="font-semibold text-white text-sm md:text-base">Your Movie Review</h3>
+                <h3 className="font-semibold text-white text-sm md:text-base">Your Blog</h3>
                 <div className="flex-1"></div>
                 <div className="text-xs md:text-sm text-gray-400">
                   {wordCount} words • {charCount} characters
@@ -493,7 +493,7 @@ const Page = () => {
                 ) : (
                   <>
                     <Film size={18} />
-                    Publish Review
+                    Publish Blog
                   </>
                 )}
               </button>
@@ -514,7 +514,7 @@ const Page = () => {
                 ) : (
                   <>
                     <Film size={18} />
-                    Publish Movie Review
+                    Publish Blog
                   </>
                 )}
               </button>

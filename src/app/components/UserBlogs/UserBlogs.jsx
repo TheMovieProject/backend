@@ -104,12 +104,12 @@ const UserBlogs = ({ id }) => {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold text-white mb-8">
-        {userDetails ? `${userDetails.username}'s Stories` : 'Your Stories'}
+        {userDetails ? `${userDetails.username}'s Blog` : 'Your Blog'}
       </h1>
       
       {blogs.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-lg">No stories yet</p>
+          <p className="text-gray-400 text-lg">No  yet</p>
           <p className="text-gray-500 text-sm mt-2">Start writing your cinematic journey</p>
         </div>
       ) : (

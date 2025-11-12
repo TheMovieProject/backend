@@ -219,7 +219,7 @@ export default function Page() {
               {/* Stats */}
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
-                  <span className="text-gray-200">Stories</span>
+                  <span className="text-gray-200">Blogs</span>
                   <span className="text-white font-bold">{blogCount}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">

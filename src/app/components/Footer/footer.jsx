@@ -36,8 +36,7 @@ const Footer = () => {
               </h2>
             </div>
             <p className="text-sm text-white/60 font-light">
-              Built with <Heart className="inline w-4 h-4 text-red-500 fill-current" /> by{" "}
-              <span className="font-medium text-white">Aditya Jain</span>
+              Built with <Heart className="inline w-4 h-4 text-red-500 fill-current" /> 
             </p>
           </div>
 
