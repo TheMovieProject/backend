@@ -1,6 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 export default function TheaterComingSoon() {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const newYear = new Date('January 1, 2026 00:00:00').getTime();
+      const now = new Date().getTime();
+      const difference = newYear - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000)
+        });
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <main className="relative min-h-[100dvh] w-full overflow-hidden bg-[#0A0A0A] text-white">
       {/* ===== Top truss bar ===== */}
@@ -78,10 +109,63 @@ export default function TheaterComingSoon() {
                   filter: "blur(0.5px)",
                 }}
               />
-              <div className="relative z-10 flex aspect-[16/9] items-center justify-center rounded-[14px]">
+              <div className="relative z-10 flex aspect-[16/9] flex-col items-center justify-center rounded-[14px] space-y-4">
                 <h1 className="bg-gradient-to-b from-yellow-200 via-yellow-100 to-yellow-400 bg-clip-text text-center text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl md:text-5xl">
                   Theater Coming Soon
                 </h1>
+                
+                {/* New Year Countdown */}
+                <div className="text-center space-y-2">
+                  <div className="text-yellow-300 text-sm font-semibold tracking-wider">
+                    COUNTDOWN TO NEW YEAR 2026
+                  </div>
+                  
+                  <div className="flex justify-center space-x-3 sm:space-x-4">
+                    {/* Days */}
+                    <div className="text-center">
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-2 min-w-[60px]">
+                        <div className="text-2xl font-bold text-yellow-300">
+                          {String(timeLeft.days).padStart(2, '0')}
+                        </div>
+                      </div>
+                      <div className="text-yellow-400/70 text-xs mt-1">DAYS</div>
+                    </div>
+                    
+                    {/* Hours */}
+                    <div className="text-center">
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-2 min-w-[60px]">
+                        <div className="text-2xl font-bold text-yellow-300">
+                          {String(timeLeft.hours).padStart(2, '0')}
+                        </div>
+                      </div>
+                      <div className="text-yellow-400/70 text-xs mt-1">HOURS</div>
+                    </div>
+                    
+                    {/* Minutes */}
+                    <div className="text-center">
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-2 min-w-[60px]">
+                        <div className="text-2xl font-bold text-yellow-300">
+                          {String(timeLeft.minutes).padStart(2, '0')}
+                        </div>
+                      </div>
+                      <div className="text-yellow-400/70 text-xs mt-1">MIN</div>
+                    </div>
+                    
+                    {/* Seconds */}
+                    <div className="text-center">
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-2 min-w-[60px]">
+                        <div className="text-2xl font-bold text-yellow-300 animate-pulse">
+                          {String(timeLeft.seconds).padStart(2, '0')}
+                        </div>
+                      </div>
+                      <div className="text-yellow-400/70 text-xs mt-1">SEC</div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-yellow-200/80 text-sm font-light pt-2">
+                    Grand Opening on January 1st, 2026
+                  </div>
+                </div>
               </div>
             </div>
           </div>
