@@ -116,9 +116,9 @@ export default function TheaterComingSoon() {
                 
                 {/* New Year Countdown */}
                 <div className="text-center space-y-2">
-                  <div className="text-yellow-300 text-sm font-semibold tracking-wider">
+                  {/* <div className="text-yellow-300 text-sm font-semibold tracking-wider">
                     COUNTDOWN TO NEW YEAR 2026
-                  </div>
+                  </div> */}
                   
                   <div className="flex justify-center space-x-3 sm:space-x-4">
                     {/* Days */}
@@ -162,9 +162,9 @@ export default function TheaterComingSoon() {
                     </div>
                   </div>
                   
-                  <div className="text-yellow-200/80 text-sm font-light pt-2">
+                  {/* <div className="text-yellow-200/80 text-sm font-light pt-2">
                     Grand Opening on January 1st, 2026
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
