@@ -58,7 +58,7 @@ const WritingAssistant = ({ content, title }) => {
     }
     
     if (title && title.length < 15) {
-      newSuggestions.push('Your title could be more engaging for movie readers');
+      newSuggestions.push('Your title could be more engaging for blog readers');
     }
     
     const movieKeywords = ['plot', 'character', 'cinematography', 'director', 'acting', 'scene', 'ending'];
@@ -67,7 +67,7 @@ const WritingAssistant = ({ content, title }) => {
     );
     
     if (!hasMovieElements && words.length > 50) {
-      newSuggestions.push('Consider discussing specific movie elements like plot, characters, or cinematography');
+      newSuggestions.push('Consider discussing specific elements like plot, characters, or cinematography');
     }
     
     setSuggestions(newSuggestions);
@@ -79,7 +79,7 @@ const WritingAssistant = ({ content, title }) => {
     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4 mb-6">
       <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2 text-sm md:text-base">
         <HelpCircle size={16} />
-        Writing Tips for Movie blog
+        Writing Tips for blog
       </h4>
       <ul className="text-xs md:text-sm text-yellow-800 space-y-1">
         {suggestions.map((suggestion, index) => (
@@ -191,7 +191,7 @@ const Page = () => {
     }
     
     if (!session?.user?.email) {
-      alert('Please sign in to create a movie review');
+      alert('Please sign in to create a blog');
       return;
     }
 
@@ -218,7 +218,7 @@ const Page = () => {
       }
 
       const result = await response.json();
-      alert('Movie review published successfully! 🎬');
+      alert('Blog published successfully! 🎬');
       setTitle('');
       setHashtags('');
       setContent('');
@@ -317,7 +317,7 @@ const Page = () => {
               className="w-full px-4 py-2 bg-yellow-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               <Film size={16} />
-              {isPublishing ? 'Publishing...' : 'Publish Movie Blog'}
+              {isPublishing ? 'Publishing...' : 'Publish Blog'}
             </button>
           </div>
         </div>
@@ -336,7 +336,7 @@ const Page = () => {
                   width={800}
                   height={400}
                   src={thumbnail}
-                  alt="Movie thumbnail"
+                  alt="thumbnail"
                   className="w-full h-48 md:h-80 object-cover"
                   priority
                 />
@@ -347,7 +347,7 @@ const Page = () => {
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <Star className="text-yellow-500 md:size-6" size={18}  />
                 <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">
-                  {title || 'Untitled Movie Blog'}
+                  {title || 'Untitled Blog'}
                 </h1>
               </div>
               
@@ -374,7 +374,7 @@ const Page = () => {
             <div className="rounded-xl shadow-lg border border-yellow-300/20 p-4 md:p-6">
               <div className="flex items-center gap-3 mb-3 md:mb-4">
                 <ImageIcon size={18} className="md:size-6 text-yellow-500" />
-                <h3 className="font-semibold text-white text-sm md:text-base">Movie Poster</h3>
+                <h3 className="font-semibold text-white text-sm md:text-base">Add a Poster</h3>
               </div>
               
               <input
@@ -391,7 +391,7 @@ const Page = () => {
                     width={120}
                     height={160}
                     src={thumbnail}
-                    alt="Movie poster preview"
+                    alt="poster preview"
                     className="w-20 h-28 sm:w-24 sm:h-32 object-cover rounded-lg border-2 border-yellow-500/50"
                   />
                   <div className="flex-1">
@@ -410,8 +410,8 @@ const Page = () => {
                   className="border-2 border-dashed border-yellow-500/30 rounded-xl p-6 md:p-8 text-center cursor-pointer hover:border-yellow-500/50 transition-colors group"
                 >
                   <Upload size={24} className="md:size-8 mx-auto text-yellow-500/60 group-hover:text-yellow-500 mb-2 md:mb-3" />
-                  <p className="text-gray-300 mb-1 text-sm md:text-base group-hover:text-white">Click to upload movie poster</p>
-                  <p className="text-xs md:text-sm text-gray-400">Recommended: 600x800 pixels (movie poster ratio)</p>
+                  <p className="text-gray-300 mb-1 text-sm md:text-base group-hover:text-white">Click to upload poster</p>
+                  <p className="text-xs md:text-sm text-gray-400">Recommended: 600x800 pixels (poster ratio)</p>
                 </div>
               )}
               
@@ -431,7 +431,7 @@ const Page = () => {
               </div>
               <input
                 type="text"
-                placeholder="An Honest Blog of [Movie Title]..."
+                placeholder="An Honest Blog of [Blog Title]..."
                 className="w-full text-xl md:text-3xl font-bold bg-transparent text-white placeholder-gray-500 outline-none border-none focus:ring-0 p-0"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -442,7 +442,7 @@ const Page = () => {
             <div className="rounded-xl shadow-lg border border-yellow-500/20 p-4 md:p-6">
               <div className="flex items-center gap-3 mb-3 md:mb-4">
                 <Hash size={18} className="md:size-6 text-yellow-500" />
-                <h3 className="font-semibold text-white text-sm md:text-base">Movie Genres & Tags</h3>
+                <h3 className="font-semibold text-white text-sm md:text-base">Genres & Tags</h3>
               </div>
               <input
                 type="text"
@@ -471,7 +471,7 @@ const Page = () => {
                     onChange={setContent}
                     modules={modules}
                     formats={formats}
-                    placeholder="Share your thoughts on the movie... Discuss plot, characters, cinematography, acting, and your overall rating..."
+                    placeholder="Share your thoughts on the movies, scripts and pop culture... Discuss plot, characters, cinematography, acting, and your overall rating..."
                     className="h-auto min-h-[700px] md:min-h-[500px] border-none text-white"
                   />
                 )}

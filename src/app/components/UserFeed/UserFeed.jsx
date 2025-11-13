@@ -18,6 +18,95 @@ const getKey =
     return `/api/feed?mode=${mode}&limit=12${cursor}`;
   };
 
+// Popcorn Loading Component
+const PopcornLoading = () => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Popcorn bucket animation
+      gsap.to(".popcorn-bucket", {
+        y: -10,
+        duration: 1,
+        yoyo: true,
+        repeat: -1,
+        ease: "power2.inOut"
+      });
+
+      // Popcorn pieces animation
+      gsap.to(".popcorn-piece", {
+        y: -15,
+        opacity: 1,
+        duration: 0.8,
+        stagger: {
+          each: 0.2,
+          from: "random"
+        },
+        yoyo: true,
+        repeat: -1,
+        ease: "power2.out"
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="flex flex-col items-center justify-center py-16 space-y-6">
+      {/* Popcorn Bucket */}
+      <div className="popcorn-bucket relative">
+        <svg width="80" height="80" viewBox="0 0 80 80" className="text-yellow-400">
+          {/* Bucket */}
+          <rect x="20" y="30" width="40" height="35" rx="6" fill="currentColor" stroke="#B45309" strokeWidth="2"/>
+          <path d="M24 32h32" stroke="#B45309" strokeWidth="2"/>
+          
+          {/* Bucket top curve */}
+          <path d="M24 30c0-4 8-6 16-6s16 2 16 6" fill="none" stroke="#FBBF24" strokeWidth="3"/>
+          
+          {/* Bucket stripes */}
+          <path d="M26 38h28M26 44h28M26 50h28" stroke="#B45309" strokeWidth="1.5"/>
+        </svg>
+
+        {/* Floating popcorn pieces */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-full flex justify-center space-x-1">
+          <div className="popcorn-piece opacity-0">
+            <svg width="12" height="12" viewBox="0 0 12 12" className="text-yellow-200">
+              <path d="M6 2c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div className="popcorn-piece opacity-0">
+            <svg width="10" height="10" viewBox="0 0 10 10" className="text-yellow-300">
+              <path d="M5 1c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div className="popcorn-piece opacity-0">
+            <svg width="14" height="14" viewBox="0 0 14 14" className="text-yellow-100">
+              <path d="M7 2c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading Text */}
+      <div className="text-center space-y-2">
+        <div className="text-yellow-200 text-lg font-semibold">Loading...</div>
+        <div className="text-yellow-300 text-sm">Preparing your cinematic experience...</div>
+      </div>
+
+      {/* Dots Animation */}
+      <div className="flex space-x-1">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"
+            style={{ animationDelay: `${i * 0.2}s` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function UserFeed() {
   const [mode, setMode] = useState("forYou");
   const [activePost, setActivePost] = useState(null);
@@ -74,6 +163,9 @@ export default function UserFeed() {
     [mutate, setSize]
   );
 
+  // Show loading state when no data and not errored
+  const isLoading = !data && !error;
+
   return (
     <>
       <div className="min-h-screen bg-yellow-600">
@@ -102,11 +194,12 @@ export default function UserFeed() {
           <div className="mx-auto max-w-2xl space-y-4">
             {error && <div className="text-red-400 text-center py-8">Failed to load feed.</div>}
 
-            {!data && !error && (
-              <div className="space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-[420px] bg-white/5 border border-white/10 rounded-2xl animate-pulse" />
-                ))}
+            {isLoading && <PopcornLoading />}
+
+            {!isLoading && items.length === 0 && !error && (
+              <div className="text-center text-white/70 py-16">
+                <div className="text-lg mb-2">No posts yet</div>
+                <div className="text-sm">Be the first to share something!</div>
               </div>
             )}
 
@@ -122,11 +215,23 @@ export default function UserFeed() {
             {hasMore ? (
               <div ref={sentinelRef} className="h-10" />
             ) : (
-              <div className="text-center text-white/50 py-6">You are all caught up</div>
+              items.length > 0 && (
+                <div className="text-center text-white/50 py-6">You are all caught up</div>
+              )
             )}
 
             {isValidating && data && (
-              <div className="h-8 flex items-center justify-center text-white/50">Loading...</div>
+              <div className="flex items-center justify-center py-4">
+                <div className="flex space-x-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 bg-yellow-300 rounded-full animate-bounce"
+                      style={{ animationDelay: `${i * 0.2}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </section>
