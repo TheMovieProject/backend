@@ -98,13 +98,13 @@ export default function Navbar() {
     }
   };
 
-  if (status === "loading") {
-    return (
-      <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-center bg-yellow-600 text-white">
-        Loading…
-      </div>
-    );
-  }
+  // if (status === "loading") {
+  //   return (
+  //     <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-center bg-yellow-600 text-white">
+  //       Loading…
+  //     </div>
+  //   );
+  // }
 
   const mainLinks = [
     { href: "/", label: "Home" },

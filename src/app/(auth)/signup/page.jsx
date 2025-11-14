@@ -77,6 +77,14 @@ export default function SignupPage() {
     }
   };
 
+    const googleLogin = () => {
+      setSubmitting(true);
+      signIn("google", {
+        callbackUrl: "/profile",
+        redirect: true,
+      }).finally(() => setSubmitting(false));
+    };
+
   const strengthBarClasses =
     score <= 1
       ? "bg-red-500 w-1/5"
@@ -94,6 +102,16 @@ export default function SignupPage() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">
           <div className="mb-6 text-center">
+          <div className='mb-10'>
+          <button
+            onClick={googleLogin}
+            disabled={submitting}
+            className={`w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition
+              ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {submitting ? "Please wait…" : "Sign up with Google"}
+          </button>
+        </div>
             <h2 className="text-2xl font-bold tracking-tight">Create your account</h2>
             <p className="text-sm text-white/60 mt-1">Unique username & strong password required</p>
           </div>

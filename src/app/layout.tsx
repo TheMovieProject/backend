@@ -9,7 +9,7 @@ import Footer from "@/app/components/Footer/footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "THE Movie Project",   
+  title: "TheMOVIEPROJECT",   
   description: "Discover, review, and share movies with Movie Project.",
   icons: {
     icon: "/favicon.ico",     

@@ -3,7 +3,7 @@ import FeedList from "@/app/components/UserFeed/UserFeed";
 import TrendingMoviesMini from "@/app/components/TrendingMoviesMini/TrendingMoviesMini";
 import Hero from "@/app/components/Hero/Hero";
 import LoginGate from "@/app/components/auth/LoginGate";
-
+import HeroBeforeLogin from '@/app/components/HeroBeforeLogin/HeroBeforeLogin'
 export default async function Home() {
   const session = await getAuthSession();
 
@@ -13,11 +13,11 @@ export default async function Home() {
       <main className="bg-[#0A0F14] text-white">
         <section>
           <div className="mx-auto max-w-full">
-            <Hero />
+            <HeroBeforeLogin />
           </div>
         </section>
         {/* Scroll gate for guests */}
-        <LoginGate threshold={0.2} />
+        <LoginGate threshold={1.0} />
       </main>
     );
   }
