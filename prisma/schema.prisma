@@ -152,6 +152,10 @@ model User {
   following  Follow[] @relation("following")
 
   movieVotes MovieVote[]
+
+  videos Video[]
+
+  videoComments VideoComment[]
 }
 
 model MovieVote {
@@ -244,4 +248,91 @@ model BlogComment {
 
   @@index([blogId]) // Adding an index for quicker lookups by blogId
   @@index([parentId])
+}
+
+model Video {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  title         String
+  description   String?
+  language      String?
+  posterUrl     String?
+  tags          String[]
+  genres        String[]
+  cast          String[]
+
+  writer        String?
+  director      String?
+
+  visibility    String   @default("public") // or use enum Visibility if you want
+
+  ageRestricted Boolean  @default(false)
+
+  // Mux integration
+  muxAssetId    String? 
+  muxPlaybackId String? 
+  status        String   @default("pending") // or VideoStatus enum
+
+  // Cached counters
+  views         Int      @default(0)
+  likes         Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  comments      VideoComment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([visibility])
+  // optional, if you plan to query by them:
+  @@index([muxAssetId])
+  @@index([muxPlaybackId])
+}
+
+
+enum Visibility {
+  public
+  unlisted
+  private
+}
+
+enum VideoStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+
+model VideoComment {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  videoId    String   @db.ObjectId
+  content    String
+  parentId   String?  @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User  @relation(fields: [userId], references: [id])
+  video   Video @relation(fields: [videoId], references: [id])
+
+  // Fixed: Added onDelete and onUpdate actions
+  parent   VideoComment?   @relation("VideoCommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children VideoComment[]  @relation("VideoCommentReplies")
+
+  @@index([videoId])
+  @@index([parentId])
+}
+
+// Tracks a Mux direct-upload until the asset is processed
+model UploadTicket {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  videoId      String   @db.ObjectId
+  muxUploadId  String   @unique
+  status       String   @default("uploading") // uploading | asset_created | ready | errored
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

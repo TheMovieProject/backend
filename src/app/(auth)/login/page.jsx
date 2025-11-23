@@ -1,9 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { signIn, useSession } from "next-auth/react"; 
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+
+// ⬇️ adjust this path to where *you* placed the component
+import MoviesPosterWall from "@/app/components/MoviePosterWall";
 
 export default function LoginPage() {
   const { status } = useSession();
@@ -22,7 +25,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", { ...user, redirect: false });
     setSubmitting(false);
 
-    if (result?.error) {
+    if (result && result.error) {
       toast.error("Login failed: " + result.error);
     } else {
       toast.success("Welcome back!");
@@ -39,25 +42,38 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="pt-20 min-h-screen relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#dbb304] via-[#a99801] to-yellow-600 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_260px_at_85%_-10%,rgba(255,200,100,.16),transparent),radial-gradient(600px_260px_at_0%_110%,rgba(70,120,255,.16),transparent)]" />
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">
+    <div className="pt-20 h-[46rem] relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#dbb304] via-[#a99801] to-yellow-600 text-white">
+      {/* Posters background */}
+      <MoviesPosterWall />
+
+      {/* Glow overlay on top of posters */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_260px_at_85%_-10%,rgba(255,200,100,.25),transparent),radial-gradient(600px_260px_at_0%_110%,rgba(70,120,255,.25),transparent)] z-10" />
+
+      {/* Main content */}
+      <div className="min-h-screen flex items-center justify-center px-4 relative z-20">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 sm:p-8 backdrop-blur-2xl shadow-[0_10px_50px_rgba(0,0,0,.7)]">
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold tracking-tight">Login</h2>
-            <p className="text-sm text-white/60 mt-1">Welcome back to Movie Project</p>
+            <p className="text-sm text-white/60 mt-1">
+              Welcome back to Movie Project
+            </p>
           </div>
 
           <form onSubmit={userLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-white/80 mb-1"
+              >
                 Email
               </label>
               <input
                 id="email"
                 type="email"
                 value={user.email}
-                onChange={(e) => setUser({ ...user, email: e.target.value })}
+                onChange={(e) =>
+                  setUser({ ...user, email: e.target.value })
+                }
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
                 placeholder="you@example.com"
                 required
@@ -65,7 +81,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-white/80 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -73,7 +92,9 @@ export default function LoginPage() {
                   id="password"
                   type={showPw ? "text" : "password"}
                   value={user.password}
-                  onChange={(e) => setUser({ ...user, password: e.target.value })}
+                  onChange={(e) =>
+                    setUser({ ...user, password: e.target.value })
+                  }
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
                   placeholder="••••••••"
                   required
@@ -91,8 +112,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full rounded-xl py-2.5 text-sm font-semibold transition
-                ${submitting ? "bg-white/30 text-white/60 cursor-not-allowed" : "bg-white text-black hover:bg-white/90"}`}
+              className={
+                "w-full rounded-xl py-2.5 text-sm font-semibold transition " +
+                (submitting
+                  ? "bg-white/30 text-white/60 cursor-not-allowed"
+                  : "bg-white text-black hover:bg-white/90")
+              }
             >
               {submitting ? "Signing in…" : "Login"}
             </button>
@@ -101,8 +126,10 @@ export default function LoginPage() {
           <button
             onClick={googleLogin}
             disabled={submitting}
-            className={`w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition
-              ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={
+              "w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition " +
+              (submitting ? "opacity-60 cursor-not-allowed" : "")
+            }
           >
             {submitting ? "Please wait…" : "Sign in with Google"}
           </button>
