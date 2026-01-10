@@ -1,11 +1,11 @@
-import React from 'react'
-import TopRated from '@/app/components/TopRated/TopRated'
-import Upcoming from '@/app/components/Upcoming/Upcoming'
+import { lazy } from "react"
+const MovieComponent = lazy(()=> import("@/app/components/MoviesCoponent/MoviesComponent"))
+const TrendingMovies = lazy(()=> import ("@/app/components/Weekly_Trending_Movies/TrendingMovies"))
 const page = () => {
   return (
     <div className='bg-gradient-to-br from-gray-900 via-yellow-500 to-yellow-300'>
-      <TopRated/>
-      <Upcoming/>
+      <TrendingMovies/>
+      <MovieComponent/>
     </div>
   )
 }

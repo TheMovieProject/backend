@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Heart, Flame, MessageCircle, Clock, ExternalLink } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
+import { FaStar } from "react-icons/fa";
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -28,10 +29,11 @@ function normalizeForModal(item) {
     ? item?.movie?.title || item?.title || "Untitled movie"
     : item?.title || "Untitled";
 
-  const thumbnail = isReview ? item?.movie?.posterUrl || item?.thumbnail || "" : item?.thumbnail || "";
+  const thumbnail = isReview
+    ? item?.movie?.posterUrl || item?.thumbnail || ""
+    : item?.thumbnail || "";
 
   const createdAt = item?.createdAt || item?.created_at || item?.updatedAt || new Date().toISOString();
-
   const content = item?.content ?? item?.text ?? item?.reviewText ?? item?.body ?? "";
   const excerpt = item?.excerpt ?? "";
 
@@ -58,21 +60,30 @@ function normalizeForModal(item) {
 export default function PostCard({ item, onOpenPost }) {
   const { data: session } = useSession();
 
-  const isReview = item?.type === "review";
+  const isReview = item?.type === "review"; 
   const entityType = isReview ? "review" : "blog";
-  const hasImage = isReview ? !!item?.movie?.posterUrl : !!item?.thumbnail;
-  const imageSrc = isReview ? item?.movie?.posterUrl : item?.thumbnail;
+
+  // ✅ rules you asked:
+  // - blogs show image (small box)
+  // - reviews show NO image (wide text card)
+  const blogHasImage = !isReview && !!item?.thumbnail;
+  const blogImageSrc = item?.thumbnail;
 
   const avatar = item?.user?.avatarUrl || item?.user?.image || "/img/profile.png";
-  const username = item?.user?.username || item?.user?.email?.split("@")[0] || "user";
-  const title = isReview ? item?.movie?.title || "Untitled movie" : item?.title || "Untitled";
+  const profileHref = item?.userId ? `/profile/${item.userId}` : "#";
+
+  const title = isReview
+    ? item?.movie?.title || "Untitled movie"
+    : item?.title || "Untitled";
+
+  const createdAtIso = item?.createdAt || item?.created_at;
+
   const href = isReview ? `/movies/${item?.movie?.tmdbId}` : `/blog/${item?.id}`;
 
   // seed + read from global cache
   const upsert = useEntityStore((s) => s.upsert);
 
   useEffect(() => {
-    // seed counts + any flags that might already be present on item
     upsert({
       id: item.id,
       entityType,
@@ -102,15 +113,11 @@ export default function PostCard({ item, onOpenPost }) {
     async function hydrateFlags() {
       if (!session?.user) return;
 
-      const haveFlags =
-        typeof snap?.likedByMe === "boolean" || typeof snap?.firedByMe === "boolean";
+      const haveFlags = typeof snap?.likedByMe === "boolean" || typeof snap?.firedByMe === "boolean";
       if (haveFlags) return;
 
       try {
-        const res = await fetch(
-          `/api/reaction?entityType=${entityType}&ids=${item.id}`,
-          { cache: "no-store" }
-        );
+        const res = await fetch(`/api/reaction?entityType=${entityType}&ids=${item.id}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         const flags = data[item.id];
@@ -186,57 +193,157 @@ export default function PostCard({ item, onOpenPost }) {
     onOpenPost?.(normalized);
   };
 
+  /* ---------------- BLOG CARD (small box) ---------------- */
+  if (!isReview) {
+    return (
+      <>
+     <article className="w-[190px] sm:w-[210px] rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-xl">
+  {/* Image section - only when image exists */}
+  {blogHasImage ? (
+    <div className="relative w-full aspect-[2/3] overflow-hidden">
+      <Image src={blogImageSrc} alt={title} fill className="object-cover" />
+
+      {/* Avatar and time overlays on image */}
+      <Link
+        href={profileHref}
+        className="absolute top-2 left-2 z-10 relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 bg-black/40"
+      >
+        <Image src={avatar} alt="user" fill className="object-cover" />
+      </Link>
+
+      <div className="absolute top-2 right-2 text-[11px] text-white/80 bg-black/40 px-2 py-1 rounded-full flex items-center gap-1">
+        <Clock className="w-3 h-3" /> {timeAgo(createdAtIso)}
+      </div>
+    </div>
+  ) : (
+    // When no image, show avatar and time in header without aspect ratio
+    <div className="pt-3 px-3 pb-2 border-b border-white/10">
+      <div className="flex items-center justify-between">
+        <Link
+          href={profileHref}
+          className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/30 bg-black/40"
+        >
+          <Image src={avatar} alt="user" fill className="object-cover" />
+        </Link>
+        <div className="text-[11px] text-white/80 bg-black/40 px-2 py-1 rounded-full flex items-center gap-1">
+          <Clock className="w-3 h-3" /> {timeAgo(createdAtIso)}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Content section */}
+  <div className={`${blogHasImage ? 'p-3' : 'p-3 pt-2'}`}>
+    <div className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-2">
+      {title}
+    </div>
+
+    {/* Icons row */}
+    <div className="flex items-center gap-3 text-xs text-white/70">
+      <button
+        onClick={() => react("like")}
+        className={`inline-flex items-center gap-1 ${likedByMe ? "text-red-500" : "hover:text-white"}`}
+      >
+        <Heart className={`w-4 h-4 ${likedByMe ? "fill-current" : ""}`} />
+        {likes}
+      </button>
+
+      <button
+        onClick={() => react("fire")}
+        className={`inline-flex items-center gap-1 ${firedByMe ? "text-orange-400" : "hover:text-white"}`}
+      >
+        <Flame className={`w-4 h-4 ${firedByMe ? "fill-current" : ""}`} />
+        {fire}
+      </button>
+
+      <button
+        onClick={openAsModal}
+        className="inline-flex items-center gap-1 hover:text-white"
+        title="Open comments"
+      >
+        <MessageCircle className="w-4 h-4" />
+        {commentsCount}
+      </button>
+
+      <Link
+        href={href}
+        className="ml-auto inline-flex items-center gap-1 text-white/60 hover:text-white"
+        title="Open"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+      </Link>
+    </div>
+  </div>
+</article>
+      </>
+    );
+  }
+
+  const myRating =
+  typeof item?.myRating === "number" && !Number.isNaN(item.myRating)
+    ? item.myRating
+    : null;
+
+
+  /* ---------------- REVIEW CARD (wide, NO image) ---------------- */
   return (
-    <article className="bg-gray-400 rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-10 overflow-hidden shadow-[0_2.8px_2.2px_rgba(0,_0,_0,_0.034),_0_6.7px_5.3px_rgba(0,_0,_0,_0.048),_0_12.5px_10px_rgba(0,_0,_0,_0.06),_0_22.3px_17.9px_rgba(0,_0,_0,_0.072),_0_41.8px_33.4px_rgba(0,_0,_0,_0.086),_0_100px_80px_rgba(0,_0,_0,_0.12)] transition-all">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3">
-        <div className="relative w-9 h-9 overflow-hidden rounded-full ring-1 ring-white/10 shrink-0">
-          <Image src={avatar} alt={username} fill className="object-cover" />
-        </div>
-        <div>
-          <Link href={`/profile/${item.userId}`}>
-          <span className="text-white/90 font-medium">@{username}</span>
+    <article className="w-full rounded-2xl bg-white/5 border border-white/10 shadow-xl overflow-hidden">
+      <div className="p-4 sm:p-5">
+        {/* top row: avatar only + time */}
+        <div className="flex items-center justify-between">
+          <Link href={profileHref} className="relative w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/20">
+            <Image src={avatar} alt="user" fill className="object-cover" />
           </Link>
-          <p className="text-white/50 text-xs flex items-center gap-1">
-            <Clock className="w-3 h-3" /> {timeAgo(item?.createdAt || item?.created_at)}
-          </p>
+
+          <div className="text-xs text-white/60 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" /> {timeAgo(createdAtIso)}
+          </div>
         </div>
-      </header>
 
-      {/* Image */}
-      {hasImage && (
-        <div className="relative w-full aspect-[4/5] md:aspect-[16/9] overflow-hidden">
-          <Image src={imageSrc} alt={title} fill className="object-cover" />
+        {/* movie title */}
+        <div className="mt-3 flex items-start justify-between gap-3">
+  <div className="text-white font-bold text-lg sm:text-xl leading-snug">
+    {title}
+  </div>
+
+  
+  {myRating !== null && (
+    <div className="shrink-0 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/80 flex items-center gap-1">
+      <FaStar className="text-yellow-400" />
+      <span className="font-semibold">{myRating}</span>
+    </div>
+  )}
+</div>
+
+
+        {/* review text (NO image) */}
+        <div className="mt-2 text-white/70 text-sm leading-relaxed line-clamp-3">
+          {item?.excerpt ? item.excerpt : "No review text."}
         </div>
-      )}
 
-      {/* Body */}
-      <div className="px-4 py-4">
-        <h3 className="text-white font-semibold leading-snug">{title}</h3>
-        {item.excerpt && <p className="text-white/60 text-sm mt-2 line-clamp-2">{item.excerpt}</p>} 
-
+        {/* icons row */}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-5 text-sm">
             <button
               onClick={() => react("like")}
               className={`flex items-center gap-1 transition-transform ${
-                likedByMe ? "text-red-500 scale-110" : "text-white/70 hover:text-white"
+                likedByMe ? "text-red-500 scale-105" : "text-white/70 hover:text-white"
               }`}
             >
-              <Heart className={`w-6 h-6 ${likedByMe ? "fill-current" : ""}`} /> {likes}
+              <Heart className={`w-5 h-5 ${likedByMe ? "fill-current" : ""}`} /> {likes}
             </button>
 
             <button
               onClick={() => react("fire")}
               className={`flex items-center gap-1 transition-transform ${
-                firedByMe ? "text-orange-500 scale-110" : "text-white/70 hover:text-white"
+                firedByMe ? "text-orange-500 scale-105" : "text-white/70 hover:text-white"
               }`}
             >
-              <Flame className={`w-6 h-6 ${firedByMe ? "fill-current" : ""}`} /> {fire}
+              <Flame className={`w-5 h-5 ${firedByMe ? "fill-current" : ""}`} /> {fire}
             </button>
 
             <button onClick={openAsModal} className="flex items-center gap-1 text-white/70 hover:text-white">
-              <MessageCircle className="w-6 h-6" /> {commentsCount}
+              <MessageCircle className="w-5 h-5" /> {commentsCount}
             </button>
           </div>
 

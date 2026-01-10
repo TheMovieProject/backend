@@ -50,20 +50,56 @@ export async function GET(req: Request) {
       ? await prisma.user.findUnique({ where: { email: session.user.email } })
       : null;
 
-    const where = userId ? { userId } : { movie: { tmdbId: tmdbId! } };
+const where = userId
+  ? { userId }
+  : { movie: { is: { tmdbId: tmdbId! } } }; // keep this for tmdb route
 
-    const rows = await prisma.review.findMany({
-      where,
-      include: {
-        movie: { select: { tmdbId: true, title: true, posterUrl: true } },
-        user: { select: { id: true, username: true, avatarUrl: true, image: true } },
-        reviewComments: {
-          include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
-          orderBy: { createdAt: "desc" },
-        },
+let rows;
+
+if (userId) {
+  // 1) get reviews only
+  const reviews = await prisma.review.findMany({
+    where: { userId },
+    include: {
+      user: { select: { id: true, username: true, avatarUrl: true, image: true } },
+      reviewComments: {
+        include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
+        orderBy: { createdAt: "desc" },
       },
-      orderBy: userId ? { createdAt: "desc" } : undefined,
-    });
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // 2) get movies in bulk (only existing)
+  const movieIds = [...new Set(reviews.map((r: { movieId: any; }) => r.movieId))];
+
+  const movies = await prisma.movie.findMany({
+    where: { id: { in: movieIds } },
+    select: { id: true, tmdbId: true, title: true, posterUrl: true },
+  });
+
+  const movieMap = new Map(movies.map(m => [m.id, m]));
+
+  // 3) attach movie manually; filter out broken ones OR set null safely
+  rows = reviews
+    .map((r: { movieId: unknown; }) => ({ ...r, movie: movieMap.get(r.movieId) || null }))
+    .filter((r: { movie: null; }) => r.movie !== null); // if you want to drop broken ones
+} else {
+  // tmdb route (this is safe because it filters by movie anyway)
+  rows = await prisma.review.findMany({
+    where: { movie: { is: { tmdbId: tmdbId! } } },
+    include: {
+      movie: { select: { tmdbId: true, title: true, posterUrl: true } },
+      user: { select: { id: true, username: true, avatarUrl: true, image: true } },
+      reviewComments: {
+        include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+}
+;
+
 
     // mark my reactions in bulk
     let myReactions: Record<string, { likedByMe: boolean; firedByMe: boolean }> = {};

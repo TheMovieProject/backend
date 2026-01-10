@@ -84,6 +84,25 @@ model Review {
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
 }
 
+model Blog {
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  content    String
+  hashtags   String?
+  blogNumber Int
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tags       String[] // Tags like ['Review', 'Art', 'Drama']
+  thumbnail  String? // Optional cover image for the blog
+  likes      Int           @default(0)
+  fire       Int           @default(0)
+  views      Int           @default(0)
+  comments   BlogComment[] // Relationship to comments
+
+  // Relations
+  userEmail String
+  user      User   @relation(fields: [userEmail], references: [email])
+}
 model reviewComment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   comment   String
@@ -205,25 +224,7 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-model Blog {
-  id         String        @id @default(auto()) @map("_id") @db.ObjectId
-  title      String
-  content    String
-  hashtags   String?
-  blogNumber Int
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  tags       String[] // Tags like ['Review', 'Art', 'Drama']
-  thumbnail  String? // Optional cover image for the blog
-  likes      Int           @default(0)
-  fire       Int           @default(0)
-  views      Int           @default(0)
-  comments   BlogComment[] // Relationship to comments
 
-  // Relations
-  userEmail String
-  user      User   @relation(fields: [userEmail], references: [email])
-}
 
 model BlogComment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId

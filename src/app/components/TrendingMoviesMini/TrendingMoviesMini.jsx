@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Sparkles, Star } from "lucide-react"
-import requests from "@/app/helpers/Requests"
+import { FaStar , FaHeart , FaRegEye } from "react-icons/fa";
+import { Sparkles } from "lucide-react";
+import { FaEye } from "react-icons/fa6";
 import Link from "next/link"
+import axios from "axios"
+
 
 const img = (path, size = 154) => (path ? `https://image.tmdb.org/t/p/w${size}${path}` : null)
 
@@ -16,18 +19,12 @@ export default function TrendingMoviesMini() {
   const getData = async () => {
     setLoading(true)
     setError(null)
-    let all = []
-    let page = 1
 
     try {
-      while (all.length < 30 && page <= 3) {
-        const res = await fetch(`${requests.requestTrendingWeek}&page=${page}`, { cache: "no-store" })
-        if (!res.ok) throw new Error(`TMDB error ${res.status}`)
-        const data = await res.json()
-        all = [...all, ...(data?.results || [])]
-        page++
-      }
-      setItems(all.slice(0, 20))
+     
+        const res = await axios.get('/api/trending_movies_week')
+        const data = await res.data
+      setItems(data.slice(0, 20))
     } catch (e) {
       setError(e?.message || "Failed to fetch trending movies.")
     } finally {
@@ -73,12 +70,14 @@ export default function TrendingMoviesMini() {
         <ul className="space-y-3">
           {items.slice(0, 8).map((m, idx) => {
             const title = m.title || m.original_title || "Untitled"
-            const year = m.release_date ? new Date(m.release_date).getFullYear() : null
-            const poster = img(m.poster_path, 154)
-            const rating = typeof m.vote_average === "number" ? m.vote_average : 0
+            // const year = m.release_date ? new Date(m.release_date).getFullYear() : null
+            const poster = img(m.posterUrl, 154)
+            const rating = m.avgRating7d ?? 0;
+            const liked= m.likes7d ?? 0;
+            const watchlisted = m.watchlist7d ?? 0;
 
             return (
-              <Link href={`/movies/${m.id}`}
+              <Link href={`/movies/${m.tmdbId}`}
                 key={m.id}
                 className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer border border-transparent hover:border-white/10"
               >
@@ -105,10 +104,18 @@ export default function TrendingMoviesMini() {
                     {title}
                   </div>
                   <div className="mt-1 flex items-center gap-3 text-xs text-white/60">
-                    {year && <span>{year}</span>}
+                    {/* {year && <span>{year}</span>} */}
                     <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-amber-400" />
+                      <FaStar className="h-3 w-3 text-amber-400" />
                       {rating.toFixed(1)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <FaHeart className="h-3 w-3 text-red-500" />
+                      {liked}
+                    </span>
+                     <span className="flex items-center gap-1">
+                      <FaEye className="h-3 w-3 text-blue-500" />
+                      {watchlisted}
                     </span>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MdDelete, MdPlayArrow } from "react-icons/md";
+import NoImage from '../../../../public/img/NoImage.jpg'
 
 export default function WatchlistClient({ initialWatchlist = [] }) {
     const [watchlist, setWatchlist] = useState(initialWatchlist);
@@ -14,7 +15,7 @@ export default function WatchlistClient({ initialWatchlist = [] }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ movieId }),
+                body: JSON.stringify({  movieId: String(movieId)  }),
             });
 
             if (response.ok) {
@@ -53,21 +54,15 @@ export default function WatchlistClient({ initialWatchlist = [] }) {
                                 <div className="bg-white  shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
                                     {/* Movie Poster Polaroid */}
                                     <Link href={`/movies/${item.movie.tmdbId}`} passHref>
-                                        <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-purple-400 to-blue-500 relative">
+                                        <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-yellow-400 to-orange-500 relative">
                                             <Image
-                                                src={item.movie.posterUrl}
+                                                src={item.movie.posterUrl ? `https://image.tmdb.org/t/p/w500${item.movie.posterUrl}` : NoImage}
                                                 alt={item.movie.title || "Movie Image"}
                                                 width={200}
                                                 height={300}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             />
                                             
-                                            {/* Play Overlay */}
-                                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center">
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:scale-110">
-                                                    <MdPlayArrow size={48} className="text-white drop-shadow-lg" />
-                                                </div>
-                                            </div>
                                         </div>
                                     </Link>
                                     

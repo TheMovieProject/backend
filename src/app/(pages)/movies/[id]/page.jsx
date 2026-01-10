@@ -14,7 +14,8 @@ const Info = () => {
   const [averageRating, setAverageRating] = useState(null)
   const [userRating, setUserRating] = useState(0)
   const [ratingCount, setRatingCount] = useState(0)
-
+  const [defaultInWatchlist, setDefaultInWatchlist] = useState(false);
+  const [defaultInLiked, setDefaultInLiked] = useState(false)
   const params = useParams()
   const movieId = params.id
 
@@ -23,26 +24,32 @@ const Info = () => {
       try {
         if (!movieId) return
 
-        const [movieResponse, creditsResponse, ratingResponse] = await Promise.all([
+        const [movieResponse, creditsResponse, ratingResponse , watchStatusRes , likedStatusRes] = await Promise.all([
           fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.NEXT_PUBLIC_API_KEY}`),
           fetch(`https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${process.env.NEXT_PUBLIC_API_KEY}`),
           fetch(`/api/userRating?movieId=${movieId}`),
+          fetch(`/api/watchlist/status?movieId=${movieId}`),
+          fetch(`/api/liked/status?movieId=${movieId}`),
         ])
 
-        if (!movieResponse.ok || !creditsResponse.ok || !ratingResponse.ok) {
+        if (!movieResponse.ok || !creditsResponse.ok || !ratingResponse.ok || !likedStatusRes.ok) {
           throw new Error("Network response was not ok")
         }
 
-        const [movieData, creditsData, ratingData] = await Promise.all([
+        const [movieData, creditsData, ratingData , watchData , likedData] = await Promise.all([
           movieResponse.json(),
           creditsResponse.json(),
           ratingResponse.json(),
+          watchStatusRes.json(),
+          likedStatusRes.json(),
         ])
 
         setItem({ ...movieData, credits: creditsData })
         setAverageRating(ratingData.averageRating)
         setUserRating(ratingData.userRating)
         setRatingCount(ratingData.ratingCount)
+        setDefaultInWatchlist(!!watchData.inWatchlist);
+        setDefaultInLiked(!!likedData.isLiked)
       } catch (error) {
         setError(error.message)
       } finally {
@@ -83,9 +90,11 @@ const Info = () => {
           userRating={userRating}
           ratingCount={ratingCount}
           onRatingChange={setUserRating}
+          defaultInWatchlist={defaultInWatchlist}
+          defaultLiked={defaultInLiked}
         />
 
-        <SimilarMovies movieId={movieId} />
+        <SimilarMovies movieId={movieId} item={item} />
 
         <div className="mt-16">
           <Reviews movieId={movieId} /> 

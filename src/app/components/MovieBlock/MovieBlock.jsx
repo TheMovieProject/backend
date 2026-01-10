@@ -81,12 +81,16 @@ export default function MovieBlock({
     const payload = {
       movieId: String(item.id),
       title: item.title,
-      posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+      posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path ? item.poser_path : item.posterUrl}` : null,
     };
     const res = await fetch("/api/liked/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        movieId: String(item.id),
+        title: item.title || item.original_title,
+        posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+      }),
     });
     if (!res.ok) throw new Error("add failed");
   }
@@ -100,6 +104,33 @@ export default function MovieBlock({
     if (!res.ok) throw new Error("remove failed");
   }
 
+useEffect(() => {
+  const getStatus = async () => {
+    try {
+      const [likedResponse, watchlistResponse] = await Promise.all([
+        fetch(`/api/liked/status?movieId=${item.id}`),
+        fetch(`/api/watchlist/status?movieId=${item.id}`)
+      ]);
+
+      if (!likedResponse.ok || !watchlistResponse.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const [likedData, watchlistData] = await Promise.all([
+        likedResponse.json(),
+        watchlistResponse.json()
+      ]);
+
+      setIsLiked(!!likedData.isLiked);
+      setIsInWatchlist(!!watchlistData.inWatchlist);
+    } catch (error) {
+      console.log("Error fetching status:", error.message);
+    }
+  };
+
+  getStatus();
+}, [item.id]); 
+
   const handleLike = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -109,7 +140,7 @@ export default function MovieBlock({
 
     try {
       if (!isLiked) {
-        setIsLiked(true); // optimistic
+        // setIsLiked(true); // optimistic
         if (likeButton) gsap.fromTo(likeButton, { scale: 1 }, { scale: 1.18, duration: 0.12, yoyo: true, repeat: 1 });
 
         await addToLiked();
@@ -137,7 +168,7 @@ export default function MovieBlock({
 
         showToast("Added to Liked ❤️");
       } else {
-        setIsLiked(false); // optimistic
+        // setIsLiked(false); // optimistic
         if (likeButton) gsap.fromTo(likeButton, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
 
         await removeFromLiked();

@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Heart, Flame, MessageCircle, Clock, Smile, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
-
+ 
 /* ---------- time helper ---------- */
 const timeAgo = (iso) => {
   if (!iso) return "";

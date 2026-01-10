@@ -1,15 +1,75 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useMemo, lazy, Suspense, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MdLocalMovies, MdArticle, MdClose, MdEdit } from "react-icons/md";
 import { useSession } from 'next-auth/react';
-import toast from 'react-hot-toast'; 
-import UserBlogs from '@/app/components/UserBlogs/UserBlogs';
-import UserReviews from '@/app/components/UserReviews/UserReviews';
-import EditProfile from '@/app/components/EditProfile/EditProfile';
+import toast from 'react-hot-toast';
 
-const FollowList = ({ type, data, onClose }) => {
+// Lazy load heavy components
+const UserBlogs = lazy(() => import('@/app/components/UserBlogs/UserBlogs'));
+const UserReviews = lazy(() => import('@/app/components/UserReviews/UserReviews'));
+const EditProfile = lazy(() => import('@/app/components/EditProfile/EditProfile'));
+
+
+const initialState = {
+  profileData: null,
+  isFollowing: false,
+  showFollowers: false,
+  showFollowing: false,
+  showEditProfile: false,
+  activeTab: 'reviews',
+  loading: true,
+  error: null
+};
+
+const profileReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, loading: false };
+    
+    case 'SET_PROFILE_DATA':
+      return { ...state, profileData: action.payload, loading: false, error: null };
+    
+    case 'SET_FOLLOW_STATUS':
+      return { ...state, isFollowing: action.payload };
+    
+    case 'TOGGLE_FOLLOWERS_MODAL':
+      return { ...state, showFollowers: action.payload };
+    
+    case 'TOGGLE_FOLLOWING_MODAL':
+      return { ...state, showFollowing: action.payload };
+    
+    case 'TOGGLE_EDIT_PROFILE':
+      return { ...state, showEditProfile: action.payload };
+    
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.payload };
+    
+    case 'UPDATE_FOLLOW_COUNTS':
+      if (!state.profileData) return state;
+      return {
+        ...state,
+        profileData: {
+          ...state.profileData,
+          stats: {
+            ...state.profileData.stats,
+            followerCounts: state.profileData.stats.followerCounts + (action.payload.isFollowing ? 1 : -1)
+          }
+        }
+      };
+    
+    default:
+      return state;
+  }
+};
+// ===== END REDUCER SETUP =====
+
+// ===== MEMOIZED COMPONENTS =====
+const FollowList = memo(({ type, data, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl w-full max-w-md p-6 shadow-2xl border border-white/20">
@@ -47,90 +107,194 @@ const FollowList = ({ type, data, onClose }) => {
       </div>
     </div>
   );
-};
+});
 
+FollowList.displayName = 'FollowList';
+
+const ProfileStats = memo(({ stats, followersPreview, followingPreview, onFollowersClick, onFollowingClick, isOwnProfile, isFollowing }) => {
+  return (
+    <div className="space-y-4">
+      {/* Followers */}
+      <div 
+        className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
+        onClick={() => isOwnProfile || isFollowing ? onFollowersClick() : toast.error('Follow to see followers')}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-gray-200">Followers</span>
+          <span className="text-white font-bold">{stats?.followerCounts || 0}</span>
+        </div>
+        <div className="flex -space-x-2">
+          {followersPreview.slice(0, 5).map((follower, index) => (
+            <Image
+              key={follower.id}
+              src={follower.avatarUrl || follower.image || '/img/profile.png'}
+              width={32}
+              height={32}
+              alt={follower.username}
+              className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
+              style={{ zIndex: 5 - index }}
+            />
+          ))}
+          {followersPreview.length > 5 && (
+            <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
+              +{followersPreview.length - 5}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Following */}
+      <div 
+        className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
+        onClick={() => isOwnProfile || isFollowing ? onFollowingClick() : toast.error('Follow to see following')}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-gray-200">Following</span>
+          <span className="text-white font-bold">{stats?.followingCounts || 0}</span>
+        </div>
+        <div className="flex -space-x-2">
+          {followingPreview.slice(0, 5).map((follow, index) => (
+            <Image
+              key={follow.id}
+              src={follow.avatarUrl || follow.image || '/img/profile.png'}
+              width={32}
+              height={32}
+              alt={follow.username}
+              className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
+              style={{ zIndex: 5 - index }}
+            />
+          ))}
+          {followingPreview.length > 5 && (
+            <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
+              +{followingPreview.length - 5}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+ProfileStats.displayName = 'ProfileStats';
+
+const TabNavigation = memo(({ activeTab, onTabChange }) => (
+  <div className="flex gap-4 mb-8">
+    <button
+      onClick={() => onTabChange('reviews')}
+      className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
+        activeTab === 'reviews'
+          ? 'bg-white text-black border-white shadow-lg font-medium'
+          : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
+      }`}
+    >
+      <MdLocalMovies size={20} />
+      <span className="font-medium">Reviews</span>
+    </button>
+    <button
+      onClick={() => onTabChange('blogs')}
+      className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
+        activeTab === 'blogs'
+          ? 'bg-white text-black border-white shadow-lg font-medium'
+          : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
+      }`}
+    >
+      <MdArticle size={20} />
+      <span className="font-medium">Stories</span>
+    </button>
+  </div>
+));
+
+TabNavigation.displayName = 'TabNavigation';
+// ===== END MEMOIZED COMPONENTS =====
+
+// ===== LOADING & ERROR STATES =====
+const LoadingSkeleton = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-700 to-yellow-900">
+    <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 gap-6 w-full p-4">
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className="h-[30rem] w-[30rem] rounded-xl bg-gray-700/50 border border-white/10" />
+      ))}
+    </div>
+  </div>
+);
+
+const ErrorState = ({ message, onRetry }) => (
+  <div className="min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-700 to-yellow-900 flex items-center justify-center">
+    <div className="text-center text-white">
+      <h2 className="text-2xl font-bold mb-4">Oops! Something went wrong</h2>
+      <p className="mb-6">{message}</p>
+      <button
+        onClick={onRetry}
+        className="px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors mr-4"
+      >
+        Try Again
+      </button>
+      <Link 
+        href="/" 
+        className="px-6 py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+      >
+        Go Back Home
+      </Link>
+    </div>
+  </div>
+);
+// ===== END LOADING & ERROR STATES =====
+
+// ===== MAIN COMPONENT =====
 export default function UserProfilePage({ params }) {
   const { data: session, status } = useSession();
-  const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState('reviews');
-  const [reviewCount, setReviewCount] = useState(0);
-  const [blogCount, setBlogCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
-  const [showFollowers, setShowFollowers] = useState(false);
-  const [showFollowing, setShowFollowing] = useState(false);
-  const [profile, setProfile] = useState(false);
-
+  const [state, dispatch] = useReducer(profileReducer, initialState);
   const { id } = params;
   const isOwnProfile = session?.user?.id === id;
 
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch(`/api/user/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch user data');
-      const data = await response.json();
-      setUserData(data);
-    } catch (err) {
-      console.error('Error fetching user data:', err);
-      toast.error('Failed to load user data');
-    }
-  };
+  // Memoized values to prevent recalculations on every render
+  const memoizedProfileData = useMemo(() => state.profileData, [state.profileData]);
+  const memoizedUserData = useMemo(() => memoizedProfileData?.user || {}, [memoizedProfileData]);
+  const memoizedStats = useMemo(() => memoizedProfileData?.stats || {}, [memoizedProfileData]);
+  const memoizedFollowersPreview = useMemo(() => memoizedProfileData?.followers?.preview || [], [memoizedProfileData]);
+  const memoizedFollowingPreview = useMemo(() => memoizedProfileData?.following?.preview || [], [memoizedProfileData]);
 
-  const fetchReviewCount = async () => {
+  // Single API call to fetch all profile data
+  const fetchProfileData = useMemo(() => async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
-      const response = await fetch(`/api/review?userId=${id}`);
-      if (!response.ok) throw new Error('Failed to fetch review count');
-      const data = await response.json();
-      setReviewCount(data.length);
-    } catch (err) {
-      console.error('Error fetching review count:', err);
-    }
-  };
-
-  const fetchBlogCount = async () => {
-    try {
-      if (!userData?.email) {
-        console.log('Waiting for user email data...');
-        return;
+      const response = await fetch(`/api/profile/${id}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('User not found');
+        }
+        throw new Error(`Failed to fetch profile: ${response.status}`);
       }
-  
-      const response = await fetch(`/api/blog?userEmail=${userData.email}`);
-      if (!response.ok) throw new Error('Failed to fetch blog count'); 
+      
       const data = await response.json();
-      setBlogCount(data.length);
+      dispatch({ type: 'SET_PROFILE_DATA', payload: data });
+      
     } catch (err) {
-      console.error('Error fetching blog count:', err);
-      toast.error('Failed to load blog count');
+      console.error('Error fetching profile data:', err);
+      dispatch({ type: 'SET_ERROR', payload: err.message });
+      toast.error(err.message || 'Failed to load profile data');
     }
-  };
+  }, [id]);
 
-  const fetchFollowData = async () => {
+  // Fetch follow status separately if not own profile
+  const fetchFollowStatus = useMemo(() => async () => {
+    if (isOwnProfile || !session) {
+      dispatch({ type: 'SET_FOLLOW_STATUS', payload: false });
+      return;
+    }
+    
     try {
-      const [followersRes, followingRes, statusRes] = await Promise.all([
-        fetch(`/api/user/${id}/followers`),
-        fetch(`/api/user/${id}/following`),
-        !isOwnProfile ? fetch(`/api/follow/${id}`) : Promise.resolve(null)
-      ]);
-      
-      const followersData = await followersRes.json();
-      const followingData = await followingRes.json();
-      
-      setFollowerCount(followersData.followers);
-      setFollowingCount(followingData.following);
-      setFollowers(followersData.followersList || []);
-      setFollowing(followingData.followingList || []);
-      
-      if (!isOwnProfile && statusRes) {
-        const statusData = await statusRes.json();
-        setIsFollowing(statusData.isFollowing);
+      const response = await fetch(`/api/follow/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        dispatch({ type: 'SET_FOLLOW_STATUS', payload: data.isFollowing });
       }
     } catch (error) {
-      console.error('Error fetching follow data:', error);
+      console.error('Error fetching follow status:', error);
     }
-  };
+  }, [id, isOwnProfile, session]);
 
   const handleFollow = async () => {
     if (!session) {
@@ -139,7 +303,7 @@ export default function UserProfilePage({ params }) {
     }
   
     try {
-      const method = isFollowing ? 'DELETE' : 'POST';
+      const method = state.isFollowing ? 'DELETE' : 'POST';
       const response = await fetch('/api/follow', {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -148,7 +312,7 @@ export default function UserProfilePage({ params }) {
   
       if (!response.ok) throw new Error('Failed to update follow status');
   
-      if (!isFollowing) {
+      if (!state.isFollowing) {
         await fetch('/api/notifications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -159,38 +323,54 @@ export default function UserProfilePage({ params }) {
         });
       }
   
-      setIsFollowing(!isFollowing);
-      await fetchFollowData();
-      toast.success(isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
+      // Update follow status AND increment/decrement follower count
+      dispatch({ type: 'SET_FOLLOW_STATUS', payload: !state.isFollowing });
+      dispatch({ type: 'UPDATE_FOLLOW_COUNTS', payload: { isFollowing: !state.isFollowing } });
+      
+      // Refresh profile data to get updated follower list
+      await fetchProfileData();
+      
+      toast.success(state.isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
     } catch (error) {
       console.error('Error updating follow status:', error);
       toast.error('Something went wrong');
     }
   };
 
+  // Event handlers
+  const handleTabChange = (tab) => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
+  };
+
+  const handleShowFollowers = () => {
+    dispatch({ type: 'TOGGLE_FOLLOWERS_MODAL', payload: true });
+  };
+
+  const handleShowFollowing = () => {
+    dispatch({ type: 'TOGGLE_FOLLOWING_MODAL', payload: true });
+  };
+
+  // Effects
   useEffect(() => {
     if (id && status !== 'loading') {
       Promise.all([
-        fetchUserData(),
-        fetchReviewCount(),
-        fetchFollowData()
+        fetchProfileData(),
+        fetchFollowStatus()
       ]);
     }
-  }, [id, status]);
+  }, [id, status, fetchProfileData, fetchFollowStatus]);
 
-  useEffect(() => {
-    if (userData?.email) {
-      fetchBlogCount();
-    }
-  }, [userData]);
+  // Loading and Error States
+  if (state.loading || status === 'loading') {
+    return <LoadingSkeleton />;
+  }
 
-  if (status === 'loading' || !userData) {
+  if (state.error || !memoizedProfileData) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-500 to-yellow-600">
-        <div className="text-center">
-          <p className="text-lg text-white">Loading profile...</p>
-        </div>
-      </div>
+      <ErrorState 
+        message={state.error || "User not found"} 
+        onRetry={fetchProfileData}
+      />
     );
   }
 
@@ -207,24 +387,25 @@ export default function UserProfilePage({ params }) {
                 <div className="relative inline-block mb-4">
                   <Image
                     className="rounded-full w-24 h-24 object-cover border-4 border-white/30 shadow-2xl"
-                    src={userData.avatarUrl || userData.image || '/img/profile.png'}
+                    src={memoizedUserData.avatarUrl || memoizedUserData.image || '/img/profile.png'}
                     width={96}
                     height={96}
                     alt="Profile Image"
+                    priority
                   />
                 </div>
                 
                 <h2 className="text-xl font-bold text-white mb-2">
-                  {userData.username || userData.email}
+                  {memoizedUserData.username || memoizedUserData.name || memoizedUserData.email}
                 </h2>
                 
                 <p className="text-gray-200 text-sm mb-4">
-                  {userData.bio || "Share your cinematic journey..."}
+                  {memoizedUserData.bio || "Share your cinematic journey..."}
                 </p>
 
-                {userData.movieGenres?.length > 0 && (
+                {memoizedUserData.movieGenres?.length > 0 && (
                   <div className='flex flex-wrap justify-center gap-2 mb-4'>
-                    {userData.movieGenres.map((genre, index) => (
+                    {memoizedUserData.movieGenres.map((genre, index) => (
                       <span 
                         key={index}
                         className="px-2 py-1 bg-white/20 text-white rounded-full text-xs border border-white/30 font-medium"
@@ -237,7 +418,7 @@ export default function UserProfilePage({ params }) {
 
                 {isOwnProfile ? (
                   <button 
-                    onClick={() => setProfile(true)}
+                    onClick={() => dispatch({ type: 'TOGGLE_EDIT_PROFILE', payload: true })}
                     className="w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-2 rounded-lg transition-all border border-white/30 hover:border-white/40 flex items-center justify-center gap-2"
                   >
                     <MdEdit size={18} />
@@ -247,12 +428,12 @@ export default function UserProfilePage({ params }) {
                   <button
                     onClick={handleFollow}
                     className={`w-full font-semibold py-2 rounded-lg transition-all border flex items-center justify-center gap-2
-                      ${isFollowing 
+                      ${state.isFollowing 
                         ? 'bg-white/10 hover:bg-white/20 text-white border-white/30' 
                         : 'bg-white hover:bg-white/90 text-black border-white'}`
                     }
                   >
-                    {isFollowing ? 'Unfollow' : 'Follow'}
+                    {state.isFollowing ? 'Unfollow' : 'Follow'}
                   </button>
                 )}
               </div>
@@ -261,132 +442,76 @@ export default function UserProfilePage({ params }) {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
                   <span className="text-gray-200">Blogs</span>
-                  <span className="text-white font-bold">{blogCount}</span>
+                  <span className="text-white font-bold">{memoizedStats.blogCount || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
                   <span className="text-gray-200">Reviews</span>
-                  <span className="text-white font-bold">{reviewCount}</span>
+                  <span className="text-white font-bold">{memoizedStats.reviewCount || 0}</span>
                 </div>
               </div>
 
               {/* Follow Section */}
-              <div className="space-y-4">
-                {/* Followers */}
-                <div 
-                  className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
-                  onClick={() => isOwnProfile || isFollowing ? setShowFollowers(true) : toast.error('Follow to see followers')}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-gray-200">Followers</span>
-                    <span className="text-white font-bold">{followerCount}</span>
-                  </div>
-                  <div className="flex -space-x-2">
-                    {followers.slice(0, 5).map((follower, index) => (
-                      <Image
-                        key={follower.id}
-                        src={follower.avatarUrl || follower.image || '/img/profile.png'}
-                        width={32}
-                        height={32}
-                        alt={follower.username}
-                        className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
-                        style={{ zIndex: 5 - index }}
-                      />
-                    ))}
-                    {followers.length > 5 && (
-                      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
-                        +{followers.length - 5}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Following */}
-                <div 
-                  className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
-                  onClick={() => isOwnProfile || isFollowing ? setShowFollowing(true) : toast.error('Follow to see following')}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-gray-200">Following</span>
-                    <span className="text-white font-bold">{followingCount}</span>
-                  </div>
-                  <div className="flex -space-x-2">
-                    {following.slice(0, 5).map((follow, index) => (
-                      <Image
-                        key={follow.id}
-                        src={follow.avatarUrl || follow.image || '/img/profile.png'}
-                        width={32}
-                        height={32}
-                        alt={follow.username}
-                        className="w-8 h-8 rounded-full border-2 border-white/30 object-cover"
-                        style={{ zIndex: 5 - index }}
-                      />
-                    ))}
-                    {following.length > 5 && (
-                      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
-                        +{following.length - 5}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ProfileStats 
+                stats={memoizedStats}
+                followersPreview={memoizedFollowersPreview}
+                followingPreview={memoizedFollowingPreview}
+                onFollowersClick={handleShowFollowers}
+                onFollowingClick={handleShowFollowing}
+                isOwnProfile={isOwnProfile}
+                isFollowing={state.isFollowing}
+              />
             </div>
           </div>
 
           {/* Right Content - Polaroid Grid */}
           <div className="lg:col-span-3">
-            {/* Sleek Tab Navigation */}
-            <div className="flex gap-4 mb-8">
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
-                  activeTab === 'reviews'
-                    ? 'bg-white text-black border-white shadow-lg font-medium'
-                    : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
-                }`}
-              >
-                <MdLocalMovies size={20} />
-                <span className="font-medium">Reviews</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('blogs')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all border ${
-                  activeTab === 'blogs'
-                    ? 'bg-white text-black border-white shadow-lg font-medium'
-                    : 'bg-transparent text-white border-white/30 hover:border-white/60 hover:bg-white/10'
-                }`}
-              >
-                <MdArticle size={20} />
-                <span className="font-medium">Blog</span>
-              </button>
-            </div>
+            <TabNavigation 
+              activeTab={state.activeTab} 
+              onTabChange={handleTabChange}
+            />
 
-            {/* Content Area */}
+            {/* Content Area with Suspense */}
             <div className="bg-transparent rounded-2xl">
-              {activeTab === 'blogs' ? <UserBlogs id={id} /> : <UserReviews id={id} />}
+              <Suspense fallback={
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                </div>
+              }>
+                {state.activeTab === 'blogs' ? 
+                  <UserBlogs id={id} /> : 
+                  <UserReviews id={id} />
+                }
+              </Suspense>
             </div>
           </div>
         </div>
       </div>
 
-      {profile && (
-        <div className='fixed inset-0 bg-black/90 p-3 z-50'>
-          <EditProfile userId={id} setProfile={setProfile} />
-        </div>
-      )}
+      {/* Modals with Suspense */}
+      <Suspense fallback={null}>
+        {state.showEditProfile && (
+          <div className='fixed inset-0 bg-black/90 p-3 z-50'>
+            <EditProfile 
+              userId={id} 
+              onClose={() => dispatch({ type: 'TOGGLE_EDIT_PROFILE', payload: false })} 
+            />
+          </div>
+        )}
+      </Suspense>
 
-      {showFollowers && (
+      {state.showFollowers && (
         <FollowList 
           type="Followers" 
-          data={followers}
-          onClose={() => setShowFollowers(false)} 
+          data={memoizedFollowersPreview}
+          onClose={() => dispatch({ type: 'TOGGLE_FOLLOWERS_MODAL', payload: false })}
         />
       )}
 
-      {showFollowing && (
+      {state.showFollowing && (
         <FollowList 
           type="Following" 
-          data={following}
-          onClose={() => setShowFollowing(false)} 
+          data={memoizedFollowingPreview}
+          onClose={() => dispatch({ type: 'TOGGLE_FOLLOWING_MODAL', payload: false })}
         />
       )}
     </>

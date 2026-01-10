@@ -2,53 +2,40 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
+const isObjectId = (v) => typeof v === "string" && /^[a-f\d]{24}$/i.test(v);
+
 export async function POST(req) {
-    try {
-        console.log("POST request received");
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return new Response("Unauthorized", { status: 401 });
 
-        const session = await getServerSession(authOptions);
-        console.log("Session:", session);
+    const body = await req.json().catch(() => null);
+    const movieIdRaw = body?.movieId;
+    if (!movieIdRaw) return new Response("movieId required", { status: 400 });
 
-        if (!session) {
-            console.log("No session found, unauthorized");
-            return new Response("Unauthorized", { status: 401 });
-        }
+    const movieId = String(movieIdRaw);
 
-        const { movieId } = await req.json();
-        console.log("Movie ID received:", movieId);
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+    if (!user) return new Response("User not found", { status: 404 });
 
-        if (!movieId) {
-            console.log("Movie ID is missing in the request body");
-            return new Response("Movie ID is required", { status: 400 });
-        }
+    // ✅ If client sends DB ObjectId, use it directly.
+    // ✅ Else treat it as tmdbId.
+    const movie = isObjectId(movieId)
+      ? await prisma.movie.findUnique({ where: { id: movieId }, select: { id: true } })
+      : await prisma.movie.findUnique({ where: { tmdbId: movieId }, select: { id: true } });
 
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-        console.log("User found:", user);
+    if (!movie) return new Response("Movie not found", { status: 404 });
 
-        if (!user) {
-            console.log("User not found");
-            return new Response("User not found", { status: 404 });
-        }
+    await prisma.watchlist.deleteMany({
+      where: { userId: user.id, movieId: movie.id },
+    });
 
-        const deletedItem = await prisma.watchlist.deleteMany({
-            where: {
-                userId: user.id,
-                movieId: movieId,
-            },
-        });
-        console.log("Deleted item result:", deletedItem);
-
-        if (deletedItem.count === 0) {
-            console.log("Movie not found in watchlist");
-            return new Response("Movie not found in watchlist", { status: 404 });
-        }
-
-        console.log("Movie successfully removed from watchlist");
-        return new Response("Movie removed from watchlist", { status: 200 });
-    } catch (error) {
-        console.error("Error removing movie from watchlist:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    }
+    return new Response("Movie removed from watchlist", { status: 200 });
+  } catch (error) {
+    console.error("Error removing movie from watchlist:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

@@ -51,7 +51,7 @@ const FollowList = ({ type, data, onClose }) => {
 const ReviewCard = ({ review }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-4 border border-gray-200">
-      <div className="aspect-[3/4] bg-gradient-to-br from-purple-400 to-blue-500 rounded-md mb-3 overflow-hidden flex items-center justify-center">
+      <div className="aspect-[3/4] bg-gradient-to-br from-yellow-400 to-orange-500 rounded-md mb-3 overflow-hidden flex items-center justify-center">
         <div className="text-center text-white p-4">
           <h3 className="font-bold text-lg mb-2 line-clamp-2">{review.movieTitle}</h3>
           <p className="text-sm opacity-90">Reviewed on {new Date(review.createdAt).toLocaleDateString()}</p>

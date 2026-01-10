@@ -9,6 +9,7 @@ import { Menu, X, Search } from "lucide-react";
 import Logout from "../Logout/Logout";
 import logo from '../../../../public/img/logo.png'
 import gsap from "gsap";
+import NoImage from '../../../../public/img/NoImage.jpg'
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -19,6 +20,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [searchRec , setSearchRec] = useState([])
 
   const searchOverlayRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -92,6 +94,39 @@ export default function Navbar() {
     setMobileOpen(false);
   }
 
+ const searchRecommendations=async()=>{
+  try {
+   const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${process.env.NEXT_PUBLIC_API_KEY}&query=${query}`)
+   const data = await res.json()
+   console.log(data)
+  } catch (error) {
+    console.log(error)
+  }
+
+  }
+
+  useEffect(()=>{
+    const searchRecommendations=async()=>{
+  try {
+   const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${process.env.NEXT_PUBLIC_API_KEY}&query=${query}`)
+   const data = await res.json()
+   const timer=setTimeout(async()=>{
+    console.log(data)
+    const recArray = [...new Set(data.results)].slice(0,8)
+    setSearchRec(recArray.sort((a,b)=>{
+      return b.vote_count-a.vote_count
+    }))
+   },1000)
+
+   return ()=>clearTimeout(timer)
+  } catch (error) {
+    console.log(error)
+  }
+
+  }
+    searchRecommendations()
+  },[query])
+
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Escape') {
       closeSearch();
@@ -110,7 +145,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/movies", label: "Movies" },
     { href: "/write", label: "Write" },
-    { href: "/theater", label: "Theater" }
+    // { href: "/theater", label: "Theater" }
   ];
 
   return (
@@ -186,7 +221,7 @@ export default function Navbar() {
       {searchOpen && (
         <div 
           ref={searchOverlayRef}
-          className="fixed top-0 left-0 right-0 z-[60] bg-white/10 backdrop-blur-xl border-b border-white/20 h-[20%]"
+          className="fixed top-0 left-0 right-0 z-[60] bg-white/10 backdrop-blur-xl border-b border-white/20 py-4"
         >
           <div className="flex items-center h-16 px-6">
             {/* Close Button */}
@@ -198,24 +233,35 @@ export default function Navbar() {
             </button>
 
             {/* Search Form */}
-            <form onSubmit={submitSearch} className="flex-1 outline-none">
+            <form onSubmit={submitSearch} className="flex w-full gap-3 items-center outline-none">
               <input
                 ref={searchInputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search movies or users..."
-                className="w-full bg-transparent border-b border-white/30 px-2 py-2 text-white placeholder:text-white/50 outline-none focus:outline-none focus:border-white/60 transition-colors text-lg"
+                className="w-[90%] bg-transparent border-b border-white/30 px-2 py-2 text-white placeholder:text-white/50 outline-none focus:outline-none focus:border-white/60 transition-colors text-lg"
               />
+              <div onClick={()=>setQuery("")} className="cursor-pointer">CLEAR</div>
             </form>
 
             {/* Search Button in Overlay */}
-            <button
+            {openSearch &&<button
               onClick={submitSearch}
               className="text-white hover:text-gray-200 transition-colors ml-4"
             >
               <Search className="h-5 w-5" />
-            </button>
+            </button>}
+          </div>
+           <div>
+             {searchRec.map((rec)=>(
+              <>
+              <Link href={`/movies/${rec.id}`} onClick={()=>setSearchOpen(false)} className="flex items-center gap-2 bg-white/10 hover:bg-yellow-600/50 backdrop-blur-xl border-b border-white/20 p-2 cursor-pointer">
+                <div className=""><Image height={500} width={500} className="w-[2rem] h-[2.5rem] rounded-md object-contain" src={rec.poster_path ? `https://image.tmdb.org/t/p/w500${rec.poster_path}` : NoImage} alt="" /></div>
+                <div className="font-bold">{rec.title}</div>
+              </Link>
+              </>
+             ))}
           </div>
         </div>
       )}
@@ -240,7 +286,7 @@ export default function Navbar() {
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-2xl text-white/80 hover:text-white transition-colors font-light"
+                  className="text-2xl text-white/80  hover:text-white transition-colors font-bold"
                 >
                   {l.label}
                 </Link>
@@ -255,21 +301,21 @@ export default function Navbar() {
                 <Link
                   href={`/profile/${session.user.id}`}
                   onClick={() => setMobileOpen(false)}
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors font-semibold"
                 >
                   Profile
                 </Link>
                 <Link
                   href="/watchlist"
                   onClick={() => setMobileOpen(false)}
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors font-semibold"
                 >
                   Watchlist
                 </Link>
                 <Link
                   href="/liked"
                   onClick={() => setMobileOpen(false)}
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors font-semibold"
                 >
                   Liked
                 </Link>
@@ -286,13 +332,13 @@ export default function Navbar() {
                 >
                   Log in
                 </Link>
-                <Link
+                {/* <Link
                   href="/signup"
                   onClick={() => setMobileOpen(false)}
                   className="text-white/80 hover:text-white transition-colors"
                 >
                   Sign up
-                </Link>
+                </Link> */}
               </div>
             )}
           </div>

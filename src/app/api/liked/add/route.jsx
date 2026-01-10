@@ -1,10 +1,10 @@
 // app/api/liked/add/route.js
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
-import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
-
 export async function POST(req) {
   try {
-    const session = await getAuthSession().catch(() => null);
+   const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -23,19 +23,24 @@ export async function POST(req) {
     });
     if (!user) return new Response("User not found", { status: 404 });
 
+    const tmdbId = String(movieId);
+
     // Ensure Movie exists (tmdbId unique)
-    let movie = await prisma.movie.findUnique({ where: { tmdbId: movieId } });
-    if (!movie) {
-      movie = await prisma.movie.create({
-        data: { tmdbId: movieId, title, posterUrl: posterUrl ?? null }
-      });
-    } else if (!movie.posterUrl && posterUrl) {
-      // backfill poster if we didn’t have one
-      movie = await prisma.movie.update({
-        where: { id: movie.id },
-        data: { posterUrl }
-      });
-    }
+     // create OR update the movie so you never stay stuck with "unknown"
+    const movie = await prisma.movie.upsert({
+    where: { tmdbId },
+    update: {
+      // only overwrite if incoming has value (optional)
+      title: title || undefined,
+      posterUrl: posterUrl ?? undefined,
+    },
+    create: {
+      tmdbId,
+      title,
+      posterUrl: posterUrl ?? null,
+    },
+  });
+
 
     // Create the like (respect unique pair)
     const liked = await prisma.liked.upsert({

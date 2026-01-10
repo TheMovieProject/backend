@@ -1,248 +1,222 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useSWRInfinite from "swr/infinite";
+
+import { useEffect, useState } from "react";
 import PostCard from "./PostCard";
 import PostModal from "./PostModal";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Compass, Users } from "lucide-react";
 
-gsap.registerPlugin(ScrollTrigger);
+/* ---------------- Skeleton ---------------- */
 
-const fetcher = (url) => fetch(url).then((r) => r.json());
-const getKey =
-  ({ mode }) =>
-  (pageIndex, previousPageData) => {
-    if (previousPageData?.meta && !previousPageData.meta.hasMore) return null;
-    const cursor = pageIndex === 0 ? "" : `&cursor=${previousPageData?.nextCursor ?? ""}`;
-    return `/api/feed?mode=${mode}&limit=12${cursor}`;
-  };
-
-// Popcorn Loading Component
-const PopcornLoading = () => {
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Popcorn bucket animation
-      gsap.to(".popcorn-bucket", {
-        y: -10,
-        duration: 1,
-        yoyo: true,
-        repeat: -1,
-        ease: "power2.inOut"
-      });
-
-      // Popcorn pieces animation
-      gsap.to(".popcorn-piece", {
-        y: -15,
-        opacity: 1,
-        duration: 0.8,
-        stagger: {
-          each: 0.2,
-          from: "random"
-        },
-        yoyo: true,
-        repeat: -1,
-        ease: "power2.out"
-      });
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <div ref={containerRef} className="flex flex-col items-center justify-center py-16 space-y-6">
-      {/* Popcorn Bucket */}
-      <div className="popcorn-bucket relative">
-        <svg width="80" height="80" viewBox="0 0 80 80" className="text-yellow-400">
-          {/* Bucket */}
-          <rect x="20" y="30" width="40" height="35" rx="6" fill="currentColor" stroke="#B45309" strokeWidth="2"/>
-          <path d="M24 32h32" stroke="#B45309" strokeWidth="2"/>
-          
-          {/* Bucket top curve */}
-          <path d="M24 30c0-4 8-6 16-6s16 2 16 6" fill="none" stroke="#FBBF24" strokeWidth="3"/>
-          
-          {/* Bucket stripes */}
-          <path d="M26 38h28M26 44h28M26 50h28" stroke="#B45309" strokeWidth="1.5"/>
-        </svg>
-
-        {/* Floating popcorn pieces */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-full flex justify-center space-x-1">
-          <div className="popcorn-piece opacity-0">
-            <svg width="12" height="12" viewBox="0 0 12 12" className="text-yellow-200">
-              <path d="M6 2c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
-            </svg>
-          </div>
-          <div className="popcorn-piece opacity-0">
-            <svg width="10" height="10" viewBox="0 0 10 10" className="text-yellow-300">
-              <path d="M5 1c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
-            </svg>
-          </div>
-          <div className="popcorn-piece opacity-0">
-            <svg width="14" height="14" viewBox="0 0 14 14" className="text-yellow-100">
-              <path d="M7 2c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="currentColor"/>
-            </svg>
+function FeedSkeleton() {
+  const BlogCard = () => (
+    <div className="w-[170px] sm:w-[190px] md:w-[210px] animate-pulse">
+      <div className="rounded-xl overflow-hidden bg-white/10 border border-white/10">
+        <div className="h-[240px] bg-white/10" />
+        <div className="p-3 space-y-2">
+          <div className="h-3 w-4/5 bg-white/10 rounded" />
+          <div className="flex gap-3">
+            <div className="h-3 w-10 bg-white/10 rounded" />
+            <div className="h-3 w-10 bg-white/10 rounded" />
+            <div className="h-3 w-10 bg-white/10 rounded" />
           </div>
         </div>
       </div>
+    </div>
+  );
 
-      {/* Loading Text */}
-      <div className="text-center space-y-2">
-        <div className="text-yellow-200 text-lg font-semibold">Loading...</div>
-        <div className="text-yellow-300 text-sm">Preparing your cinematic experience...</div>
+  const ReviewCard = () => (
+    <div className="rounded-xl bg-white/10 border border-white/10 p-4 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-full bg-white/10" />
+        <div className="space-y-2">
+          <div className="h-3 w-40 bg-white/10 rounded" />
+          <div className="h-2 w-24 bg-white/10 rounded" />
+        </div>
       </div>
 
-      {/* Dots Animation */}
-      <div className="flex space-x-1">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"
-            style={{ animationDelay: `${i * 0.2}s` }}
-          />
-        ))}
+      <div className="mt-4 space-y-2">
+        <div className="h-3 w-56 bg-white/10 rounded" />
+        <div className="h-3 w-full bg-white/10 rounded" />
+        <div className="h-3 w-4/5 bg-white/10 rounded" />
+      </div>
+
+      <div className="mt-4 flex gap-4">
+        <div className="h-4 w-12 bg-white/10 rounded" />
+        <div className="h-4 w-12 bg-white/10 rounded" />
+        <div className="h-4 w-12 bg-white/10 rounded" />
       </div>
     </div>
   );
-};
+
+  const Section = ({ grid }) => (
+    <div className="space-y-3">
+      <div className="h-4 w-72 bg-white/10 rounded" />
+      {grid ? (
+        <div className="flex flex-wrap gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <BlogCard key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <ReviewCard key={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-10">
+      <Section />
+      <Section grid />
+      <Section />
+      <Section grid />
+    </div>
+  );
+}
+
+/* ---------------- Section Wrapper ---------------- */
+
+function Section({ title, items, variant = "list", onOpenPost }) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold text-white">{title}</h2>
+
+      {variant === "grid" ? (
+        <div className="flex flex-wrap gap-4">
+          {items.map((item) => (
+            <PostCard
+              key={`${item.type}-${item.id}`}
+              item={item}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => (
+            <PostCard
+              key={`${item.type}-${item.id}`}
+              item={item}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Main Feed ---------------- */
 
 export default function UserFeed() {
-  const [mode, setMode] = useState("forYou");
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
   const [activePost, setActivePost] = useState(null);
 
-  const { data, size, setSize, isValidating, error, mutate } = useSWRInfinite(
-    getKey({ mode }),
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  const items = useMemo(() => (data ? data.flatMap((p) => p.items ?? []) : []), [data]);
-  const hasMore = data?.[data.length - 1]?.meta?.hasMore ?? true;
-
-  const sentinelRef = useRef(null);
-  useEffect(() => {
-    if (!sentinelRef.current || !hasMore) return;
-    const el = sentinelRef.current;
-    const io = new IntersectionObserver(
-      (entries) => entries[0].isIntersecting && setSize((s) => s + 1),
-      { rootMargin: "600px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [hasMore, setSize]);
+  const [followingReviews, setFollowingReviews] = useState([]);
+  const [followingBlogs, setFollowingBlogs] = useState([]);
+  const [topReviews, setTopReviews] = useState([]);
+  const [topBlogs, setTopBlogs] = useState([]);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray(".feed-card").forEach((card, idx) => {
-        gsap.fromTo(
-          card,
-          { opacity: 0, y: 40, scale: 0.95 },
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.6,
-            delay: idx * 0.08,
-            ease: "power2.out",
-            scrollTrigger: { trigger: card, start: "top 80%", toggleActions: "play none none reverse" },
-          }
+    let alive = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setErr(null);
+
+        const urls = [
+          "/api/feed?mode=following&limit=15",
+          "/api/feed?mode=forYou&limit=30",
+        ];
+
+        const [following, forYou] = await Promise.all(
+          urls.map((u) =>
+            fetch(u, { cache: "no-store" }).then(async (r) => {
+              const json = await r.json();
+              if (!r.ok) throw new Error(json?.error || "Feed failed");
+              return json;
+            })
+          )
         );
-      });
-    });
-    return () => ctx.revert();
-  }, [items.length]);
 
-  const switchMode = useCallback(
-    (next) => {
-      setMode(next);
-      setActivePost(null);
-      mutate([], { revalidate: false });
-      setSize(1);
-    },
-    [mutate, setSize]
-  );
+        if (!alive) return;
 
-  // Show loading state when no data and not errored
-  const isLoading = !data && !error;
+        const fItems = following.items || [];
+        const fyItems = forYou.items || [];
+
+        setFollowingReviews(fItems.filter((i) => i.type === "review"));
+        setFollowingBlogs(fItems.filter((i) => i.type === "blog"));
+
+        setTopReviews(fyItems.filter((i) => i.type === "review"));
+        setTopBlogs(fyItems.filter((i) => i.type === "blog"));
+      } catch (e) {
+        if (!alive) return;
+        setErr(e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <>
       <div className="min-h-screen bg-yellow-600">
-        <section className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-6">
-          <div className="top-[64px] z-20 bg-gradient-to-b from-yellow-500 to-transparent pt-3 pb-6">
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1.5">
-              <button
-                onClick={() => switchMode("forYou")}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  mode === "forYou" ? "bg-white text-black shadow-lg" : "text-white/70 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Compass className="w-4 h-4" /> For You
-              </button>
-              <button
-                onClick={() => switchMode("following")}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  mode === "following" ? "bg-white text-black shadow-lg" : "text-white/70 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Users className="w-4 h-4" /> Following
-              </button>
+        <section className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-10">
+          {loading && <FeedSkeleton />}
+
+          {err && (
+            <div className="text-red-200 text-center py-12">
+              Failed to load feed.
             </div>
-          </div>
+          )}
 
-          <div className="mx-auto max-w-2xl space-y-4">
-            {error && <div className="text-red-400 text-center py-8">Failed to load feed.</div>}
+          {!loading && !err && (
+            <>
+              <Section
+                title="Top Reviews from People You Follow"
+                items={followingReviews}
+                variant="list"
+                onOpenPost={setActivePost}
+              />
 
-            {isLoading && <PopcornLoading />}
+              <Section
+                title="Top Blogs from People You Follow"
+                items={followingBlogs}
+                variant="grid"
+                onOpenPost={setActivePost}
+              />
 
-            {!isLoading && items.length === 0 && !error && (
-              <div className="text-center text-white/70 py-16">
-                <div className="text-lg mb-2">No posts yet</div>
-                <div className="text-sm">Be the first to share something!</div>
-              </div>
-            )}
+              <Section
+                title="Top Reviews"
+                items={topReviews}
+                variant="list"
+                onOpenPost={setActivePost}
+              />
 
-            {items.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="feed-card">
-                <PostCard
-                  item={item}
-                  onOpenPost={(normalized) => setActivePost(normalized)}
-                />
-              </div>
-            ))}
-
-            {hasMore ? (
-              <div ref={sentinelRef} className="h-10" />
-            ) : (
-              items.length > 0 && (
-                <div className="text-center text-white/50 py-6">You are all caught up</div>
-              )
-            )}
-
-            {isValidating && data && (
-              <div className="flex items-center justify-center py-4">
-                <div className="flex space-x-1">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="w-2 h-2 bg-yellow-300 rounded-full animate-bounce"
-                      style={{ animationDelay: `${i * 0.2}s` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              <Section
+                title="Top Blogs"
+                items={topBlogs}
+                variant="grid"
+                onOpenPost={setActivePost}
+              />
+            </>
+          )}
         </section>
       </div>
 
       {activePost && (
-        <PostModal
-          post={activePost}
-          onClose={() => setActivePost(null)}
-          onReactionUpdate={() => {}}
-        />
+        <PostModal post={activePost} onClose={() => setActivePost(null)} />
       )}
     </>
   );

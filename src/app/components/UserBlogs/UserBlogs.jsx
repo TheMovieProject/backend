@@ -57,42 +57,17 @@ const UserBlogs = ({ id }) => {
     fetchData();
   }, [id, status, session?.user?.email]);
 
-  if (status === 'loading') {
-    return (
+  if (status === 'loading' || loading) {
+   return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-6 py-1">
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-              </div>
-            </div>
-          </div>
+        <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 gap-6 w-full">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-64 rounded-xl bg-gray-700/50 border border-white/10" />
+          ))}
         </div>
       </div>
     );
   }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-6 py-1">
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-                <div className="h-48 bg-gray-700 rounded col-span-1"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -103,9 +78,6 @@ const UserBlogs = ({ id }) => {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold text-white mb-8">
-        {userDetails ? `${userDetails.username}'s Blog` : 'Your Blog'}
-      </h1>
       
       {blogs.length === 0 ? (
         <div className="text-center py-12">
@@ -120,7 +92,7 @@ const UserBlogs = ({ id }) => {
               key={blog.id} 
               className="group"
             >
-              <div className="bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
+              <div  className="relative group rounded-xl border border-white/10 bg-white/5 backdrop-blur p-3 hover:-translate-y-1 hover:shadow-xl transition">
                 {/* Blog Thumbnail Polaroid */}
                 <div className="aspect-[3/4]  overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-yellow-500">
                   {blog.thumbnail ? (
@@ -143,10 +115,10 @@ const UserBlogs = ({ id }) => {
                 
                 {/* Blog Title */}
                 <div className="text-center">
-                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight">
+                  <h3 className="font-semibold text-white text-sm line-clamp-2 leading-tight">
                     {blog.title}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-200 mt-2">
                     {new Date(blog.createdAt).toLocaleDateString()}
                   </p> 
                 </div>

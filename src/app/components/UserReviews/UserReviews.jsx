@@ -85,7 +85,7 @@ export default function UserReviews({ id }) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 gap-6 w-full">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <div key={i} className="h-64 rounded-xl bg-gray-700/50 border border-white/10" />
           ))}
         </div>

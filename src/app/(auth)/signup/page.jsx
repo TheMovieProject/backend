@@ -5,6 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { signIn } from "next-auth/react";
+import { FaGoogle } from "react-icons/fa";
 
 // ⬇️ same component as login
 import MoviesPosterWall from "@/app/components/MoviePosterWall";
@@ -118,20 +119,21 @@ export default function SignupPage() {
               <button
                 onClick={googleLogin}
                 disabled={submitting}
-                className={`w-full rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition
+                className={`w-full flex items-center justify-between px-[6.7rem] rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition
                   ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
               >
-                {submitting ? "Please wait…" : "Sign up with Google"}
+                 <FaGoogle size={20} className="text-yellow-500"/>
+                  <p className="font-bold">{submitting ? "Please wait…" : "Sign in with Google"}</p>
               </button>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Create your account</h2>
+            {/* <h2 className="text-2xl font-bold tracking-tight">Create your account</h2>
             <p className="text-sm text-white/60 mt-1">
               Unique username & strong password required
-            </p>
+            </p> */}
           </div>
 
-          <form onSubmit={userSignUp} className="space-y-4">
-            {/* Email */}
+          {/* <form onSubmit={userSignUp} className="space-y-4">
+           
             <div>
               <label
                 htmlFor="email"
@@ -150,7 +152,7 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Name */}
+          
             <div>
               <label
                 htmlFor="name"
@@ -169,7 +171,7 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Username */}
+           
             <div>
               <div className="flex items-center justify-between">
                 <label
@@ -222,7 +224,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Password */}
+           
             <div>
               <div className="flex items-center justify-between">
                 <label
@@ -268,7 +270,7 @@ export default function SignupPage() {
             >
               {submitting ? "Creating…" : "Sign Up"}
             </button>
-          </form>
+          </form> */}
 
           <p className="mt-6 text-sm text-center text-white/70">
             Already have an account?{" "}

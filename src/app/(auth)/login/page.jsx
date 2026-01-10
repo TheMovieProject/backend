@@ -4,9 +4,11 @@ import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-
+import Image from "next/image";
 // ⬇️ adjust this path to where *you* placed the component
 import MoviesPosterWall from "@/app/components/MoviePosterWall";
+import { FaGoogle } from "react-icons/fa";
+
 
 export default function LoginPage() {
   const { status } = useSession();
@@ -54,12 +56,12 @@ export default function LoginPage() {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 sm:p-8 backdrop-blur-2xl shadow-[0_10px_50px_rgba(0,0,0,.7)]">
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold tracking-tight">Login</h2>
-            <p className="text-sm text-white/60 mt-1">
-              Welcome back to Movie Project
+            <p className="text-lg font-bold text-white/60 mt-1">
+              Welcome to Movie Project
             </p>
           </div>
 
-          <form onSubmit={userLogin} className="space-y-4">
+          {/* <form onSubmit={userLogin} className="space-y-4">
             <div>
               <label
                 htmlFor="email"
@@ -121,25 +123,26 @@ export default function LoginPage() {
             >
               {submitting ? "Signing in…" : "Login"}
             </button>
-          </form>
+          </form> */}
 
           <button
             onClick={googleLogin}
             disabled={submitting}
             className={
-              "w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition " +
+              "w-full mt-4 flex items-center justify-between px-[6.7rem] rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition " +
               (submitting ? "opacity-60 cursor-not-allowed" : "")
             }
           >
-            {submitting ? "Please wait…" : "Sign in with Google"}
+            <FaGoogle size={20} className="text-yellow-500"/>
+            <p className="font-bold">{submitting ? "Please wait…" : "Sign in with Google"}</p>
           </button>
 
-          <p className="mt-6 text-sm text-center text-white/70">
+          {/* <p className="mt-6 text-sm text-center text-white/70">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-white hover:underline">
               Sign up
             </Link>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>

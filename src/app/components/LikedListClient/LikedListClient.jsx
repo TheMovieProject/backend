@@ -38,12 +38,12 @@ export default function LikedListClient({ initialLikedList = [] }) {
         </div>
 
         {likedList.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-6">
             {likedList.map((item) => (
               <div key={item.id} className="group relative">
                 <div className="bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
                   <Link href={`/movies/${item.movie.tmdbId}`} passHref>
-                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-pink-400 to-red-500 relative">
+                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-yellow-500 relative">
                       <Image
                         src={item.movie.posterUrl || "/img/NoImage.png"}
                         alt={item.movie.title || "Movie"}
@@ -72,7 +72,7 @@ export default function LikedListClient({ initialLikedList = [] }) {
                   </Link>
 
                   <div className="text-center space-y-3">
-                    <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">
+                    <h3 className="font-semibold text-gray-900 text-sm xl:text-[0.6rem] line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">
                       {item.movie.title}
                     </h3>
                   </div>
