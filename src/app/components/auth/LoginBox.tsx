@@ -40,10 +40,10 @@ export default function LoginBox() {
     <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">
       <div className="mb-6 text-center">
         <h2 className="text-xl lg:text-2xl font-bold tracking-tight">Login</h2>
-        <p className="text-sm text-white/60 mt-1">Welcome back to Movie Project</p>
+        <p className="text-sm text-white/60 mt-1">Welcome to Movie Project</p>
       </div>
 
-      <form onSubmit={userLogin} className="space-y-4">
+      {/* <form onSubmit={userLogin} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
             Email
@@ -91,7 +91,7 @@ export default function LoginBox() {
         >
           {submitting ? "Signing in…" : "Login"}
         </button>
-      </form>
+      </form> */}
 
       <button
         onClick={googleLogin}
@@ -102,12 +102,12 @@ export default function LoginBox() {
         {submitting ? "Please wait…" : "Sign in with Google"}
       </button>
 
-      <p className="mt-6 text-sm text-center text-white/70">
+      {/* <p className="mt-6 text-sm text-center text-white/70">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="text-white hover:underline">
           Sign up
         </Link>
-      </p>
+      </p> */}
     </div>
   );
 }

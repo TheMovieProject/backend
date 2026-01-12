@@ -65,7 +65,7 @@ export default function LoginGate({ threshold = 0.2, once = true }: Props) {
           <div className="mb-4 text-center text-white p-4">
             <h3 className="text-lg md:text-2xl font-semibold">Sign in to continue</h3>
             <p className="text-white/70 mt-1">
-              You&apos;ve reached the free preview. Create an account or log in to keep scrolling.
+              You&apos;ve reached the preview. Create an account or log in to keep scrolling.
             </p>
           </div>
           <LoginBox />
