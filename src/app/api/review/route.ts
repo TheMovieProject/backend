@@ -3,12 +3,16 @@ import type { NextAuthOptions } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
+/* ---------------- helpers ---------------- */
+
 const buildTree = (flat: any[]) => {
   const map: Record<string, any> = {};
   const roots: any[] = [];
   for (const c of flat) map[c.id] = { ...c, children: [] };
   for (const c of flat)
-    (c.parentId && map[c.parentId]) ? map[c.parentId].children.push(map[c.id]) : roots.push(map[c.id]);
+    c.parentId && map[c.parentId]
+      ? map[c.parentId].children.push(map[c.id])
+      : roots.push(map[c.id]);
   return roots;
 };
 
@@ -37,7 +41,20 @@ const shapeReview = (r: any, myReactions: Record<string, any> = {}) => {
   };
 };
 
-// ——— GET: Fetch reviews ———
+function tmdbPoster(path?: string | null) {
+  if (!path) return null;
+  return `https://image.tmdb.org/t/p/w500${path}`;
+}
+
+/**
+ * ✅ Ensures Movie exists with required fields:
+ * - tmdbId (unique)
+ * - title (required in your schema)
+ * - posterUrl (optional)
+ */
+
+/* ---------------- GET: Fetch reviews ---------------- */
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -50,66 +67,67 @@ export async function GET(req: Request) {
       ? await prisma.user.findUnique({ where: { email: session.user.email } })
       : null;
 
-const where = userId
-  ? { userId }
-  : { movie: { is: { tmdbId: tmdbId! } } }; // keep this for tmdb route
+    let rows: any[] = [];
 
-let rows;
-
-if (userId) {
-  // 1) get reviews only
-  const reviews = await prisma.review.findMany({
-    where: { userId },
-    include: {
-      user: { select: { id: true, username: true, avatarUrl: true, image: true } },
-      reviewComments: {
-        include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
+    if (userId) {
+      // 1) get reviews only
+      const reviews = await prisma.review.findMany({
+        where: { userId },
+        include: {
+          user: { select: { id: true, username: true, avatarUrl: true, image: true } },
+          reviewComments: {
+            include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
         orderBy: { createdAt: "desc" },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      });
 
-  // 2) get movies in bulk (only existing)
-  const movieIds = [...new Set(reviews.map((r: { movieId: any; }) => r.movieId))];
+      // 2) get movies in bulk (only existing)
+      const movieIds = [...new Set(reviews.map((r: any) => r.movieId))].filter(Boolean);
 
-  const movies = await prisma.movie.findMany({
-    where: { id: { in: movieIds } },
-    select: { id: true, tmdbId: true, title: true, posterUrl: true },
-  });
+      const movies = await prisma.movie.findMany({
+        where: { id: { in: movieIds } },
+        select: { id: true, tmdbId: true, title: true, posterUrl: true },
+      });
 
-  const movieMap = new Map(movies.map(m => [m.id, m]));
+      const movieMap = new Map(movies.map((m) => [m.id, m]));
 
-  // 3) attach movie manually; filter out broken ones OR set null safely
-  rows = reviews
-    .map((r: { movieId: unknown; }) => ({ ...r, movie: movieMap.get(r.movieId) || null }))
-    .filter((r: { movie: null; }) => r.movie !== null); // if you want to drop broken ones
-} else {
-  // tmdb route (this is safe because it filters by movie anyway)
-  rows = await prisma.review.findMany({
-    where: { movie: { is: { tmdbId: tmdbId! } } },
-    include: {
-      movie: { select: { tmdbId: true, title: true, posterUrl: true } },
-      user: { select: { id: true, username: true, avatarUrl: true, image: true } },
-      reviewComments: {
-        include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
-}
-;
+      // 3) attach movie manually; drop broken ones
+      rows = reviews
+        .map((r: any) => ({ ...r, movie: movieMap.get(r.movieId) || null }))
+        .filter((r: any) => r.movie !== null);
+    } else {
+      if (!tmdbId) {
+        return new Response(JSON.stringify({ error: "Missing movieId" }), { status: 400 });
+      }
 
+      // tmdb route (safe because it filters by movie anyway)
+      rows = await prisma.review.findMany({
+        where: { movie: { is: { tmdbId: tmdbId } } },
+        include: {
+          movie: { select: { tmdbId: true, title: true, posterUrl: true } },
+          user: { select: { id: true, username: true, avatarUrl: true, image: true } },
+          reviewComments: {
+            include: { user: { select: { id: true, username: true, avatarUrl: true, image: true } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+    }
 
     // mark my reactions in bulk
     let myReactions: Record<string, { likedByMe: boolean; firedByMe: boolean }> = {};
     if (me && rows.length) {
-      const ids = rows.map((r: { id: any }) => r.id);
+      const ids = rows.map((r: any) => r.id);
       const rs = await prisma.entityReaction.findMany({
         where: { userId: me.id, entityType: "review", entityId: { in: ids } },
       });
       for (const r of rs) {
-        myReactions[r.entityId] = myReactions[r.entityId] || { likedByMe: false, firedByMe: false };
+        myReactions[r.entityId] = myReactions[r.entityId] || {
+          likedByMe: false,
+          firedByMe: false,
+        };
         if (r.reactionType === "likes") myReactions[r.entityId].likedByMe = true;
         if (r.reactionType === "fire") myReactions[r.entityId].firedByMe = true;
       }
@@ -135,7 +153,8 @@ if (userId) {
   }
 }
 
-// ——— POST: Create a new review (or update existing) ———
+/* ---------------- POST: Create/update review + auto-create movie ---------------- */
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions as unknown as NextAuthOptions);
@@ -144,16 +163,39 @@ export async function POST(req: Request) {
     const me = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!me) return new Response("User not found", { status: 404 });
 
-    const { movieId, reviewText } = await req.json();
+    const { movieId, reviewText , title, posterUrl } = await req.json();
     if (!movieId || !reviewText?.trim()) {
       return new Response("Invalid or missing data", { status: 400 });
     }
 
-    // Find the movie
-    const movie = await prisma.movie.findUnique({ where: { tmdbId: movieId } });
-    if (!movie) {
-      return new Response("Movie not found", { status: 404 });
-    }
+    const tmdbId = String(movieId);
+   
+     const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
+
+// posterUrl may come as "/path.jpg" from tmdb
+const normalizedPosterUrl =
+  typeof posterUrl === "string" && posterUrl.trim()
+    ? posterUrl.startsWith("http")
+      ? posterUrl
+      : `${TMDB_IMG}${posterUrl}` // converts "/abc.jpg" -> full url
+    : null;
+
+const safeTitle = typeof title === "string" && title.trim() ? title.trim() : null;
+if (!safeTitle) return new Response("Missing title", { status: 400 });
+
+   const movie = await prisma.movie.upsert({
+  where: { tmdbId },
+  update: {
+    title: safeTitle,
+    // only set posterUrl if we actually have one
+    ...(normalizedPosterUrl ? { posterUrl: normalizedPosterUrl } : {}),
+  },
+  create: {
+    tmdbId,
+    title: safeTitle,
+    posterUrl: normalizedPosterUrl,
+  },
+});
 
     // Check if user already has a review for this movie
     const existingReview = await prisma.review.findUnique({
@@ -162,10 +204,9 @@ export async function POST(req: Request) {
 
     let created;
     if (existingReview) {
-      // Update existing review
       created = await prisma.review.update({
         where: { id: existingReview.id },
-        data: { content: reviewText.trim(), updatedAt: new Date() },
+        data: { content: reviewText.trim() },
         include: {
           movie: { select: { tmdbId: true, title: true, posterUrl: true } },
           user: { select: { id: true, username: true, avatarUrl: true, image: true } },
@@ -176,7 +217,6 @@ export async function POST(req: Request) {
         },
       });
     } else {
-      // Create new review
       created = await prisma.review.create({
         data: {
           content: reviewText.trim(),
@@ -206,7 +246,8 @@ export async function POST(req: Request) {
   }
 }
 
-// ——— DELETE: Delete a review (author only) ———
+/* ---------------- DELETE: Delete review ---------------- */
+
 export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions as unknown as NextAuthOptions);
@@ -223,7 +264,6 @@ export async function DELETE(req: Request) {
     if (!review) return new Response("Review not found", { status: 404 });
     if (review.userId !== me.id) return new Response("Forbidden", { status: 403 });
 
-    // Delete review (cascades to comments via onDelete)
     await prisma.review.delete({ where: { id: reviewId } });
 
     return new Response("Deleted", { status: 200 });

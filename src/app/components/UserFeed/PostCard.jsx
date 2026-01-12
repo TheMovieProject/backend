@@ -76,6 +76,11 @@ export default function PostCard({ item, onOpenPost }) {
     ? item?.movie?.title || "Untitled movie"
     : item?.title || "Untitled";
 
+    const thumbnail = isReview
+    ? item?.movie?.posterUrl || item?.thumbnail || ""
+    : item?.thumbnail || "";
+
+
   const createdAtIso = item?.createdAt || item?.created_at;
 
   const href = isReview ? `/movies/${item?.movie?.tmdbId}` : `/blog/${item?.id}`;
@@ -279,10 +284,12 @@ export default function PostCard({ item, onOpenPost }) {
     );
   }
 
-  const myRating =
-  typeof item?.myRating === "number" && !Number.isNaN(item.myRating)
-    ? item.myRating
+const authorRating =
+  typeof item?.authorRating === "number" && !Number.isNaN(item.authorRating)
+    ? item.authorRating
     : null;
+
+
 
 
   /* ---------------- REVIEW CARD (wide, NO image) ---------------- */
@@ -301,25 +308,24 @@ export default function PostCard({ item, onOpenPost }) {
         </div>
 
         {/* movie title */}
-        <div className="mt-3 flex items-start justify-between gap-3">
-  <div className="text-white font-bold text-lg sm:text-xl leading-snug">
+<div className="mt-3 ml-3 flex items-center gap-3">
+  <Image width={40} height={80} src={thumbnail} className="rounded-md"/>
+  <div className="text-white font-bold text-md  leading-snug">
     {title}
   </div>
+</div>
 
-  
-  {myRating !== null && (
-    <div className="shrink-0 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/80 flex items-center gap-1">
+<div className="mt-5 text-white/80 flex items-center gap-2 text-[1.3] leading-relaxed line-clamp-3">
+  {authorRating !== null && (
+    <div className="shrink-0 px-3 py-1 text-xs text-white/80 flex items-center gap-1">
       <FaStar className="text-yellow-400" />
-      <span className="font-semibold">{myRating}</span>
+      <span className="font-semibold">{authorRating}</span>
     </div>
   )}
+  {item?.excerpt ? item.excerpt : "No review text."}
 </div>
 
 
-        {/* review text (NO image) */}
-        <div className="mt-2 text-white/70 text-sm leading-relaxed line-clamp-3">
-          {item?.excerpt ? item.excerpt : "No review text."}
-        </div>
 
         {/* icons row */}
         <div className="mt-4 flex items-center justify-between">

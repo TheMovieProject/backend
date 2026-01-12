@@ -43,7 +43,7 @@ const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
   );
 });
 
-export default function Review({ movieId, currentUserId }) {
+export default function Review({ movieId, currentUserId , title , posterUrl }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewText, setReviewText] = useState("");
@@ -233,7 +233,7 @@ useEffect(() => {
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ movieId, reviewText }),
+        body: JSON.stringify({ movieId, reviewText , title , posterUrl }),
       });
       if (!res.ok) throw new Error(await res.text());
       const newR = await res.json();

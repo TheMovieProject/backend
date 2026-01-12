@@ -203,7 +203,7 @@ function SafePoster({ src, alt }) {
   const [imgSrc, setImgSrc] = useState(src || FALLBACK_POSTER);
   return (
     <Image
-      src={imgSrc || FALLBACK_POSTER}
+      src={imgSrc || `https://image.tmdb.org/t/p/original${src}` || FALLBACK_POSTER}
       alt={alt}
       width={300}
       height={400}

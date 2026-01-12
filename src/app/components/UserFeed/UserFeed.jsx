@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 import PostCard from "./PostCard";
 import PostModal from "./PostModal";
-
-/* ---------------- Skeleton ---------------- */
-
 function FeedSkeleton() {
   const BlogCard = () => (
     <div className="w-[170px] sm:w-[190px] md:w-[210px] animate-pulse">
@@ -76,7 +73,6 @@ function FeedSkeleton() {
   );
 }
 
-/* ---------------- Section Wrapper ---------------- */
 
 function Section({ title, items, variant = "list", onOpenPost }) {
   if (!items || items.length === 0) return null;
@@ -110,7 +106,6 @@ function Section({ title, items, variant = "list", onOpenPost }) {
   );
 }
 
-/* ---------------- Main Feed ---------------- */
 
 export default function UserFeed() {
   const [loading, setLoading] = useState(true);
@@ -176,7 +171,7 @@ export default function UserFeed() {
           {loading && <FeedSkeleton />}
 
           {err && (
-            <div className="text-red-200 text-center py-12">
+            <div className="text-red-500 text-center py-12">
               Failed to load feed.
             </div>
           )}

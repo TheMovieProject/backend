@@ -97,7 +97,7 @@ const Info = () => {
         <SimilarMovies movieId={movieId} item={item} />
 
         <div className="mt-16">
-          <Reviews movieId={movieId} /> 
+          <Reviews movieId={movieId} title={item.title} posterUrl={item.poster_path} /> 
         </div>
       </div>
     </div>

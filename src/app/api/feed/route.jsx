@@ -79,9 +79,7 @@ export async function GET(req) {
           })
         : [];
 
-    const followingEmails = new Set(
-      (followingUsers.map((u) => u.email).filter(Boolean) ?? [])
-    );
+    const followingEmails = new Set(followingUsers.map((u) => u.email).filter(Boolean));
 
     const take = limit * 2;
 
@@ -122,45 +120,27 @@ export async function GET(req) {
       }),
     ]);
 
-    // 2) Collect movieIds from reviews
-    const movieIds = [...new Set(reviews.map((r) => r.movieId))].filter(Boolean);
+    // 2) Fetch AUTHOR ratings for these reviews (rating by review.userId for review.movieId)
+    const ratingPairs = reviews
+      .filter((r) => r.userId && r.movieId)
+      .map((r) => ({ userId: r.userId, movieId: r.movieId }));
 
-    // 3) Fetch rating aggregates + my ratings for those movies
-    //    - groupBy for avg + count
-    //    - findMany for myRating
-    const [ratingAgg, myRatings] = await Promise.all([
-      movieIds.length
-        ? prismadb.rating.groupBy({
-            by: ["movieId"],
-            where: { movieId: { in: movieIds } },
-            _avg: { value: true },
-            _count: { value: true },
-          })
-        : Promise.resolve([]),
-      movieIds.length
-        ? prismadb.rating.findMany({
-            where: { userId: me.id, movieId: { in: movieIds } },
-            select: { movieId: true, value: true, updatedAt: true },
-          })
-        : Promise.resolve([]),
-    ]);
+    const authorRatings = ratingPairs.length
+      ? await prismadb.rating.findMany({
+          where: { OR: ratingPairs },
+          select: { userId: true, movieId: true, value: true },
+        })
+      : [];
 
-    const ratingAggMap = new Map(
-      ratingAgg.map((r) => [
-        r.movieId,
-        {
-          avg: r._avg.value ?? 0,
-          count: r._count.value ?? 0,
-        },
-      ])
+    const authorRatingMap = new Map(
+      authorRatings.map((r) => [`${r.userId}-${r.movieId}`, r.value])
     );
 
-    const myRatingMap = new Map(myRatings.map((r) => [r.movieId, r.value]));
-
-    // 4) Build feed items (NOW WITH RATING DATA)
+    // 3) Build feed items (NOW WITH AUTHOR RATING)
     const items = [
       ...reviews.map((r) => {
-        const agg = r.movieId ? ratingAggMap.get(r.movieId) : null;
+        const authorRating =
+          r.movieId ? authorRatingMap.get(`${r.userId}-${r.movieId}`) ?? null : null;
 
         return {
           type: "review",
@@ -182,21 +162,19 @@ export async function GET(req) {
             ? {
                 id: r.movie.id,
                 tmdbId: r.movie.tmdbId ?? null,
-                title: r.movie.title,
+                title: r.movie.title ?? null,
                 posterUrl: r.movie.posterUrl ?? null,
               }
             : undefined,
 
-          // ✅ rating feature
-          myRating: r.movieId ? myRatingMap.get(r.movieId) ?? null : null,
-          movieRatingAvg: agg ? agg.avg : null,
-          movieRatingCount: agg ? agg.count : 0,
+          // ✅ show rating of the author who wrote this review
+          authorRating,
 
-          title: r.movie?.title ?? "Untitled",
+          title: r.movie?.title ?? "Unknown",
           thumbnail: r.movie?.posterUrl ?? null,
           excerpt: r.content
-            ? r.content.slice(0, 240) + (r.content.length > 240 ? "..." : "")
-            : "",
+          ? r.content.slice(0, 440) + (r.content.length > 440 ? "...." : "")
+          : "",
         };
       }),
       ...blogs.map((b) => ({
@@ -220,13 +198,11 @@ export async function GET(req) {
           ? b.content.slice(0, 240) + (b.content.length > 240 ? "..." : "")
           : "",
 
-        myRating: null,
-        movieRatingAvg: null,
-        movieRatingCount: 0,
+        authorRating: null, // blogs don't have movie rating
       })),
     ];
 
-    // 5) User reactions
+    // 4) User reactions
     const itemIds = items.map((i) => i.id);
 
     const userReactions = await prismadb.entityReaction.findMany({
@@ -251,7 +227,7 @@ export async function GET(req) {
       item.userFired = r?.has("fire") || false;
     });
 
-    // 6) score + sort
+    // 5) score + sort
     const finalItems =
       mode === "forYou"
         ? items
@@ -260,11 +236,9 @@ export async function GET(req) {
               score: scoreItem(it, me.movieGenres ?? [], followingIds, 0),
             }))
             .sort((a, b) => (b.score || 0) - (a.score || 0))
-        : items.sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+        : items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // 7) pagination
+    // 6) pagination
     const page = finalItems.slice(0, limit);
     const nextCursor =
       page.length === limit && finalItems.length > limit ? page[page.length - 1].id : null;

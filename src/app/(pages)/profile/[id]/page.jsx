@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useReducer, useMemo, lazy, Suspense, memo } from 'react';
+import { useEffect, useReducer, useMemo, lazy, Suspense, memo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MdLocalMovies, MdArticle, MdClose, MdEdit } from "react-icons/md";
@@ -11,7 +11,6 @@ const UserBlogs = lazy(() => import('@/app/components/UserBlogs/UserBlogs'));
 const UserReviews = lazy(() => import('@/app/components/UserReviews/UserReviews'));
 const EditProfile = lazy(() => import('@/app/components/EditProfile/EditProfile'));
 
-
 const initialState = {
   profileData: null,
   isFollowing: false,
@@ -20,7 +19,9 @@ const initialState = {
   showEditProfile: false,
   activeTab: 'reviews',
   loading: true,
-  error: null
+  error: null,
+  // Add a flag to track if data has been loaded
+  hasLoaded: false
 };
 
 const profileReducer = (state, action) => {
@@ -29,10 +30,10 @@ const profileReducer = (state, action) => {
       return { ...state, loading: action.payload };
     
     case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
+      return { ...state, error: action.payload, loading: false, hasLoaded: true };
     
     case 'SET_PROFILE_DATA':
-      return { ...state, profileData: action.payload, loading: false, error: null };
+      return { ...state, profileData: action.payload, loading: false, hasLoaded: true, error: null };
     
     case 'SET_FOLLOW_STATUS':
       return { ...state, isFollowing: action.payload };
@@ -62,11 +63,13 @@ const profileReducer = (state, action) => {
         }
       };
     
+    case 'RESET_LOADING_STATE':
+      return { ...state, loading: true, hasLoaded: false };
+    
     default:
       return state;
   }
 };
-// ===== END REDUCER SETUP =====
 
 // ===== MEMOIZED COMPONENTS =====
 const FollowList = memo(({ type, data, onClose }) => {
@@ -209,11 +212,64 @@ TabNavigation.displayName = 'TabNavigation';
 
 // ===== LOADING & ERROR STATES =====
 const LoadingSkeleton = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-700 to-yellow-900">
-    <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 gap-6 w-full p-4">
-      {[...Array(2)].map((_, i) => (
-        <div key={i} className="h-[30rem] w-[30rem] rounded-xl bg-gray-700/50 border border-white/10" />
-      ))}
+  <div className="min-h-screen bg-gradient-to-br from-yellow-900 via-yellow-700 to-yellow-900 p-6 pt-20">
+    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Left Sidebar Skeleton */}
+      <div className="lg:col-span-1">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 animate-pulse">
+          {/* Profile Image */}
+          <div className="flex justify-center mb-4">
+            <div className="w-24 h-24 rounded-full bg-gray-700/50 border-4 border-white/30"></div>
+          </div>
+          
+          {/* Name */}
+          <div className="h-6 w-3/4 mx-auto bg-gray-700/50 rounded mb-4"></div>
+          
+          {/* Bio */}
+          <div className="h-4 w-full bg-gray-700/50 rounded mb-6"></div>
+          
+          {/* Button */}
+          <div className="h-10 w-full bg-gray-700/50 rounded-lg mb-6"></div>
+          
+          {/* Stats */}
+          <div className="space-y-3 mb-6">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="h-12 bg-gray-700/50 rounded-lg"></div>
+            ))}
+          </div>
+          
+          {/* Follow Section */}
+          <div className="space-y-4">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="p-4 bg-gray-700/30 rounded-xl">
+                <div className="h-4 w-1/3 bg-gray-600/50 rounded mb-3"></div>
+                <div className="flex -space-x-2">
+                  {[...Array(3)].map((_, idx) => (
+                    <div key={idx} className="w-8 h-8 rounded-full bg-gray-600/50 border-2 border-white/30"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Right Content Skeleton */}
+      <div className="lg:col-span-3">
+        {/* Tab Navigation Skeleton */}
+        <div className="flex gap-4 mb-8">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-12 w-32 bg-gray-700/50 rounded-full"></div>
+          ))}
+        </div>
+        
+        {/* Content Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-64 bg-gray-700/30 rounded-2xl border border-white/10"></div>
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -247,15 +303,15 @@ export default function UserProfilePage({ params }) {
   const { id } = params;
   const isOwnProfile = session?.user?.id === id;
 
-  // Memoized values to prevent recalculations on every render
+  // Memoized values
   const memoizedProfileData = useMemo(() => state.profileData, [state.profileData]);
   const memoizedUserData = useMemo(() => memoizedProfileData?.user || {}, [memoizedProfileData]);
   const memoizedStats = useMemo(() => memoizedProfileData?.stats || {}, [memoizedProfileData]);
   const memoizedFollowersPreview = useMemo(() => memoizedProfileData?.followers?.preview || [], [memoizedProfileData]);
   const memoizedFollowingPreview = useMemo(() => memoizedProfileData?.following?.preview || [], [memoizedProfileData]);
 
-  // Single API call to fetch all profile data
-  const fetchProfileData = useMemo(() => async () => {
+  // Use useCallback instead of useMemo for functions to ensure stable references
+  const fetchProfileData = useCallback(async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
@@ -278,8 +334,7 @@ export default function UserProfilePage({ params }) {
     }
   }, [id]);
 
-  // Fetch follow status separately if not own profile
-  const fetchFollowStatus = useMemo(() => async () => {
+  const fetchFollowStatus = useCallback(async () => {
     if (isOwnProfile || !session) {
       dispatch({ type: 'SET_FOLLOW_STATUS', payload: false });
       return;
@@ -323,12 +378,11 @@ export default function UserProfilePage({ params }) {
         });
       }
   
-      // Update follow status AND increment/decrement follower count
       dispatch({ type: 'SET_FOLLOW_STATUS', payload: !state.isFollowing });
       dispatch({ type: 'UPDATE_FOLLOW_COUNTS', payload: { isFollowing: !state.isFollowing } });
       
-      // Refresh profile data to get updated follower list
-      await fetchProfileData();
+      // Refresh both profile data and follow status
+      await Promise.all([fetchProfileData(), fetchFollowStatus()]);
       
       toast.success(state.isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
     } catch (error) {
@@ -337,7 +391,6 @@ export default function UserProfilePage({ params }) {
     }
   };
 
-  // Event handlers
   const handleTabChange = (tab) => {
     dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
   };
@@ -350,21 +403,33 @@ export default function UserProfilePage({ params }) {
     dispatch({ type: 'TOGGLE_FOLLOWING_MODAL', payload: true });
   };
 
-  // Effects
+  // Main effect for loading data
   useEffect(() => {
     if (id && status !== 'loading') {
-      Promise.all([
-        fetchProfileData(),
-        fetchFollowStatus()
-      ]);
+      // Reset loading state when params or session changes
+      dispatch({ type: 'RESET_LOADING_STATE' });
+      
+      const loadData = async () => {
+        try {
+          await Promise.all([
+            fetchProfileData(),
+            fetchFollowStatus()
+          ]);
+        } catch (error) {
+          console.error('Error loading profile data:', error);
+        }
+      };
+      
+      loadData();
     }
   }, [id, status, fetchProfileData, fetchFollowStatus]);
 
-  // Loading and Error States
-  if (state.loading || status === 'loading') {
+  // Show loading skeleton only when actually loading and data hasn't been loaded yet
+  if ((state.loading && !state.hasLoaded) || status === 'loading') {
     return <LoadingSkeleton />;
   }
 
+  // Show error state if there's an error
   if (state.error || !memoizedProfileData) {
     return (
       <ErrorState 
