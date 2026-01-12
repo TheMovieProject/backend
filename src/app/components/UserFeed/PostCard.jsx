@@ -202,7 +202,7 @@ export default function PostCard({ item, onOpenPost }) {
   if (!isReview) {
     return (
       <>
-     <article className="w-[150px] lg:w-[210px] rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-xl">
+     <article className="w-[130px] lg:w-[210px] rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-xl">
   {/* Image section - only when image exists */}
   {blogHasImage ? (
     <div className="relative w-full aspect-[2/3] overflow-hidden">

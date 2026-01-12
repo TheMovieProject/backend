@@ -151,7 +151,7 @@ export default function Hero() {
   return (
     <div
       ref={heroRef}
-      className="min-h-screen bg-yellow-600 relative overflow-hidden z-30"
+      className="min-h-screen bg-yellow-600  overflow-hidden z-30 relative"
     >
       {/* Background Image with Parallax */}
       <div ref={backgroundRef} className="absolute inset-0">
@@ -166,7 +166,7 @@ export default function Hero() {
       </div>
 
       {/* Title section */}
-      <div className="relative z-10 min-h-screen flex py-[25%] px-6">
+      <div className="relative z-10 min-h-screen flex pt-24 md:pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1
             ref={titleRef}

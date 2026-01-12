@@ -5,7 +5,7 @@ import PostCard from "./PostCard";
 import PostModal from "./PostModal";
 function FeedSkeleton() {
   const BlogCard = () => (
-    <div className="w-[170px] sm:w-[190px] md:w-[210px] animate-pulse">
+    <div className="w-[120px] animate-pulse">
       <div className="rounded-xl overflow-hidden bg-white/10 border border-white/10">
         <div className="h-[240px] bg-white/10" />
         <div className="p-3 space-y-2">
