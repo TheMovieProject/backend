@@ -91,7 +91,7 @@ export async function GET(req: Request) {
         select: { id: true, tmdbId: true, title: true, posterUrl: true },
       });
 
-      const movieMap = new Map(movies.map((m) => [m.id, m]));
+      const movieMap = new Map(movies.map((m: { id: any; }) => [m.id, m]));
 
       // 3) attach movie manually; drop broken ones
       rows = reviews
