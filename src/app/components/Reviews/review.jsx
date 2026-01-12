@@ -414,7 +414,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
             />
             <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-3">
               {/* <div className="text-sm text-gray-400">
-                {reviewText.length} characters
+                {reviewText.length} character
               </div> */}
               <button
                 onClick={submitReview}
