@@ -167,7 +167,7 @@ const MoviesComponent = () => {
             <div key={index} className="max-w-7xl mx-auto mb-12">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center gap-3 mb-4">
-                  <h1 className="text-4xl font-bold text-white">{category.title}</h1>
+                  <h1 className="text-2xl lg:text-4xl font-bold text-white">{category.title}</h1>
                 </div>
                 <p className="text-lg text-white">
                   {category.subTitle}

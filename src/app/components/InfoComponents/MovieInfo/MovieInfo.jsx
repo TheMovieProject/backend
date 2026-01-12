@@ -319,23 +319,60 @@ const MovieInfo = ({
                   </div>
 
                   {/* Top cast headshots */}
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-xs text-yellow-400 uppercase tracking-wide mb-2">Top Cast</div>
-                    <div className="flex -space-x-3">
-                      {topCast.map((p) => (
-                        <Link href={`/people/${p.id}`}
-                          key={p.cast_id || p.id}
-                          className="relative h-10 w-10 rounded-full overflow-hidden border border-white/20 hover:z-10 hover:scale-200 transition"
-                          title={`${p.name}${p.character ? ` as ${p.character}` : ""}`}
-                        >
-                          <Image src={p.profile_path ? tmdbImg(p.profile_path, "w185") : ProfileImage} alt={p.name} fill className="object-cover cursor-pointer hover:scale-250" />
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="mt-2 text-xs text-gray-300 line-clamp-1">
-                      {topCast.map((p) => p.name).join(", ")}
-                    </div>
-                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 md:p-4">
+  <div className="text-xs md:text-sm text-yellow-400 uppercase tracking-wide mb-2 md:mb-3">
+    Top Cast
+  </div>
+  
+  {/* Mobile & Tablet: New responsive design */}
+  <div className="md:hidden">
+    <div className="grid grid-cols-3 gap-3">
+      {topCast.map((p) => (
+        <Link 
+          href={`/people/${p.id}`}
+          key={p.cast_id || p.id}
+          className="relative group"
+          title={`${p.name}${p.character ? ` as ${p.character}` : ""}`}
+        >
+          <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-yellow-400/60 transition-all duration-300 group-hover:scale-110">
+            <Image 
+              src={p.profile_path ? tmdbImg(p.profile_path, "w185") : ProfileImage} 
+              alt={p.name} 
+              fill 
+              className="object-cover transition-transform duration-300 group-hover:scale-110"
+              sizes="80px"
+            />
+          </div>
+        </Link>
+      ))}
+    </div>
+  </div>
+  
+  {/* Laptop/Desktop: Your original design */}
+  <div className="hidden md:flex -space-x-3">
+    {topCast.map((p) => (
+      <Link
+        href={`/people/${p.id}`}
+        key={p.cast_id || p.id}
+        className="relative h-10 w-10 rounded-full overflow-hidden border border-white/20 hover:z-10 hover:scale-200 transition"
+        title={`${p.name}${p.character ? ` as ${p.character}` : ""}`}
+      >
+        <Image 
+          src={p.profile_path ? tmdbImg(p.profile_path, "w185") : ProfileImage} 
+          alt={p.name} 
+          fill 
+          className="object-cover cursor-pointer hover:scale-250" 
+          sizes="40px"
+        />
+      </Link>
+    ))}
+  </div>
+  
+  {/* Names text - responsive styling */}
+  <div className="mt-2 md:mt-3 text-xs md:text-sm text-gray-300 line-clamp-1 md:line-clamp-2">
+    {topCast.map((p) => p.name).join(", ")}
+  </div>
+</div>
 
                 </div>
 

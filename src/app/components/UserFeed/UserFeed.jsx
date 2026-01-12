@@ -48,7 +48,7 @@ function FeedSkeleton() {
     <div className="space-y-3">
       <div className="h-4 w-72 bg-white/10 rounded" />
       {grid ? (
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <BlogCard key={i} />
           ))}
@@ -82,7 +82,7 @@ function Section({ title, items, variant = "list", onOpenPost }) {
       <h2 className="text-lg font-semibold text-white">{title}</h2>
 
       {variant === "grid" ? (
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
             <PostCard
               key={`${item.type}-${item.id}`}

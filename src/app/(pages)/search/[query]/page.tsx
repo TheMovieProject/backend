@@ -169,7 +169,7 @@ export default function SearchedItems() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 xl:grid-cols-5 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 xl:grid-cols-5 gap-8">
               {movies.map((item, index) => (
                 <MovieBlock key={item.id} item={item} index={index} />
               ))}

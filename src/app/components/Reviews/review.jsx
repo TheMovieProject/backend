@@ -3,12 +3,12 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AiOutlineFire, AiFillFire, AiOutlineDelete } from "react-icons/ai";
+import { AiOutlineFire, AiFillFire, AiOutlineDelete, AiOutlineComment } from "react-icons/ai";
 import { CiHeart } from "react-icons/ci";
 import { FaHeart } from "react-icons/fa";
 
 /* ---------- local reply input ---------- */
-const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
+const ReplyBox = memo(function ReplyBox({ open, onSubmit, placeholder = "Reply…" }) {
   const [val, setVal] = useState("");
   const inputRef = useRef(null);
 
@@ -19,13 +19,14 @@ const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
   if (!open) return null;
 
   return (
-    <div className="mt-2 flex items-center gap-2">
-      <input
+    <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <textarea
         ref={inputRef}
-        className="flex-1 px-3 py-2 rounded-lg bg-gray-600/50 text-white border border-yellow-500/30 text-sm"
-        placeholder="Reply…"
+        className="flex-1 px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-yellow-500/30 text-sm resize-none min-h-[60px] sm:min-h-0"
+        placeholder={placeholder}
         value={val}
         onChange={(e) => setVal(e.target.value)}
+        rows={2}
       />
       <button
         onClick={() => {
@@ -35,7 +36,7 @@ const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
           setVal("");
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
-        className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-2 rounded-lg text-sm font-bold"
+        className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-4 py-2 rounded-lg text-sm font-bold transition-colors self-end sm:self-auto"
       >
         Post
       </button>
@@ -43,16 +44,15 @@ const ReplyBox = memo(function ReplyBox({ open, onSubmit }) {
   );
 });
 
-export default function Review({ movieId, currentUserId , title , posterUrl }) {
+export default function Review({ movieId, currentUserId, title, posterUrl }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewText, setReviewText] = useState("");
   const [error, setError] = useState(null);
-
   const [openComments, setOpenComments] = useState({});
   const [replyOpen, setReplyOpen] = useState({});
 
-  const inflight = useRef(new Map()); // reviewId -> { controller, pending, lastAction }
+  const inflight = useRef(new Map());
 
   const engagementScore = (r) =>
     (r.likes || 0) + (r.fire || 0) + (r.commentsCount || 0);
@@ -72,52 +72,47 @@ export default function Review({ movieId, currentUserId , title , posterUrl }) {
     return [mine, ...rest];
   }, [reviews, currentUserId]);
 
+  /* ---------- initial load ---------- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch reviews");
+        const data = await res.json();
+        if (cancelled) return;
 
-/* ---------- initial load ---------- */
-useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    try {
-      const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to fetch reviews");
-      const data = await res.json();
-      if (cancelled) return;
-
-      // Get IDs to hydrate reactions for logged-in user
-      const ids = data.map((r) => r.id).join(",");
-      let reactionMap = {};
-      if (ids) {
-        try {
-          const rx = await fetch(`/api/reaction?entityType=review&ids=${ids}`, { cache: "no-store" });
-          if (rx.ok) reactionMap = await rx.json();
-        } catch (err) {
-          console.warn("Reaction hydration failed", err);
+        const ids = data.map((r) => r.id).join(",");
+        let reactionMap = {};
+        if (ids) {
+          try {
+            const rx = await fetch(`/api/reaction?entityType=review&ids=${ids}`, { cache: "no-store" });
+            if (rx.ok) reactionMap = await rx.json();
+          } catch (err) {
+            console.warn("Reaction hydration failed", err);
+          }
         }
+
+        const hydrated = data.map((r) => ({
+          ...r,
+          likedByMe: reactionMap[r.id]?.likedByMe ?? false,
+          firedByMe: reactionMap[r.id]?.firedByMe ?? false,
+        }));
+
+        setReviews(sortByEngagement(hydrated));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
+    })();
 
-      // Merge reactions
-      const hydrated = data.map((r) => ({
-        ...r,
-        likedByMe: reactionMap[r.id]?.likedByMe ?? false,
-        firedByMe: reactionMap[r.id]?.firedByMe ?? false,
-      }));
-
-      setReviews(sortByEngagement(hydrated));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
-  })();
-
-  return () => {
-    cancelled = true;
-    for (const { controller } of inflight.current.values()) controller?.abort();
-    inflight.current.clear();
-  };
-}, [movieId]);
-
-
+    return () => {
+      cancelled = true;
+      for (const { controller } of inflight.current.values()) controller?.abort();
+      inflight.current.clear();
+    };
+  }, [movieId]);
 
   /* ---------- tiny burst anim ---------- */
   const burst = (el) => {
@@ -146,7 +141,7 @@ useEffect(() => {
     a.onfinish = () => dot.remove();
   };
 
-  /* ---------- reactions (spam-safe + MERGE ONLY) ---------- */
+  /* ---------- reactions ---------- */
   const toggleReaction = async (reviewId, kind, buttonEl) => {
     const field = kind === "like" ? "likes" : "fire";
     const activeField = kind === "like" ? "likedByMe" : "firedByMe";
@@ -156,7 +151,6 @@ useEffect(() => {
     const controller = new AbortController();
     inflight.current.set(reviewId, { controller, pending: true, lastAction: kind });
 
-    // optimistic flip
     setReviews((prevList) =>
       prevList.map((r) =>
         r.id !== reviewId
@@ -192,7 +186,6 @@ useEffect(() => {
       const cur = inflight.current.get(reviewId);
       if (!cur || cur.controller !== controller) return;
 
-      // IMPORTANT: merge just the counters/flags so user/avatar fields are preserved
       setReviews((prevList) =>
         sortByEngagement(
           prevList.map((r) =>
@@ -201,10 +194,8 @@ useEffect(() => {
                   ...r,
                   likes: srv.likes ?? r.likes,
                   fire: srv.fire ?? r.fire,
-                  likedByMe:
-                    typeof srv.likedByMe === "boolean" ? !!srv.likedByMe : r.likedByMe,
-                  firedByMe:
-                    typeof srv.firedByMe === "boolean" ? !!srv.firedByMe : r.firedByMe,
+                  likedByMe: typeof srv.likedByMe === "boolean" ? !!srv.likedByMe : r.likedByMe,
+                  firedByMe: typeof srv.firedByMe === "boolean" ? !!srv.firedByMe : r.firedByMe,
                   commentsCount: srv.commentsCount ?? r.commentsCount,
                 }
               : r
@@ -233,7 +224,7 @@ useEffect(() => {
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ movieId, reviewText , title , posterUrl }),
+        body: JSON.stringify({ movieId, reviewText, title, posterUrl }),
       });
       if (!res.ok) throw new Error(await res.text());
       const newR = await res.json();
@@ -261,7 +252,7 @@ useEffect(() => {
         body: JSON.stringify({ reviewId, comment: content, parentId }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const shapedReview = await res.json(); // full shaped review with commentsTree
+      const shapedReview = await res.json();
       setReviews((prev) =>
         sortByEngagement(prev.map((r) => (r.id === reviewId ? shapedReview : r)))
       );
@@ -271,7 +262,7 @@ useEffect(() => {
     }
   };
 
-  /* ---------- delete review/comment (unchanged) ---------- */
+  /* ---------- delete ---------- */
   const deleteReview = async (reviewId) => {
     if (!confirm("Delete your review?")) return;
     try {
@@ -295,62 +286,100 @@ useEffect(() => {
     }
   };
 
-  /* ---------- recursive comment node ---------- */
-  const CommentNode = memo(function CommentNode({
-    node,
-    reviewId,
-    depth = 0,
-  }) {
+  /* ---------- responsive comment node (Reddit-style) ---------- */
+  const CommentNode = memo(function CommentNode({ node, reviewId, depth = 0 }) {
     const key = node.id;
     const avatarSrc = node.user?.avatarUrl || node.user?.image || "/default-avatar.png";
     const uid = node.user?.id;
+    const isDeepNested = depth >= 3;
 
     return (
-      <div className="mt-3" style={{ marginLeft: depth ? 16 : 0 }}>
-        <div className="flex items-start gap-2">
-          <Link href={uid ? `/profile/${uid}` : "#"} className="shrink-0">
-            <Image
-              src={avatarSrc}
-              alt="avatar"
-              width={48}
-              height={48}
-              className="w-12 h-12 rounded-full border border-yellow-500/30 object-cover"
-            />
-          </Link>
-          <div className="flex-1">
-            <div className="text-sm">
-              <Link
-                href={uid ? `/profile/${uid}` : "#"}
-                className="font-semibold text-yellow-400 mr-2 hover:underline"
-              >
-                {node.user?.username || "User"}
+      <div className={`mt-3 ${depth > 0 ? 'pl-3 sm:pl-4' : ''}`}>
+        <div className="flex">
+          {/* Vertical connector line for nesting - hidden on very small screens */}
+          {depth > 0 && (
+            <div className="hidden xs:block w-6 sm:w-8 flex-shrink-0 relative">
+              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-600 transform -translate-x-1/2"></div>
+            </div>
+          )}
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start gap-2 sm:gap-3">
+              {/* Avatar - smaller on mobile */}
+              <Link href={uid ? `/profile/${uid}` : "#"} className="shrink-0">
+                <Image
+                  src={avatarSrc}
+                  alt="avatar"
+                  width={40}
+                  height={40}
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-yellow-500/30 object-cover"
+                />
               </Link>
-              <span className="text-gray-300">{node.comment || node.content}</span>
+              
+              <div className="flex-1 min-w-0">
+                {/* User info and comment */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                  <Link
+                    href={uid ? `/profile/${uid}` : "#"}
+                    className="font-semibold text-yellow-400 hover:underline text-sm sm:text-base truncate"
+                  >
+                    {node.user?.username || "User"}
+                  </Link>
+                  <span className="text-gray-400 text-xs">
+                    {/* You could add timestamp here */}
+                  </span>
+                </div>
+                
+                <div className="text-gray-300 text-sm sm:text-base break-words">
+                  {node.comment || node.content}
+                </div>
+
+                {/* Action buttons - compact on mobile */}
+                <div className="mt-2 flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => toggleReplyBox(key)}
+                    className="text-xs text-gray-400 hover:text-yellow-400 flex items-center gap-1"
+                  >
+                    <AiOutlineComment size={14} />
+                    <span className="hidden xs:inline">Reply</span>
+                  </button>
+                  {uid === currentUserId && (
+                    <button
+                      onClick={() => deleteComment(node.id)}
+                      className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                    >
+                      <AiOutlineDelete size={14} />
+                      <span className="hidden xs:inline">Delete</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Reply box */}
+                <ReplyBox 
+                  open={!!replyOpen[key]} 
+                  onSubmit={(t) => submitComment(reviewId, key, t)}
+                  placeholder="Write a reply…"
+                />
+
+                {/* Child comments - collapse if too deep */}
+                {node.children?.length > 0 && !isDeepNested && (
+                  <div className={`mt-3 ${depth > 0 ? 'border-l border-gray-700 pl-3 sm:pl-4' : ''}`}>
+                    {node.children.map((child) => (
+                      <CommentNode key={child.id} node={child} reviewId={reviewId} depth={depth + 1} />
+                    ))}
+                  </div>
+                )}
+                
+                {isDeepNested && node.children?.length > 0 && (
+                  <button
+                    onClick={() => toggleReplyBox(key + '-more')}
+                    className="mt-2 text-xs text-yellow-400 hover:text-yellow-300"
+                  >
+                    +{node.children.length} more {node.children.length === 1 ? 'reply' : 'replies'}
+                  </button>
+                )}
+              </div>
             </div>
-
-            <div className="mt-1 flex items-center gap-3">
-              <button
-                onClick={() => toggleReplyBox(key)}
-                className="text-xs text-gray-400 hover:text-yellow-400"
-              >
-                Reply
-              </button>
-              {uid === currentUserId && (
-                <button
-                  onClick={() => deleteComment(node.id)}
-                  className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
-                >
-                  <AiOutlineDelete /> Delete
-                </button>
-              )}
-            </div>
-
-            <ReplyBox open={!!replyOpen[key]} onSubmit={(t) => submitComment(reviewId, key, t)} />
-
-            {node.children?.length > 0 &&
-              node.children.map((child) => (
-                <CommentNode key={child.id} node={child} reviewId={reviewId} depth={depth + 1} />
-              ))}
           </div>
         </div>
       </div>
@@ -366,43 +395,54 @@ useEffect(() => {
   }
 
   return (
-    <div className="mx-auto rounded-2xl shadow-2xl py-8 border border-yellow-500/20">
-      <h2 className="text-4xl font-bold text-white mb-8 px-8 border-l-4 border-yellow-500 pl-4">
-        Reviews &amp; Discussions
-      </h2>
+    <div className="mx-auto rounded-2xl shadow-2xl py-4 sm:py-8 border border-yellow-500/20 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6 border-l-4 border-yellow-500 pl-3 sm:pl-4">
+          Reviews &amp; Discussions
+        </h2>
 
-      {/* create review */}
-      <div className="mb-8 px-8">
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-700/50 p-6 rounded-xl w-full border border-yellow-500/20">
-          <input
-            value={reviewText}
-            onChange={(e) => setReviewText(e.target.value)}
-            placeholder="Share your thoughts about the movie…"
-            className="flex-1 px-4 py-3 w-full bg-gray-600/50 border border-yellow-500/30 text-white rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all placeholder-gray-400"
-          />
-          <button
-            onClick={submitReview}
-            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-8 py-3 rounded-lg font-bold transition duration-200 w-full sm:w-auto"
-          >
-            Post Review
-          </button>
+        {/* Create review - mobile optimized */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-yellow-800/50 p-4 sm:p-6 rounded-xl border border-yellow-500">
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="Share your thoughts about the movie…"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-yellow-500/30 text-white rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all placeholder-gray-400 resize-none min-h-[100px] sm:min-h-[80px]"
+              rows={3}
+            />
+            <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-sm text-gray-400">
+                {reviewText.length} characters
+              </div>
+              <button
+                onClick={submitReview}
+                disabled={!reviewText.trim()}
+                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-gray-900 px-6 py-2 rounded-lg font-bold transition-colors w-full sm:w-auto"
+              >
+                Post Review
+              </button>
+            </div>
+            {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
+          </div>
         </div>
-        {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
       </div>
 
-      {/* reviews */}
-      <div className="space-y-6">
+      {/* Reviews list */}
+      <div className="space-y-4 sm:space-y-6">
         {displayReviews.map((r) => {
           const avatarSrc = r.user?.avatarUrl || r.user?.image || "/default-avatar.png";
           const likeActive = !!r.likedByMe;
           const fireActive = !!r.firedByMe;
 
           return (
-            <div key={r.id} className="px-8 py-6 hover:bg-gray-700/30 transition duration-200 border-b border-yellow-500/10">
-              <div className="flex gap-4">
+            <div key={r.id} className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-700/50">
+              {/* Review content */}
+              <div className="flex gap-3 sm:gap-4">
                 <Link href={`/profile/${r.user?.id}`} className="shrink-0">
                   <Image
-                    className="w-12 h-12 rounded-full object-cover border-2 border-yellow-500/50"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-yellow-500/50"
                     src={avatarSrc}
                     width={48}
                     height={48}
@@ -410,61 +450,81 @@ useEffect(() => {
                   />
                 </Link>
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <Link href={`/profile/${r.user?.id}`} className="font-semibold text-yellow-400 hover:underline">
-                      {r.user?.username || "Anonymous"}
-                    </Link>
-
-                    {r.user?.id === currentUserId && (
-                      <button
-                        onClick={() => deleteReview(r.id)}
-                        className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
-                      >
-                        <AiOutlineDelete /> Delete
-                      </button>
-                    )}
+                <div className="flex-1 min-w-0">
+                  {/* User info and actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/profile/${r.user?.id}`} className="font-semibold text-yellow-400 hover:underline text-sm sm:text-base">
+                        {r.user?.username || "Anonymous"}
+                      </Link>
+                      {r.user?.id === currentUserId && (
+                        <button
+                          onClick={() => deleteReview(r.id)}
+                          className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                          title="Delete review"
+                        >
+                          <AiOutlineDelete size={14} />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
+                      )}
+                    </div>
+                    {/* Timestamp would go here */}
                   </div>
 
-                  <p className="text-gray-300 mb-4 leading-relaxed">{r.content}</p>
+                  {/* Review text */}
+                  <p className="text-gray-300 mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base break-words">
+                    {r.content}
+                  </p>
 
-                  {/* reactions */}
-                  <div className="flex items-center gap-4">
-                    <ReactionButton
+                  {/* Reactions - mobile optimized */}
+                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                    <MobileReactionButton
                       count={r.likes}
                       label="Like"
                       active={likeActive}
-                      outlineIcon={<CiHeart size={18} />}
-                      fillIcon={<FaHeart size={18} />}
+                      icon={likeActive ? <FaHeart size={16} /> : <CiHeart size={16} />}
                       onClick={(btn) => toggleReaction(r.id, "like", btn)}
                     />
-                    <ReactionButton
+                    <MobileReactionButton
                       count={r.fire}
                       label="Fire"
                       active={fireActive}
-                      outlineIcon={<AiOutlineFire size={18} />}
-                      fillIcon={<AiFillFire size={18} />}
+                      icon={fireActive ? <AiFillFire size={16} /> : <AiOutlineFire size={16} />}
                       onClick={(btn) => toggleReaction(r.id, "fire", btn)}
                     />
 
                     <button
                       onClick={() => toggleComments(r.id)}
-                      className="text-sm text-gray-400 hover:text-yellow-400 transition duration-200 flex items-center gap-2"
+                      className="text-sm text-gray-400 hover:text-yellow-400 transition flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-700/50"
                     >
-                      <span className="inline-block">{openComments[r.id] ? "▴" : "▾"}</span>
-                      {r.commentsCount} {r.commentsCount === 1 ? "comment" : "comments"}
+                      <AiOutlineComment size={16} />
+                      <span>{r.commentsCount || 0}</span>
+                      <span className="hidden xs:inline ml-1">
+                        {openComments[r.id] ? "Hide" : "Comments"}
+                      </span>
                     </button>
                   </div>
 
-                  {/* comments */}
+                  {/* Comments section */}
                   {openComments[r.id] && (
-                    <div className="mt-4 space-y-4 pl-6 border-l-2 border-yellow-500/30">
-                      <ReplyBox open={true} onSubmit={(text) => submitComment(r.id, undefined, text)} />
+                    <div className="mt-4 sm:mt-6 space-y-4 pl-3 sm:pl-6 border-l-2 border-yellow-500/30">
+                      <div className="mb-4">
+                        <ReplyBox 
+                          open={true} 
+                          onSubmit={(text) => submitComment(r.id, undefined, text)}
+                          placeholder="Write a comment…"
+                        />
+                      </div>
 
-                      {r.commentsTree?.length > 0 &&
+                      {r.commentsTree?.length > 0 ? (
                         r.commentsTree.map((n) => (
                           <CommentNode key={n.id} node={n} reviewId={r.id} />
-                        ))}
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm italic py-2">
+                          No comments yet. Be the first!
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -474,30 +534,33 @@ useEffect(() => {
         })}
 
         {displayReviews.length === 0 && (
-          <div className="px-8 text-gray-300">No reviews yet. Be the first!</div>
+          <div className="px-4 sm:px-8 text-gray-400 text-center py-12">
+            <div className="text-lg mb-2">No reviews yet</div>
+            <p className="text-gray-500">Be the first to share your thoughts!</p>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-/* ---------- generic reaction button ---------- */
-function ReactionButton({ count, label, active, outlineIcon, fillIcon, onClick }) {
+/* ---------- mobile-friendly reaction button ---------- */
+function MobileReactionButton({ count, label, active, icon, onClick }) {
   return (
     <button
       onClick={(e) => onClick(e.currentTarget)}
-      className={`relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition
+      className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition
         ${
           active
-            ? "bg-yellow-500 text-gray-900 border-yellow-400"
-            : "bg-white/10 border-yellow-500/30 hover:bg-white/20 text-gray-200"
+            ? "bg-yellow-500 text-gray-900"
+            : "bg-gray-800/50 text-gray-300 hover:bg-gray-700/70"
         }`}
       aria-label={label}
       title={label}
       style={{ position: "relative" }}
     >
-      <span className="relative top-[1px]">{active ? fillIcon : outlineIcon}</span>
-      <span>{count}</span>
+      <span className="relative">{icon}</span>
+      <span className="font-medium">{count || 0}</span>
     </button>
   );
 }

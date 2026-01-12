@@ -37,7 +37,7 @@ export default function LoginBox() {
   };
 
   return (
-    <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">
+    <div className="w-[70%] md:w-full mx-auto lg:max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,.5)]">
       <div className="mb-6 text-center">
         <h2 className="text-xl lg:text-2xl font-bold tracking-tight">Login</h2>
         <p className="text-sm text-white/60 mt-1">Welcome to Movie Project</p>
