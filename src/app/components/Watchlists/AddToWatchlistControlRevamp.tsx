@@ -90,6 +90,9 @@ export default function AddToWatchlistControlRevamp({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const tmdbId = getMovieTmdbId(movie);
+  const latestTmdbIdRef = useRef(tmdbId);
+  const latestDefaultInWatchlistRef = useRef(Boolean(defaultInWatchlist));
+  const loadRequestIdRef = useRef(0);
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelPosition, setPanelPosition] = useState<{
@@ -127,10 +130,15 @@ export default function AddToWatchlistControlRevamp({
   }, [panelOpen]);
 
   useEffect(() => {
+    latestDefaultInWatchlistRef.current = Boolean(defaultInWatchlist);
     setFallbackInDefault(Boolean(defaultInWatchlist));
   }, [defaultInWatchlist]);
 
   useEffect(() => {
+    latestTmdbIdRef.current = tmdbId;
+    loadRequestIdRef.current += 1;
+    setLoading(false);
+    setFallbackInDefault(latestDefaultInWatchlistRef.current);
     setData({
       watchlists: [],
       defaultWatchlistId: null,
@@ -184,16 +192,25 @@ export default function AddToWatchlistControlRevamp({
     });
   };
 
+  const isCurrentLoadRequest = (requestId: number, requestMovieId: string) =>
+    loadRequestIdRef.current === requestId && latestTmdbIdRef.current === requestMovieId;
+
   const loadLists = async (options?: {
     force?: boolean;
     withMovieMembership?: boolean;
   }): Promise<ApiState | null> => {
     if (!tmdbId) return null;
+    const requestId = ++loadRequestIdRef.current;
+    const requestMovieId = tmdbId;
     setLoading(true);
     try {
       const nextState = options?.withMovieMembership
         ? await loadMovieWatchlists(tmdbId, options?.force)
         : await loadBaseWatchlists(options?.force);
+
+      if (!isCurrentLoadRequest(requestId, requestMovieId)) {
+        return null;
+      }
 
       const nextData: ApiState = {
         watchlists: getVisibleWatchlists(nextState.watchlists || []),
@@ -209,6 +226,9 @@ export default function AddToWatchlistControlRevamp({
       emitStatus(nextData);
       return nextData;
     } catch (error: any) {
+      if (!isCurrentLoadRequest(requestId, requestMovieId)) {
+        return null;
+      }
       if (error instanceof WatchlistsClientError && error.status === 401) {
         showToast("Login to save movies", 1500);
         return null;
@@ -216,7 +236,9 @@ export default function AddToWatchlistControlRevamp({
       showToast(error?.message || "Failed to load watchlists", 1600);
       return null;
     } finally {
-      setLoading(false);
+      if (isCurrentLoadRequest(requestId, requestMovieId)) {
+        setLoading(false);
+      }
     }
   };
 
