@@ -68,7 +68,7 @@ export async function consumeAuthToken({
   const tokenHash = hashToken(token);
   const now = new Date();
 
-  const existing = await prisma.authToken.findFirst({
+  const consumed = await prisma.authToken.updateMany({
     where: {
       identifier: normalizedIdentifier,
       type,
@@ -78,26 +78,24 @@ export async function consumeAuthToken({
         gt: now,
       },
     },
-    select: {
-      id: true,
-      identifier: true,
-    },
-  });
-
-  if (!existing) {
-    return null;
-  }
-
-  await prisma.authToken.update({
-    where: {
-      id: existing.id,
-    },
     data: {
       consumedAt: now,
     },
   });
 
-  return existing;
+  if (consumed.count !== 1) {
+    return null;
+  }
+
+  return prisma.authToken.findUnique({
+    where: {
+      tokenHash,
+    },
+    select: {
+      id: true,
+      identifier: true,
+    },
+  });
 }
 
 export async function revokeAuthTokens(

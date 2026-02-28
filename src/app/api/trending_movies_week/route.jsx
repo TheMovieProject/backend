@@ -5,19 +5,25 @@ const calculateWeeklyTrendingScore = (likes7d, ratings7d, watchlist7d, reviews7d
   likes7d * 4 + reviews7d * 3 + watchlist7d * 2 + ratings7d;
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
-const TMDB_FALLBACK_KEY = "095ba7f7fba6c8e94aa5f385a319cea7";
 
-const tmdbApiKey = () =>
-  process.env.TMDB_API_KEY ||
-  process.env.MOVIEDB_API_KEY ||
-  process.env.NEXT_PUBLIC_API_KEY ||
-  TMDB_FALLBACK_KEY;
+const tmdbApiKey = () => {
+  const key =
+    process.env.TMDB_API_KEY ||
+    process.env.MOVIEDB_API_KEY ||
+    process.env.NEXT_PUBLIC_API_KEY;
 
-async function enrichTmdbMovie(tmdbId) {
+  if (!key) {
+    throw new Error("TMDB API key is not configured. Set TMDB_API_KEY or MOVIEDB_API_KEY.");
+  }
+
+  return key;
+};
+
+async function enrichTmdbMovie(tmdbId, apiKey) {
   if (!tmdbId) return null;
 
   const res = await fetch(
-    `${TMDB_BASE}/movie/${tmdbId}?api_key=${tmdbApiKey()}&language=en-US`,
+    `${TMDB_BASE}/movie/${tmdbId}?api_key=${apiKey}&language=en-US`,
     { next: { revalidate: 900 } }
   );
 
@@ -27,6 +33,7 @@ async function enrichTmdbMovie(tmdbId) {
 
 export const GET = async () => {
   try {
+    const apiKey = tmdbApiKey();
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     // ✅ Debug (remove later)
@@ -96,7 +103,7 @@ export const GET = async () => {
     const topTrending = weeklyTrending.slice(0, 20);
     const enrichedMeta = await Promise.all(
       topTrending.map(async (movie) => {
-        const tmdbMovie = await enrichTmdbMovie(movie.tmdbId);
+        const tmdbMovie = await enrichTmdbMovie(movie.tmdbId, apiKey);
         return {
           ...movie,
           posterPath: tmdbMovie?.poster_path ?? null,

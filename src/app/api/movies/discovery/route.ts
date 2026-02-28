@@ -8,7 +8,6 @@ import { getHybridRecommendationsForMovie } from "@/app/libs/movieRecommendation
 export const dynamic = "force-dynamic";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
-const TMDB_FALLBACK_KEY = "095ba7f7fba6c8e94aa5f385a319cea7";
 
 type TmdbMovie = {
   id: number;
@@ -40,12 +39,16 @@ type PersonSpotlight = {
 };
 
 function tmdbApiKey() {
-  return (
+  const key =
     process.env.TMDB_API_KEY ||
     process.env.MOVIEDB_API_KEY ||
-    process.env.NEXT_PUBLIC_API_KEY ||
-    TMDB_FALLBACK_KEY
-  );
+    process.env.NEXT_PUBLIC_API_KEY;
+
+  if (!key) {
+    throw new Error("TMDB API key is not configured. Set TMDB_API_KEY or MOVIEDB_API_KEY.");
+  }
+
+  return key;
 }
 
 function normalizeMovie(movie: TmdbMovie): NormalizedMovie {

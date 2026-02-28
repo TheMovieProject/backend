@@ -51,7 +51,7 @@ export default function MovieUtilityPanel({
   useEffect(() => {
     let alive = true;
     async function hydrateRuntimes() {
-      const toLoad = selectedItems.filter((item) => !runtimeMap[item.id]);
+      const toLoad = selectedItems.filter((item) => runtimeMap[item.id] === undefined);
       if (!toLoad.length) return;
 
       const key = process.env.NEXT_PUBLIC_API_KEY;
@@ -74,11 +74,14 @@ export default function MovieUtilityPanel({
 
       if (!alive) return;
       setRuntimeMap((prev) => {
+        let changed = false;
         const next = { ...prev };
         for (const [id, rt] of entries) {
+          if (prev[id] === rt) continue;
           next[id] = rt;
+          changed = true;
         }
-        return next;
+        return changed ? next : prev;
       });
     }
     hydrateRuntimes();
@@ -98,7 +101,7 @@ export default function MovieUtilityPanel({
   const baseRuntime = Number(movie?.runtime || 0);
   const fitCount = baseRuntime > 0 ? Math.floor(Math.max(0, availableMinutes) / baseRuntime) : 0;
   const selectedRuntime = selectedItems.reduce(
-    (sum, item) => sum + Number(runtimeMap[item.id] || item.runtime || 0),
+    (sum, item) => sum + Number(runtimeMap[item.id] ?? item.runtime ?? 0),
     0
   );
   const plannerRuntime = selectedRuntime + Math.max(0, selectedItems.length - 1) * 10;
@@ -152,7 +155,7 @@ export default function MovieUtilityPanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {candidates.slice(0, 10).map((item) => {
               const checked = selected.includes(item.id);
-              const rt = runtimeMap[item.id] || item.runtime || 0;
+              const rt = runtimeMap[item.id] ?? item.runtime ?? 0;
               return (
                 <label
                   key={`planner-${item.id}`}

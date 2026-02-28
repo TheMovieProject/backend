@@ -4,10 +4,11 @@ import { getHybridRecommendationsForMovie } from "@/app/libs/movieRecommendation
 
 export async function GET(
   _req: Request,
-  { params }: { params: { movieId: string } }
+  { params }: { params: Promise<{ movieId: string }> | { movieId: string } }
 ) {
   try {
-    const movieId = String(params?.movieId || "");
+    const resolvedParams = await params;
+    const movieId = String(resolvedParams?.movieId || "");
     if (!movieId) {
       return NextResponse.json({ error: "movieId is required" }, { status: 400 });
     }

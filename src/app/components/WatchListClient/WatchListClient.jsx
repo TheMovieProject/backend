@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -46,6 +46,15 @@ function normalizeSummary(list) {
   };
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export default function WatchlistClient({ initialWatchlistId = null }) {
   const [collections, setCollections] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -78,7 +87,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     [activeListDetail, activeId, activeSummary]
   );
 
-  const loadActiveListDetail = async (listId) => {
+  const loadActiveListDetail = useCallback(async (listId) => {
     if (!listId) {
       setActiveListDetail(null);
       return;
@@ -109,9 +118,9 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     } finally {
       setLoadingDetail(false);
     }
-  };
+  }, []);
 
-  const loadCollections = async () => {
+  const loadCollections = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/watchlists", { cache: "no-store" });
@@ -132,11 +141,11 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [initialWatchlistId]);
 
   useEffect(() => {
     loadCollections();
-  }, [initialWatchlistId]);
+  }, [loadCollections]);
 
   useEffect(() => {
     if (!activeId) {
@@ -144,7 +153,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       return;
     }
     loadActiveListDetail(activeId);
-  }, [activeId]);
+  }, [activeId, loadActiveListDetail]);
 
   const createList = async () => {
     const name = newName.trim();
@@ -396,14 +405,15 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       return;
     }
 
+    const escapedListName = escapeHtml(activeList.name);
     const htmlRows = activeList.items
       .map(
         (entry, idx) => `
           <tr>
             <td>${idx + 1}</td>
-            <td>${entry?.movie?.title || ""}</td>
-            <td>${entry?.movie?.tmdbId || ""}</td>
-            <td>${entry?.addedAt ? new Date(entry.addedAt).toLocaleDateString() : ""}</td>
+            <td>${escapeHtml(entry?.movie?.title || "")}</td>
+            <td>${escapeHtml(entry?.movie?.tmdbId || "")}</td>
+            <td>${escapeHtml(entry?.addedAt ? new Date(entry.addedAt).toLocaleDateString() : "")}</td>
           </tr>
         `
       )
@@ -413,7 +423,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${activeList.name} - Watchlist</title>
+        <title>${escapedListName} - Watchlist</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
           h1 { margin: 0 0 8px; }
@@ -424,8 +434,8 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
         </style>
       </head>
       <body>
-        <h1>${activeList.name}</h1>
-        <p>Total movies: ${activeList.items.length}</p>
+        <h1>${escapedListName}</h1>
+        <p>Total movies: ${escapeHtml(activeList.items.length)}</p>
         <table>
           <thead>
             <tr><th>#</th><th>Movie</th><th>TMDB</th><th>Added</th></tr>
