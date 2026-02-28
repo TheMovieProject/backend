@@ -113,12 +113,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const rawName = typeof body?.name === "string" ? body.name : "";
     const name = rawName.trim().slice(0, 60);
-    const requestedMemberUserIds = Array.isArray(body?.memberUserIds)
+    const requestedMemberUserIds: string[] = Array.isArray(body?.memberUserIds)
       ? body.memberUserIds
           .map((id: unknown) => String(id || "").trim())
           .filter((id: string) => isObjectId(id))
       : [];
-    const dedupedMemberUserIds = [...new Set(requestedMemberUserIds)].filter((id) => id !== me.id);
+    const dedupedMemberUserIds: string[] = [...new Set(requestedMemberUserIds)].filter((id) => id !== me.id);
     const visibility = dedupedMemberUserIds.length ? "SHARED" : normalizeVisibility(body?.visibility);
     const coverImage =
       typeof body?.coverImage === "string" && body.coverImage.trim()

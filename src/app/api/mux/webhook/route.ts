@@ -69,12 +69,10 @@ export async function POST(req: NextRequest) {
       if (!video) return NextResponse.json({ ok: true });
 
       const playbackId: string | null = data?.playback_ids?.[0]?.id ?? null;
-      const durationSec =
-        typeof data?.duration === "number" ? Math.floor(data.duration) : null;
 
       await prisma.video.update({
         where: { id: video.id },
-        data: { status: "ready", muxPlaybackId: playbackId, durationSec },
+        data: { status: "ready", muxPlaybackId: playbackId },
       });
 
       await prisma.uploadTicket.updateMany({

@@ -34,6 +34,9 @@ const normalize = (l) => ({
 });
 const userLabel = (u) => u?.name || u?.username || u?.email || "User";
 
+/**
+ * @param {{ user?: { avatarUrl?: string | null; image?: string | null; name?: string | null; username?: string | null; email?: string | null }, size?: number, ring?: string }} props
+ */
 function Avatar({ user, size = 24, ring = "border-white/15" }) {
   const src = user?.avatarUrl || user?.image;
   if (src) {
@@ -47,6 +50,9 @@ function Avatar({ user, size = 24, ring = "border-white/15" }) {
   );
 }
 
+/**
+ * @param {{ initialWatchlistId?: string | null }} props
+ */
 export default function WatchListClientRevamp({ initialWatchlistId = null }) {
   const router = useRouter();
   const detailMode = Boolean(initialWatchlistId);

@@ -87,29 +87,40 @@ export async function POST(req: Request) {
 
     await ensureCounters(entityType, entityId);
 
-    const targetMeta =
-      entityType === "review"
-        ? await prisma.review.findUnique({
-            where: { id: entityId },
-            select: {
-              userId: true,
-              movie: { select: { tmdbId: true } },
-            },
-          })
-        : await prisma.blog.findUnique({
-            where: { id: entityId },
-            select: {
-              id: true,
-              user: { select: { id: true } },
-            },
-          });
+    let targetOwnerId: string | null = null;
+    let notificationLink = "/";
 
-    if (!targetMeta) {
-      return new Response("Not found", { status: 404 });
+    if (entityType === "review") {
+      const targetMeta = await prisma.review.findUnique({
+        where: { id: entityId },
+        select: {
+          userId: true,
+          movie: { select: { tmdbId: true } },
+        },
+      });
+
+      if (!targetMeta) {
+        return new Response("Not found", { status: 404 });
+      }
+
+      targetOwnerId = targetMeta.userId;
+      notificationLink = targetMeta.movie?.tmdbId ? `/movies/${targetMeta.movie.tmdbId}` : "/";
+    } else {
+      const targetMeta = await prisma.blog.findUnique({
+        where: { id: entityId },
+        select: {
+          id: true,
+          user: { select: { id: true } },
+        },
+      });
+
+      if (!targetMeta) {
+        return new Response("Not found", { status: 404 });
+      }
+
+      targetOwnerId = targetMeta.user?.id ?? null;
+      notificationLink = `/blog/${entityId}`;
     }
-
-    const targetOwnerId =
-      entityType === "review" ? targetMeta.userId : targetMeta.user?.id;
 
     const existing = await prisma.entityReaction.findFirst({
       where: {
@@ -173,12 +184,7 @@ export async function POST(req: Request) {
             type === "like"
               ? `${me.username || "Someone"} liked your ${entityType}`
               : `${me.username || "Someone"} reacted with fire on your ${entityType}`,
-          link:
-            entityType === "review"
-              ? targetMeta?.movie?.tmdbId
-                ? `/movies/${targetMeta.movie.tmdbId}`
-                : "/"
-              : `/blog/${entityId}`,
+          link: notificationLink,
         });
       }
     }

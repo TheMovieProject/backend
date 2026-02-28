@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import prisma from "@/app/libs/prismaDB";
 import {
   DEFAULT_WATCHLIST_SLUG,
@@ -214,7 +215,7 @@ export async function PATCH(
 
     const body = await req.json().catch(() => ({}));
     const patch: Record<string, unknown> = {};
-    let activityChanges: Record<string, unknown> = {};
+    let activityChanges: Prisma.InputJsonObject = {};
 
     if (typeof body?.name === "string") {
       const name = body.name.trim().slice(0, 60);
@@ -230,11 +231,12 @@ export async function PATCH(
     }
 
     if (typeof body?.coverImage === "string" || body?.coverImage === null) {
-      patch.coverImage =
+      const coverImage =
         typeof body.coverImage === "string" && body.coverImage.trim()
           ? body.coverImage.trim().slice(0, 500)
           : null;
-      activityChanges = { ...activityChanges, coverImage: patch.coverImage };
+      patch.coverImage = coverImage;
+      activityChanges = { ...activityChanges, coverImage };
     }
 
     if (typeof body?.visibility === "string") {

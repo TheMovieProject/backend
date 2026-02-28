@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import type { Prisma } from "@prisma/client";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
@@ -289,7 +290,7 @@ export async function recordWatchlistActivity({
     | "MEMBER_JOINED";
   movieId?: string | null;
   targetUserId?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: Prisma.InputJsonValue | null;
 }) {
   try {
     await prisma.watchlistActivity.create({
