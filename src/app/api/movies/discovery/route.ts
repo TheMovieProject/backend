@@ -41,8 +41,7 @@ type PersonSpotlight = {
 function tmdbApiKey() {
   const key =
     process.env.TMDB_API_KEY ||
-    process.env.MOVIEDB_API_KEY ||
-    process.env.NEXT_PUBLIC_API_KEY;
+    process.env.MOVIEDB_API_KEY;
 
   if (!key) {
     throw new Error("TMDB API key is not configured. Set TMDB_API_KEY or MOVIEDB_API_KEY.");
