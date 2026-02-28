@@ -79,9 +79,12 @@ async function tmdbFetch<T = any>(
     }
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   const res = await fetch(`${TMDB_BASE}${path}?${q.toString()}`, {
     next: { revalidate: 900 },
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
   if (!res.ok) {
     throw new Error(`TMDB request failed: ${path} (${res.status})`);
   }
