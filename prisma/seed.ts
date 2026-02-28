@@ -138,7 +138,7 @@ async function main() {
     const key = `${u.id}:${m.id}`
     if (wlPairs.has(key)) continue
     try {
-      await prisma.watchlist.create({
+      await prisma.legacyWatchlist.create({
         data: { id: oid(), userId: u.id, movieId: m.id, addedAt: faker.date.recent() }
       })
       wlPairs.add(key)
