@@ -10,6 +10,7 @@ import StarRating from "@/app/components/StarRating/StarRating";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
 import AddToWatchlistControl from "@/app/components/Watchlists/AddToWatchlistControlRevamp";
+import { setLikedStatusCache } from "@/lib/liked-status-client";
 import ProfileImage from '../../../../../public/img/profile.png'
 import Link from "next/link";
 const tmdbImg = (path, size = "w185") =>
@@ -56,6 +57,15 @@ const MovieInfo = ({
   const topCast = useMemo(() => getTopCast(item?.credits?.cast || [], 8), [item]);
   const inTheaters = useMemo(() => isNewInTheaters(item?.release_date), [item]);
 
+  useEffect(() => {
+    setIsLiked(!!defaultLiked);
+    setLikedStatusCache(item?.id, !!defaultLiked);
+  }, [defaultLiked, item?.id]);
+
+  useEffect(() => {
+    setIsInWatchlist(!!defaultInWatchlist);
+  }, [defaultInWatchlist]);
+
   // --- API helpers ---
   async function likeOnServer() {
     const res = await fetch("/api/liked/add", {
@@ -81,6 +91,8 @@ const MovieInfo = ({
 
   // --- handlers ---
   const toggleLike = async () => {
+    const previousLiked = isLiked;
+
     try {
       if (!isLiked) {
         setIsLiked(true);
@@ -88,6 +100,7 @@ const MovieInfo = ({
           gsap.fromTo(likeBtnRef.current, { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 });
 
         await likeOnServer();
+        setLikedStatusCache(item.id, true);
 
         getLikedChannel().postMessage({
           type: "LIKED_ADD",
@@ -105,12 +118,14 @@ const MovieInfo = ({
           gsap.fromTo(likeBtnRef.current, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
 
         await unlikeOnServer();
+        setLikedStatusCache(item.id, false);
 
         getLikedChannel().postMessage({ type: "LIKED_REMOVE", payload: { tmdbId: String(item.id) } });
         showToast("Removed from Liked");
       }
     } catch {
-      setIsLiked((p) => !p);
+      setIsLiked(previousLiked);
+      setLikedStatusCache(item.id, previousLiked);
       showToast("Something went wrong", 1400);
     }
   };
@@ -385,6 +400,7 @@ const MovieInfo = ({
           posterUrl: item.posterUrl || null,
         }}
         className="relative z-[80]"
+        defaultInWatchlist={isInWatchlist}
         onStatusChange={({ inDefault }) => setIsInWatchlist(inDefault)}
       />
     </div>

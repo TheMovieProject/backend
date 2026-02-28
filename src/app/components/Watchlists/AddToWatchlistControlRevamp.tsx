@@ -4,6 +4,12 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import { createPortal } from "react-dom";
 import { MdAdd, MdBookmark, MdCheck } from "react-icons/md";
 import { showToast } from "@/app/components/ui/toast";
+import {
+  WatchlistsClientError,
+  loadBaseWatchlists,
+  loadMovieWatchlists,
+  invalidateWatchlistsCache,
+} from "@/lib/watchlists-client";
 
 type MovieInput = {
   id: string | number;
@@ -40,6 +46,7 @@ type Props = {
   movie: MovieInput;
   compact?: boolean;
   className?: string;
+  defaultInWatchlist?: boolean;
   onStatusChange?: (next: { inDefault: boolean; watchlistIds: string[] }) => void;
 };
 
@@ -77,11 +84,15 @@ export default function AddToWatchlistControlRevamp({
   movie,
   compact = false,
   className = "",
+  defaultInWatchlist = false,
   onStatusChange,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const tmdbId = getMovieTmdbId(movie);
+  const latestTmdbIdRef = useRef(tmdbId);
+  const latestDefaultInWatchlistRef = useRef(Boolean(defaultInWatchlist));
+  const loadRequestIdRef = useRef(0);
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelPosition, setPanelPosition] = useState<{
@@ -95,6 +106,7 @@ export default function AddToWatchlistControlRevamp({
   const [busyListIds, setBusyListIds] = useState<Record<string, boolean>>({});
   const [creating, setCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [fallbackInDefault, setFallbackInDefault] = useState(Boolean(defaultInWatchlist));
   const [data, setData] = useState<ApiState>({
     watchlists: [],
     defaultWatchlistId: null,
@@ -116,6 +128,23 @@ export default function AddToWatchlistControlRevamp({
     if (panelOpen) document.addEventListener("mousedown", onDocumentClick);
     return () => document.removeEventListener("mousedown", onDocumentClick);
   }, [panelOpen]);
+
+  useEffect(() => {
+    latestDefaultInWatchlistRef.current = Boolean(defaultInWatchlist);
+    setFallbackInDefault(Boolean(defaultInWatchlist));
+  }, [defaultInWatchlist]);
+
+  useEffect(() => {
+    latestTmdbIdRef.current = tmdbId;
+    loadRequestIdRef.current += 1;
+    setLoading(false);
+    setFallbackInDefault(latestDefaultInWatchlistRef.current);
+    setData({
+      watchlists: [],
+      defaultWatchlistId: null,
+      movieMembership: null,
+    });
+  }, [tmdbId]);
 
   useEffect(() => {
     if (!panelOpen || typeof window === "undefined") return;
@@ -163,43 +192,55 @@ export default function AddToWatchlistControlRevamp({
     });
   };
 
-  const loadLists = async (): Promise<ApiState | null> => {
+  const isCurrentLoadRequest = (requestId: number, requestMovieId: string) =>
+    loadRequestIdRef.current === requestId && latestTmdbIdRef.current === requestMovieId;
+
+  const loadLists = async (options?: {
+    force?: boolean;
+    withMovieMembership?: boolean;
+  }): Promise<ApiState | null> => {
     if (!tmdbId) return null;
+    const requestId = ++loadRequestIdRef.current;
+    const requestMovieId = tmdbId;
     setLoading(true);
     try {
-      const res = await fetch(`/api/watchlists?movieId=${encodeURIComponent(tmdbId)}`, {
-        cache: "no-store",
-      });
-      if (res.status === 401) {
-        showToast("Login to save movies", 1500);
+      const nextState = options?.withMovieMembership
+        ? await loadMovieWatchlists(tmdbId, options?.force)
+        : await loadBaseWatchlists(options?.force);
+
+      if (!isCurrentLoadRequest(requestId, requestMovieId)) {
         return null;
       }
 
-      const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.ok) {
-        throw new Error(payload?.error?.message || "Failed to load watchlists");
-      }
-
       const nextData: ApiState = {
-        watchlists: getVisibleWatchlists(payload.data.watchlists || []),
-        defaultWatchlistId: payload.data.defaultWatchlistId || null,
-        movieMembership: payload.data.movieMembership || null,
+        watchlists: getVisibleWatchlists(nextState.watchlists || []),
+        defaultWatchlistId: nextState.defaultWatchlistId || null,
+        movieMembership: options?.withMovieMembership
+          ? nextState.movieMembership || null
+          : data.movieMembership,
       };
       setData(nextData);
+      if (options?.withMovieMembership) {
+        setFallbackInDefault(Boolean(nextData.movieMembership?.inDefault));
+      }
       emitStatus(nextData);
       return nextData;
     } catch (error: any) {
+      if (!isCurrentLoadRequest(requestId, requestMovieId)) {
+        return null;
+      }
+      if (error instanceof WatchlistsClientError && error.status === 401) {
+        showToast("Login to save movies", 1500);
+        return null;
+      }
       showToast(error?.message || "Failed to load watchlists", 1600);
       return null;
     } finally {
-      setLoading(false);
+      if (isCurrentLoadRequest(requestId, requestMovieId)) {
+        setLoading(false);
+      }
     }
   };
-
-  useEffect(() => {
-    void loadLists();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tmdbId]);
 
   const membershipHas = (watchlistId: string) =>
     Boolean(data.movieMembership?.watchlistIds?.includes(watchlistId));
@@ -207,6 +248,7 @@ export default function AddToWatchlistControlRevamp({
   const setMembershipState = (updater: (prev: ApiState) => ApiState) => {
     setData((prev) => {
       const next = updater(prev);
+      setFallbackInDefault(Boolean(next.movieMembership?.inDefault));
       emitStatus(next);
       return next;
     });
@@ -224,6 +266,7 @@ export default function AddToWatchlistControlRevamp({
     setBusyListIds((prev) => ({ ...prev, [watchlistId]: true }));
 
     const prevSnapshot = data;
+    const previousFallbackInDefault = fallbackInDefault;
     setMembershipState((prev) => {
       const currentIds = new Set(prev.movieMembership?.watchlistIds || []);
       if (shouldAdd) {
@@ -271,8 +314,10 @@ export default function AddToWatchlistControlRevamp({
       }
 
       showToast(shouldAdd ? `Saved to ${list.name}` : `Removed from ${list.name}`);
+      invalidateWatchlistsCache();
     } catch (error: any) {
       setData(prevSnapshot);
+      setFallbackInDefault(previousFallbackInDefault);
       emitStatus(prevSnapshot);
       showToast(error?.message || "Watchlist action failed", 1600);
     } finally {
@@ -295,7 +340,9 @@ export default function AddToWatchlistControlRevamp({
       return;
     }
 
-    const inDefault = Boolean(data.movieMembership?.inDefault);
+    const inDefault = data.movieMembership
+      ? Boolean(data.movieMembership.inDefault)
+      : fallbackInDefault;
     await toggleListMembership(defaultId, !inDefault);
   };
 
@@ -335,7 +382,8 @@ export default function AddToWatchlistControlRevamp({
         throw new Error(savePayload?.error?.message || "Failed to save movie to collection");
       }
 
-      await loadLists();
+      invalidateWatchlistsCache();
+      await loadLists({ force: true, withMovieMembership: true });
       showToast(`Saved to ${created.name}`);
     } catch (error: any) {
       showToast(error?.message || "Failed to create collection", 1600);
@@ -344,7 +392,9 @@ export default function AddToWatchlistControlRevamp({
     }
   };
 
-  const inDefault = Boolean(data.movieMembership?.inDefault);
+  const inDefault = data.movieMembership
+    ? Boolean(data.movieMembership.inDefault)
+    : fallbackInDefault;
 
   const stopLinkNavigation = (e: ReactMouseEvent) => {
     e.preventDefault();
@@ -353,7 +403,7 @@ export default function AddToWatchlistControlRevamp({
 
   const openPanel = async () => {
     setPanelOpen(true);
-    await loadLists();
+    await loadLists({ withMovieMembership: true, force: true });
   };
 
   const handlePrimaryButtonClick = async (e: ReactMouseEvent) => {

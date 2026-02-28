@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import type { Prisma } from "@prisma/client";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
 
 export const DEFAULT_WATCHLIST_NAME = "All Watchlisted";
 export const DEFAULT_WATCHLIST_SLUG = "all-watchlisted";
 export const LEGACY_DEFAULT_WATCHLIST_SLUG = "my-watchlist";
 export const RANK_STEP = 1024;
+const LEGACY_SYNC_TTL_MS = 15_000;
+const legacySyncState = new Map<string, { syncedAt: number; promise: Promise<void> | null }>();
 
 export type WatchlistVisibilityValue = "PRIVATE" | "SHARED";
 export type WatchlistRoleValue = "OWNER" | "EDITOR" | "VIEWER";
@@ -201,40 +203,66 @@ export async function ensureDefaultWatchlist(ownerId: string) {
 
 export async function syncLegacyWatchlistToDefault(ownerId: string) {
   const defaultWatchlist = await ensureDefaultWatchlist(ownerId);
+  const currentState = legacySyncState.get(ownerId);
+  const now = Date.now();
 
-  const legacy = await prisma.legacyWatchlist.findMany({
-    where: { userId: ownerId },
-    select: { movieId: true },
-  });
+  if (currentState?.promise) {
+    await currentState.promise;
+    return defaultWatchlist;
+  }
 
-  if (!legacy.length) return defaultWatchlist;
+  if (currentState && now - currentState.syncedAt < LEGACY_SYNC_TTL_MS) {
+    return defaultWatchlist;
+  }
 
-  const legacyMovieIds = [...new Set(legacy.map((row) => row.movieId).filter(Boolean))];
-  if (!legacyMovieIds.length) return defaultWatchlist;
+  const syncPromise = (async () => {
+    const legacy = await prisma.legacyWatchlist.findMany({
+      where: { userId: ownerId },
+      select: { movieId: true },
+    });
 
-  const existing = await prisma.watchlistItem.findMany({
-    where: { watchlistId: defaultWatchlist.id, movieId: { in: legacyMovieIds } },
-    select: { movieId: true },
-  });
-  const existingMovieIds = new Set(existing.map((row) => row.movieId));
+    if (!legacy.length) return;
 
-  const baseRank = await getNextRank(defaultWatchlist.id);
-  const itemsToCreate = legacyMovieIds
-    .filter((movieId) => !existingMovieIds.has(movieId))
-    .map((movieId, idx) => ({
-      watchlistId: defaultWatchlist.id,
-      movieId,
-      addedByUserId: ownerId,
-      rank: baseRank + idx * RANK_STEP,
-    }));
+    const legacyMovieIds = [...new Set(legacy.map((row) => row.movieId).filter(Boolean))];
+    if (!legacyMovieIds.length) return;
 
-  if (itemsToCreate.length) {
+    const existing = await prisma.watchlistItem.findMany({
+      where: { watchlistId: defaultWatchlist.id, movieId: { in: legacyMovieIds } },
+      select: { movieId: true },
+    });
+    const existingMovieIds = new Set(existing.map((row) => row.movieId));
+
+    const baseRank = await getNextRank(defaultWatchlist.id);
+    const itemsToCreate = legacyMovieIds
+      .filter((movieId) => !existingMovieIds.has(movieId))
+      .map((movieId, idx) => ({
+        watchlistId: defaultWatchlist.id,
+        movieId,
+        addedByUserId: ownerId,
+        rank: baseRank + idx * RANK_STEP,
+      }));
+
+    if (!itemsToCreate.length) return;
+
     try {
       await prisma.watchlistItem.createMany({ data: itemsToCreate });
     } catch (error) {
       const maybe = error as { code?: string };
       if (maybe?.code !== "P2002") throw error;
     }
+  })();
+
+  legacySyncState.set(ownerId, {
+    syncedAt: currentState?.syncedAt ?? 0,
+    promise: syncPromise,
+  });
+
+  try {
+    await syncPromise;
+    legacySyncState.set(ownerId, { syncedAt: Date.now(), promise: null });
+  } catch (error) {
+    legacySyncState.delete(ownerId);
+    throw error;
   }
 
   return defaultWatchlist;

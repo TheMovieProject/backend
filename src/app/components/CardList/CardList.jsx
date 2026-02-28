@@ -1,5 +1,5 @@
 import React from 'react'
-import Card from '@/Components/BlogCard/BlogCard'
+import Card from '@/app/components/BlogCard/BlogCard'
 import Pagination from '../Pagination/Pagination'
 const getData=async(page , cat)=>{
   const res = await fetch(`${process.env.NEXTAUTH_URL}/api/posts?page=${page}&cat=${cat || ""}`,{

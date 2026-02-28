@@ -18,6 +18,7 @@ import {
   MdSearch,
 } from "react-icons/md";
 import toast from "react-hot-toast";
+import { invalidateWatchlistsCache, loadBaseWatchlists } from "@/lib/watchlists-client";
 
 const isShared = (l) => (l?.visibility || (l?.isPublic ? "SHARED" : "PRIVATE")) === "SHARED";
 const isLegacyHidden = (l) => l?.slug === "my-watchlist" && !l?.isSystemDefault;
@@ -85,13 +86,11 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
     return contacts.filter((u) => [u.username, u.name, u.email].filter(Boolean).join(" ").toLowerCase().includes(q));
   }, [contacts, contactQuery]);
 
-  const loadLists = async () => {
+  const loadLists = async (force = false) => {
     try {
       setLoadingLists(true);
-      const r = await fetch("/api/watchlists", { cache: "no-store" });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || j?.ok === false) throw new Error(j?.error?.message || "Failed to load watchlists");
-      setLists((j?.data?.watchlists || []).filter((l) => !isLegacyHidden(l)).map(normalize));
+      const payload = await loadBaseWatchlists(force);
+      setLists((payload?.watchlists || []).filter((l) => !isLegacyHidden(l)).map(normalize));
     } catch (e) {
       toast.error(e.message || "Failed to load watchlists.");
     } finally {
@@ -125,7 +124,8 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
   const refreshAll = async () => {
     try {
       setRefreshing(true);
-      await loadLists();
+      invalidateWatchlistsCache();
+      await loadLists(true);
       if (currentListId) await loadDetail(currentListId);
     } finally {
       setRefreshing(false);
@@ -189,7 +189,8 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
       setNewName("");
       setSelectedIds([]);
       setSheetOpen(false);
-      await loadLists();
+      invalidateWatchlistsCache();
+      await loadLists(true);
       if (created?.id) router.push(`/watchlists/${created.id}`);
     } catch (e) {
       toast.error(e.message || "Failed to create collection.");
@@ -214,6 +215,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j?.ok === false) throw new Error(j?.error?.message || "Failed to remove movie");
       toast.success("Removed from watchlist.");
+      invalidateWatchlistsCache();
       await loadDetail(active.id);
     } catch (e) {
       setDetail(previousDetail);
@@ -230,6 +232,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j?.ok === false) throw new Error(j?.error?.message || "Failed to delete collection");
       toast.success("Collection deleted.");
+      invalidateWatchlistsCache();
       router.push("/watchlists");
     } catch (e) {
       toast.error(e.message || "Failed to delete collection.");

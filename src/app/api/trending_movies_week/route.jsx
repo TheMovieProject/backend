@@ -1,5 +1,6 @@
-import prisma from "@/app/api/auth/[...nextauth]/connect";
+import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/server-fetch";
 
 const calculateWeeklyTrendingScore = (likes7d, ratings7d, watchlist7d, reviews7d) =>
   likes7d * 4 + reviews7d * 3 + watchlist7d * 2 + ratings7d;
@@ -23,9 +24,9 @@ async function enrichTmdbMovie(tmdbId, apiKey) {
   if (!tmdbId) return null;
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${TMDB_BASE}/movie/${tmdbId}?api_key=${apiKey}&language=en-US`,
-      { next: { revalidate: 900 } }
+      { next: { revalidate: 900 }, timeoutMs: 8000 }
     );
 
     if (!res.ok) return null;

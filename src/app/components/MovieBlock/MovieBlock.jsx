@@ -1,6 +1,6 @@
 // app/components/MovieBlock/MovieBlock.jsx
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MdFavorite, MdStar } from "react-icons/md";
@@ -8,6 +8,7 @@ import { gsap } from "gsap";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
 import AddToWatchlistControl from "@/app/components/Watchlists/AddToWatchlistControlRevamp";
+import { setLikedStatusCache, useLikedStatus } from "@/lib/liked-status-client";
 
 function isAbsoluteUrl(value) {
   return typeof value === "string" && /^(https?:)?\/\//.test(value);
@@ -32,7 +33,7 @@ export default function MovieBlock({
   index, 
   defaultLiked = false
 }) {
-  const [isLiked, setIsLiked] = useState(!!defaultLiked);
+  const [isLiked, setIsLiked] = useLikedStatus(item?.id, !!defaultLiked);
 
   const cardRef = useRef(null);
   const tapeRef = useRef(null);
@@ -116,35 +117,20 @@ export default function MovieBlock({
     if (!res.ok) throw new Error("remove failed");
   }
 
-useEffect(() => {
-  const getStatus = async () => {
-    try {
-      const likedResponse = await fetch(`/api/liked/status?movieId=${item.id}`);
-      if (!likedResponse.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const likedData = await likedResponse.json();
-
-      setIsLiked(!!likedData.isLiked);
-    } catch (error) {
-      console.log("Error fetching status:", error.message);
-    }
-  };
-
-  getStatus();
-}, [item.id]); 
-
   const handleLike = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
     const likeButton = likeButtonRef.current;
     const poster = posterRef.current;
+    const previousLiked = isLiked;
+    const nextLiked = !isLiked;
 
     try {
+      setIsLiked(nextLiked);
+      setLikedStatusCache(item.id, nextLiked);
+
       if (!isLiked) {
-        // setIsLiked(true); // optimistic
         if (likeButton) gsap.fromTo(likeButton, { scale: 1 }, { scale: 1.18, duration: 0.12, yoyo: true, repeat: 1 });
 
         await addToLiked();
@@ -185,7 +171,8 @@ useEffect(() => {
         showToast("Removed from Liked");
       }
     } catch {
-      setIsLiked((prev) => !prev); // rollback
+      setIsLiked(previousLiked);
+      setLikedStatusCache(item.id, previousLiked);
       showToast("Something went wrong", 1400);
     }
   };

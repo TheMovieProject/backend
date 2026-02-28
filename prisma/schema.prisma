@@ -31,6 +31,8 @@ model Liked {
   movie   Movie    @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId])
+  @@index([userId, addedAt])
+  @@index([movieId])
 }
 
 // Add this new model to your schema.prisma file
@@ -210,6 +212,7 @@ model Watchlist {
 
   @@unique([ownerId, slug])
   @@index([ownerId])
+  @@index([ownerId, updatedAt])
   @@index([visibility])
   @@map("WatchlistCollection")
 }
