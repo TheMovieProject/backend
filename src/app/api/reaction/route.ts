@@ -104,8 +104,12 @@ export async function POST(req: Request) {
             },
           });
 
+    if (!targetMeta) {
+      return new Response("Not found", { status: 404 });
+    }
+
     const targetOwnerId =
-      entityType === "review" ? targetMeta?.userId : targetMeta?.user?.id;
+      entityType === "review" ? targetMeta.userId : targetMeta.user?.id;
 
     const existing = await prisma.entityReaction.findFirst({
       where: {
@@ -141,7 +145,7 @@ export async function POST(req: Request) {
             userId: me.id,
             entityId,
             entityType,
-            reactionType: type, // ✅ always singular
+            reactionType: type,
           },
         }),
         entityType === "review"

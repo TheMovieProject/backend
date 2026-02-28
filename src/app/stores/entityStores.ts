@@ -31,6 +31,14 @@ type Store = {
   clear: () => void;
 };
 
+function isBroadcastSnapshot(
+  payload: unknown
+): payload is Partial<EntitySnapshot> & { id: string; entityType: EntityType } {
+  if (!payload || typeof payload !== "object") return false;
+  const snap = payload as { id?: unknown; entityType?: unknown };
+  if (typeof snap.id !== "string" || snap.id.trim() === "") return false;
+  return snap.entityType === "review" || snap.entityType === "blog";
+}
 const channel =
   typeof window !== "undefined" ? new BroadcastChannel("entity-updates") : null;
 
@@ -122,7 +130,7 @@ export const useEntityStore = create<Store>((set, get) => ({
 
 // cross-tab listener
 channel?.addEventListener("message", (ev) => {
-  if (ev.data?.type === "upsert") {
+  if (ev.data?.type === "upsert" && isBroadcastSnapshot(ev.data?.payload)) {
     useEntityStore.getState().upsertFromBroadcast(ev.data.payload);
   }
 });

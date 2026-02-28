@@ -211,7 +211,7 @@ export default function PostCard({ item, onOpenPost }) {
 
             <Link
               href={profileHref}
-              className="absolute top-2 left-2 z-10 relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 bg-black/40"
+              className="absolute top-2 left-2 z-10 h-9 w-9 overflow-hidden rounded-full bg-black/40 ring-1 ring-white/30"
             >
               <Image src={avatar} alt="user avatar" fill className="object-cover" />
             </Link>
@@ -301,7 +301,7 @@ export default function PostCard({ item, onOpenPost }) {
           <div className="text-white font-bold text-md leading-snug">{title}</div>
         </div>
 
-        <div className="mt-5 text-white/80 flex items-center gap-2 text-[1.3] leading-relaxed line-clamp-3">
+        <div className="mt-5 flex items-center gap-2 text-[1.3rem] leading-relaxed text-white/80 line-clamp-3">
           {authorRating !== null && (
             <div className="shrink-0 px-3 py-1 text-xs text-white/80 flex items-center gap-1">
               <FaStar className="text-yellow-400" />

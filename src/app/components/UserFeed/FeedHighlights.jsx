@@ -24,8 +24,9 @@ export default function FeedHighlights() {
     async function load() {
       try {
         const res = await fetch("/api/feed/highlights", { cache: "no-store" });
-        const json = await res.json();
         if (!alive || !res.ok) return;
+        const json = await res.json();
+        if (!alive) return;
         setData({
           friendsWatching: json?.friendsWatching || [],
           mostDiscussed: json?.mostDiscussed || [],

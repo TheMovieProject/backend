@@ -6,7 +6,7 @@ import { ensureDefaultCollection, resolveMovie } from "@/app/libs/watchlist_coll
 export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return new Response("Unauthorized", { status: 401 });
- 
+
   const { movieId, title, posterUrl, listId } = await req.json();
   if (!movieId || !title) return new Response("Missing data", { status: 400 });
 
@@ -30,9 +30,9 @@ export async function POST(req) {
       where: { id: listId },
       select: { id: true, ownerId: true },
     });
-    if (ownedList?.ownerId === user.id) {
-      targetCollectionId = ownedList.id;
-    }
+    if (!ownedList) return new Response("List not found", { status: 404 });
+    if (ownedList.ownerId !== user.id) return new Response("Forbidden", { status: 403 });
+    targetCollectionId = ownedList.id;
   }
 
   try {
@@ -74,7 +74,6 @@ export async function POST(req) {
       { status: 201 }
     );
   } catch (e) {
-    // unique constraint violation => already in watchlist
     if (e?.code === "P2002") {
       return new Response("Movie already in watchlist", { status: 409 });
     }

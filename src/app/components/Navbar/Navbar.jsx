@@ -187,7 +187,9 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16 px-6">
           <div className="flex-1 flex justify-start">
             <button
+              type="button"
               onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation menu"
               className={`transition-colors duration-300 ${
                 scrolled ? "text-white hover:text-gray-200" : "text-white hover:opacity-80"
               }`}
@@ -213,7 +215,9 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               {session ? <NotificationBell /> : null}
               <button
+                type="button"
                 onClick={openSearch}
+                aria-label="Open search"
                 className={`transition-colors duration-300 group ${
                   scrolled ? "text-white hover:text-gray-200" : "text-white hover:opacity-80"
                 }`}
@@ -243,7 +247,9 @@ export default function Navbar() {
         >
           <div className="flex items-center h-16 px-6">
             <button
+              type="button"
               onClick={closeSearch}
+              aria-label="Close search"
               className="text-white hover:text-gray-200 transition-colors mr-4"
             >
               <X className="h-5 w-5" />
@@ -263,6 +269,7 @@ export default function Navbar() {
               </button>
               <button
                 type="submit"
+                aria-label="Submit search"
                 className="text-white hover:text-gray-200 transition-colors ml-4"
               >
                 <Search className="h-5 w-5" />
@@ -302,7 +309,9 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl">
           <button
+            type="button"
             onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation menu"
             className="absolute top-4 right-6 text-white hover:text-gray-200 z-50 transition-colors"
           >
             <X className="h-6 w-6" />

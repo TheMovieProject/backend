@@ -22,13 +22,17 @@ const tmdbApiKey = () => {
 async function enrichTmdbMovie(tmdbId, apiKey) {
   if (!tmdbId) return null;
 
-  const res = await fetch(
-    `${TMDB_BASE}/movie/${tmdbId}?api_key=${apiKey}&language=en-US`,
-    { next: { revalidate: 900 } }
-  );
+  try {
+    const res = await fetch(
+      `${TMDB_BASE}/movie/${tmdbId}?api_key=${apiKey}&language=en-US`,
+      { next: { revalidate: 900 } }
+    );
 
-  if (!res.ok) return null;
-  return res.json();
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export const GET = async () => {

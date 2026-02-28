@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -55,6 +55,11 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function sanitizeCsvCell(value) {
+  const str = String(value ?? "");
+  return /^[=+\-@]/.test(str) ? `'${str}` : str;
+}
+
 export default function WatchlistClient({ initialWatchlistId = null }) {
   const [collections, setCollections] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -73,6 +78,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
   const [inviteUserId, setInviteUserId] = useState("");
   const [inviteRole, setInviteRole] = useState("VIEWER");
   const [inviteLink, setInviteLink] = useState("");
+  const detailRequestIdRef = useRef(0);
 
   const activeSummary = useMemo(
     () => collections.find((list) => list.id === activeId) || collections[0] || null,
@@ -88,19 +94,25 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
   );
 
   const loadActiveListDetail = useCallback(async (listId) => {
+    const requestId = ++detailRequestIdRef.current;
     if (!listId) {
-      setActiveListDetail(null);
+      if (requestId === detailRequestIdRef.current) {
+        setActiveListDetail(null);
+      }
       return;
     }
 
     try {
-      setLoadingDetail(true);
+      if (requestId === detailRequestIdRef.current) {
+        setLoadingDetail(true);
+      }
       const res = await fetch(`/api/watchlists/${listId}`, { cache: "no-store" });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok || payload?.ok === false) {
         throw new Error(payload?.error?.message || "Failed to fetch watchlist details");
       }
       const detail = payload?.data?.watchlist ? normalizeSummary(payload.data.watchlist) : null;
+      if (requestId !== detailRequestIdRef.current) return;
       setActiveListDetail(detail);
       if (detail) {
         setCollections((prev) =>
@@ -112,11 +124,14 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
         );
       }
     } catch (error) {
+      if (requestId !== detailRequestIdRef.current) return;
       console.error(error);
       toast.error(error.message || "Failed to load watchlist details.");
       setActiveListDetail(null);
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequestIdRef.current) {
+        setLoadingDetail(false);
+      }
     }
   }, []);
 
@@ -189,7 +204,12 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     if (!activeList) return;
 
     const movieParam = item?.movie?.tmdbId || item?.movieId;
+    if (!movieParam) {
+      toast.error("Movie identifier missing.");
+      return;
+    }
     const previousDetail = activeListDetail;
+    const previousCollections = collections;
     try {
       if (previousDetail?.id === activeList.id) {
         const nextItems = (previousDetail.items || []).filter((x) => x.id !== item.id);
@@ -219,6 +239,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       if (activeList.id) await loadActiveListDetail(activeList.id);
     } catch (error) {
       if (previousDetail) setActiveListDetail(previousDetail);
+      setCollections(previousCollections);
       console.error(error);
       toast.error("Failed to remove movie.");
     }
@@ -376,7 +397,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     const csv = rows
       .map((row) =>
         row
-          .map((col) => `"${String(col ?? "").replace(/"/g, '""')}"`)
+          .map((col) => `"${sanitizeCsvCell(col).replace(/"/g, '""')}"`)
           .join(",")
       )
       .join("\n");
@@ -807,7 +828,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
                             {invite.email || invite.invitedUser?.email || invite.invitedUserId}
                           </p>
                           <p className="text-xs text-white/60">
-                            {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
+                            {invite.role} Ã‚Â· expires {new Date(invite.expiresAt).toLocaleDateString()}
                           </p>
                         </div>
                       ))}
@@ -875,7 +896,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
                               {invite.email || invite.invitedUser?.email || invite.invitedUserId}
                             </p>
                             <p className="text-xs text-white/60">
-                              {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
+                              {invite.role} Ã‚Â· expires {new Date(invite.expiresAt).toLocaleDateString()}
                             </p>
                           </div>
                         ))}

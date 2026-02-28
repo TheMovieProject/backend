@@ -170,10 +170,22 @@ function monthLabel(dateStr: string) {
 }
 
 function startOfDayIso(dateStr: string) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match) return null;
+  const [, yearStr, monthStr, dayStr] = match;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  if (
+    Number.isNaN(utcDate.getTime()) ||
+    utcDate.getUTCFullYear() !== year ||
+    utcDate.getUTCMonth() !== month - 1 ||
+    utcDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return utcDate.toISOString();
 }
 
 async function findSeedMovieForUser(email?: string | null) {

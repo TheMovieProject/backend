@@ -195,7 +195,12 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
   const removeItem = async (item) => {
     if (!active?.id) return;
     const movieParam = item?.movie?.tmdbId || item?.movieId;
-    const prev = active;
+    if (!movieParam) {
+      toast.error("Movie identifier missing.");
+      return;
+    }
+    const previousDetail = detail;
+    const previousLists = lists;
     setDetail((d) => (d?.id === active.id ? { ...d, items: (d.items || []).filter((x) => x.id !== item.id) } : d));
     setLists((prevLists) => prevLists.map((l) => (l.id === active.id ? { ...l, count: Math.max(0, (l.count || 0) - 1) } : l)));
     try {
@@ -205,7 +210,8 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
       toast.success("Removed from watchlist.");
       await loadDetail(active.id);
     } catch (e) {
-      setDetail(prev);
+      setDetail(previousDetail);
+      setLists(previousLists);
       toast.error(e.message || "Failed to remove movie.");
     }
   };

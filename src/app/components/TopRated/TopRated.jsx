@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import React, { useEffect, useState } from "react"
 import requests from "@/app/helpers/Requests"
 import MovieBlock from "../MovieBlock/MovieBlock"
@@ -164,7 +164,7 @@ const TopRated = () => {
         {filteredItems.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 max-w-md mx-auto">
-              <div className="text-6xl mb-4">ðŸŽ¬</div>
+              <div className="mb-4 text-6xl">{"\u{1F3AC}"}</div>
               <h3 className="text-xl font-bold text-white mb-2">No Movies Found</h3>
               <p className="text-gray-300 mb-4">
                 Try adjusting your genre filters to see more results.

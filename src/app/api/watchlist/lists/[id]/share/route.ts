@@ -29,17 +29,23 @@ export async function POST(
       return NextResponse.json({ error: "List not found" }, { status: 404 });
     }
 
-    if (!list.isPublic) {
+    const shareToken = list.shareToken || crypto.randomUUID();
+
+    if (!list.isPublic || !list.shareToken) {
       await prisma.watchlist.update({
         where: { id: list.id },
-        data: { isPublic: true, visibility: "SHARED" as any },
+        data: {
+          isPublic: true,
+          visibility: "SHARED" as any,
+          shareToken,
+        },
       });
     }
 
     return NextResponse.json({
       ok: true,
-      shareUrl: `${req.nextUrl.origin}/watchlist/shared/${list.shareToken}`,
-      shareToken: list.shareToken,
+      shareUrl: `${req.nextUrl.origin}/watchlist/shared/${shareToken}`,
+      shareToken,
     });
   } catch (error) {
     console.error("POST /api/watchlist/lists/[id]/share error", error);

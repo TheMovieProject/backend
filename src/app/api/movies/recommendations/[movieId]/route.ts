@@ -8,9 +8,15 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const movieId = String(resolvedParams?.movieId || "");
+    const movieId = String(resolvedParams?.movieId || "").trim();
     if (!movieId) {
       return NextResponse.json({ error: "movieId is required" }, { status: 400 });
+    }
+    if (!/^\d+$/.test(movieId)) {
+      return NextResponse.json(
+        { error: "movieId must be a numeric TMDB id" },
+        { status: 400 }
+      );
     }
 
     const localMovie = await prisma.movie.findUnique({

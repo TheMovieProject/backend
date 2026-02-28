@@ -225,12 +225,11 @@ export default function AddToWatchlistControl({
   };
 
   const quickToggleDefault = async () => {
-    if (!data.defaultWatchlistId) {
+    let defaultId = data.defaultWatchlistId;
+    if (!defaultId) {
       const loaded = await loadLists();
-      if (!loaded?.defaultWatchlistId) return;
+      defaultId = loaded?.defaultWatchlistId || null;
     }
-
-    const defaultId = data.defaultWatchlistId || (await loadLists())?.defaultWatchlistId || null;
     if (!defaultId) {
       showToast("Could not find default watchlist", 1500);
       return;
@@ -391,7 +390,7 @@ export default function AddToWatchlistControl({
                         )}
                       </div>
                       <div className="text-xs text-white/60">
-                        {list.itemCount} items � {list.myRole || "VIEWER"}
+                        {list.itemCount} items Â· {list.myRole || "VIEWER"}
                       </div>
                     </div>
                     <div className="flex h-6 w-6 items-center justify-center">

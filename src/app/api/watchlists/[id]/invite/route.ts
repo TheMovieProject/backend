@@ -73,6 +73,7 @@ export async function POST(
       where: {
         watchlistId: access.watchlist.id,
         status: "INVITED" as any,
+        expiresAt: { gt: new Date() },
         OR: [
           ...(targetUserId ? [{ invitedUserId: targetUserId }] : []),
           ...(targetEmail ? [{ email: targetEmail }] : []),

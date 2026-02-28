@@ -34,27 +34,32 @@ export async function issueAuthToken({
   type,
   ttlMinutes,
 }: IssueAuthTokenInput): Promise<{ token: string; expiresAt: Date }> {
+  if (!Number.isFinite(ttlMinutes) || ttlMinutes <= 0) {
+    throw new Error("ttlMinutes must be a positive finite number");
+  }
+
   const normalizedIdentifier = normalizeIdentifier(identifier);
   const token = crypto.randomBytes(32).toString("base64url");
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
-  await prisma.authToken.deleteMany({
-    where: {
-      identifier: normalizedIdentifier,
-      type,
-      consumedAt: null,
-    },
-  });
-
-  await prisma.authToken.create({
-    data: {
-      identifier: normalizedIdentifier,
-      type,
-      tokenHash,
-      expiresAt,
-    },
-  });
+  await prisma.$transaction([
+    prisma.authToken.deleteMany({
+      where: {
+        identifier: normalizedIdentifier,
+        type,
+        consumedAt: null,
+      },
+    }),
+    prisma.authToken.create({
+      data: {
+        identifier: normalizedIdentifier,
+        type,
+        tokenHash,
+        expiresAt,
+      },
+    }),
+  ]);
 
   return { token, expiresAt };
 }

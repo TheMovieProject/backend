@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
@@ -207,13 +207,13 @@ export default function SearchedItems() {
               <p className="text-gray-300">
                 Found <span className="text-yellow-400 font-bold">{total}</span> total results
                 {users.length > 0 && (
-                  <span className="mx-2">â€¢</span>
+                  <span className="mx-2">{"\u2022"}</span>
                 )}
                 {users.length > 0 && (
                   <span>{users.length} user{users.length !== 1 ? 's' : ''}</span>
                 )}
                 {movies.length > 0 && users.length > 0 && (
-                  <span className="mx-2">â€¢</span>
+                  <span className="mx-2">{"\u2022"}</span>
                 )}
                 {movies.length > 0 && (
                   <span>{movies.length} movie{movies.length !== 1 ? 's' : ''}</span>

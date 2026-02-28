@@ -11,8 +11,10 @@ const SECTION_HEADING_CLASS = "text-3xl sm:text-4xl lg:text-5xl font-extrabold t
 const SECTION_SUBTITLE_CLASS = "text-sm md:text-base text-yellow-100/80";
 
 function posterSrc(item) {
-  if (!item?.posterPath) return "/img/logo.png";
-  return `${IMG_BASE}${item.posterPath}`;
+  const posterPath = item?.posterPath ?? item?.poster_path;
+  if (item?.posterUrl) return item.posterUrl.startsWith("http") ? item.posterUrl : `${IMG_BASE}${item.posterUrl}`;
+  if (!posterPath) return "/img/logo.png";
+  return `${IMG_BASE}${posterPath}`;
 }
 
 function backdropSrc(item) {
@@ -249,7 +251,7 @@ export default function MoviesComponent() {
                   </span>
                 ) : null}
                 {typeof weatherMeta.tempC === "number" ? (
-                  <span className="rounded-full bg-white/15 px-2.5 py-1">{Math.round(weatherMeta.tempC)}°C</span>
+                  <span className="rounded-full bg-white/15 px-2.5 py-1">{Math.round(weatherMeta.tempC)}Ãƒâ€šÃ‚Â°C</span>
                 ) : null}
               </div>
             </div>
@@ -389,7 +391,7 @@ export default function MoviesComponent() {
                           <Image src={posterSrc(item)} alt={item.title} fill className="object-cover" sizes="36px" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs text-yellow-100/70">{dayLabel(item.releaseDate)}</p>
+                          <p className="text-xs text-yellow-100/70">{dayLabel(item.releaseDate ?? item.release_date)}</p>
                           <p className="text-sm text-white truncate">{item.title}</p>
                         </div>
                       </Link>

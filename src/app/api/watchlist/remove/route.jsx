@@ -23,8 +23,8 @@ export async function POST(req) {
     });
     if (!user) return new Response("User not found", { status: 404 });
 
-    // ✅ If client sends DB ObjectId, use it directly.
-    // ✅ Else treat it as tmdbId.
+    // If client sends DB ObjectId, use it directly.
+    // Else treat it as tmdbId.
     const movie = isObjectId(movieId)
       ? await prisma.movie.findUnique({ where: { id: movieId }, select: { id: true } })
       : await prisma.movie.findUnique({ where: { tmdbId: movieId }, select: { id: true } });
@@ -39,9 +39,9 @@ export async function POST(req) {
         where: { id: listId },
         select: { id: true, ownerId: true },
       });
-      if (ownedList?.ownerId === user.id) {
-        targetCollectionId = ownedList.id;
-      }
+      if (!ownedList) return new Response("List not found", { status: 404 });
+      if (ownedList.ownerId !== user.id) return new Response("Forbidden", { status: 403 });
+      targetCollectionId = ownedList.id;
     }
 
     await prisma.watchlistItem.deleteMany({
