@@ -2,20 +2,21 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MdFavorite, MdAdd, MdCheck } from "react-icons/md";
+import { MdFavorite } from "react-icons/md";
 import { FaStar, FaHeart, FaImdb, FaYoutube } from "react-icons/fa";
 import { SiRottentomatoes, SiNetflix, SiPrimevideo, SiAppletv, SiYoutube } from "react-icons/si";
 import { gsap } from "gsap";
 import StarRating from "@/app/components/StarRating/StarRating";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
+import AddToWatchlistControl from "@/app/components/Watchlists/AddToWatchlistControlRevamp";
 import ProfileImage from '../../../../../public/img/profile.png'
 import Link from "next/link";
 const tmdbImg = (path, size = "w185") =>
   path ? `https://image.tmdb.org/t/p/${size}${path}` : "/img/NoUser.png";
 
 const tmdbPoster = (path) =>
-  path ? `https://image.tmdb.org/t/p/original${path}` : `/img/NoImage.jpg`;
+  path ? `https://image.tmdb.org/t/p/original${path}` : `/img/logo.png`;
 
 const isNewInTheaters = (release_date) => {
   if (!release_date) return false;
@@ -50,7 +51,6 @@ const MovieInfo = ({
   const [isInWatchlist, setIsInWatchlist] = useState(!!defaultInWatchlist);
 
   const likeBtnRef = useRef(null);
-  const watchBtnRef = useRef(null);
 
   const director = useMemo(() => getDirectorPerson(item?.credits?.crew || []), [item]);
   const topCast = useMemo(() => getTopCast(item?.credits?.cast || [], 8), [item]);
@@ -77,28 +77,6 @@ const MovieInfo = ({
       body: JSON.stringify({ movieId: String(item.id) }),
     });
     if (!res.ok) throw new Error("unlike failed");
-  }
-
-  async function addWatchlistOnServer() {
-    const res = await fetch("/api/watchlist/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        movieId: String(item.id),
-        title: item.title || item.original_title,
-        posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/original${item.poster_path}` : null,
-      }),
-    });
-    if (!res.ok) throw new Error("watch add failed");
-  }
-
-  async function removeWatchlistOnServer() {
-    const res = await fetch("/api/watchlist/remove", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movieId: String(item.id) }),
-    });
-    if (!res.ok) throw new Error("watch remove failed");
   }
 
   // --- handlers ---
@@ -137,35 +115,12 @@ const MovieInfo = ({
     }
   };
 
-  const toggleWatchlist = async () => {
-    try {
-      if (!isInWatchlist) {
-        setIsInWatchlist(true);
-        if (watchBtnRef.current)
-          gsap.fromTo(watchBtnRef.current, { scale: 1 }, { scale: 1.12, duration: 0.12, yoyo: true, repeat: 1 });
-
-        await addWatchlistOnServer();
-        showToast("Added to Watchlist");
-      } else {
-        setIsInWatchlist(false);
-        if (watchBtnRef.current)
-          gsap.fromTo(watchBtnRef.current, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
-
-        await removeWatchlistOnServer();
-        showToast("Removed from Watchlist");
-      }
-    } catch {
-      setIsInWatchlist((p) => !p);
-      showToast("Action failed", 1400);
-    }
-  };
-
   const year = item?.release_date ? new Date(item.release_date).getFullYear() : null;
 
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
-        <div className="bg-gray-400 bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-20 border-gray-100 rounded-2xl shadow-2xl overflow-hidden border border-yellow-500/20">
+        <div className="bg-gray-400 bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-20 border-gray-100 rounded-2xl shadow-2xl overflow-visible border border-yellow-500/20">
           <div className="flex flex-col lg:flex-row lg:space-x-8 p-8">
             {/* Poster */}
             <div className="flex-shrink-0 mb-8 lg:mb-0 lg:w-1/3">
@@ -422,28 +377,16 @@ const MovieInfo = ({
         <span className="hidden sm:inline">{isLiked ? "Liked" : "Like"}</span>
       </button>
 
-      {/* Watchlist button */}
-      <button
-        ref={watchBtnRef}
-        onClick={toggleWatchlist}
-        className={`inline-flex items-center gap-1.5 sm:gap-2 rounded-full border px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium transition flex-shrink-0
-          ${
-            isInWatchlist
-              ? "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-              : "bg-white/90 text-gray-800 border-gray-300 hover:bg-blue-600 hover:text-white"
-          }`}
-        aria-label={isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
-        title={isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
-      >
-        {isInWatchlist ? (
-          <MdCheck size={16} className="sm:size-[18px]" />
-        ) : (
-          <MdAdd size={16} className="sm:size-[18px]" />
-        )}
-        <span className="hidden sm:inline">
-          {isInWatchlist ? "In Watchlist" : "Watchlist"}
-        </span>
-      </button>
+      <AddToWatchlistControl
+        movie={{
+          id: item.id,
+          title: item.title || item.original_title,
+          poster_path: item.poster_path,
+          posterUrl: item.posterUrl || null,
+        }}
+        className="relative z-[80]"
+        onStatusChange={({ inDefault }) => setIsInWatchlist(inDefault)}
+      />
     </div>
   </div>
 

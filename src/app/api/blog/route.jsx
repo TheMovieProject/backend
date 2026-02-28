@@ -1,59 +1,64 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-// Helper function to get user
-async function getUser(session) {
-  if (!session || !session.user || !session.user.email) {
-    throw new Error("Unauthorized");
-  }
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user;
+const MAX_LIMIT = 100;
+
+function toTags(hashtags) {
+  if (!hashtags || typeof hashtags !== "string") return [];
+
+  return Array.from(
+    new Set(
+      hashtags
+        .split(/\s+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .map((tag) => (tag.startsWith("#") ? tag.slice(1) : tag))
+        .map((tag) => tag.toLowerCase())
+        .filter(Boolean)
+    )
+  );
 }
 
-// Handle GET request to fetch blogs
-export const GET = async (req) => {
-  const session = await getServerSession(authOptions);
-  
-  // Ensure the user is authenticated before proceeding
-  if (!session || !session.user || !session.user.email) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+function parseLimit(rawValue) {
+  const parsed = Number(rawValue ?? 20);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 20;
+  return Math.min(Math.floor(parsed), MAX_LIMIT);
+}
 
-  // Get the userEmail query parameter
-  const userEmail = req.nextUrl.searchParams.get("userEmail");
-
+export async function GET(req) {
   try {
-    let blogs;
-    if (userEmail) {
-      // Fetch blogs by user email
-      blogs = await prisma.blog.findMany({
-        where: {
-          userEmail: userEmail, // Match blogs for the specific user
-        },
-        include: {
-          user: true, // Include user data if needed
-        },
-      });
-    } else {
-      // Fetch all blogs if no userEmail is provided
-      blogs = await prisma.blog.findMany({
-        include: {
-          user: true,
-        },
-      });
-    }
+    const userEmail = req.nextUrl.searchParams.get("userEmail");
+    const limit = parseLimit(req.nextUrl.searchParams.get("limit"));
 
-    return NextResponse.json(blogs, { status: 200 });
+    const blogs = await prisma.blog.findMany({
+      where: userEmail ? { userEmail } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatarUrl: true,
+            image: true,
+          },
+        },
+        comments: { select: { id: true } },
+      },
+    });
+
+    return NextResponse.json(
+      blogs.map((blog) => ({
+        ...blog,
+        commentsCount: blog.comments?.length ?? 0,
+        excerpt: blog.content ? blog.content.slice(0, 220) : "",
+      })),
+      { status: 200 }
+    );
   } catch (err) {
     console.error("Error fetching posts:", err);
     return NextResponse.json(
@@ -64,34 +69,69 @@ export const GET = async (req) => {
       { status: 500 }
     );
   }
-};
+}
 
-
-// Handle POST request to create a new blog post
-export const POST = async (req) => {
+export async function POST(req) {
   try {
-    const { title, hashtags, content, userEmail, thumbnail, blogNumber } = await req.json();
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-    // Check if required fields are provided
-    if (!title || !content || !userEmail) {
+    const me = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, email: true },
+    });
+    if (!me) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    const { title, hashtags, content, thumbnail, blogNumber } = await req.json();
+    const safeTitle = typeof title === "string" ? title.trim() : "";
+    const safeContent = typeof content === "string" ? content.trim() : "";
+
+    if (!safeTitle || !safeContent) {
       return NextResponse.json(
-        { message: "Title, content, and userEmail are required." },
+        { message: "Title and content are required." },
         { status: 400 }
       );
     }
 
-    // Create the blog and associate it with the user via the userEmail
+    const tags = toTags(hashtags);
+
+    let resolvedBlogNumber = Number.isFinite(Number(blogNumber))
+      ? Math.max(1, Math.floor(Number(blogNumber)))
+      : null;
+
+    if (!resolvedBlogNumber) {
+      const latest = await prisma.blog.findFirst({
+        where: { userEmail: me.email },
+        orderBy: { blogNumber: "desc" },
+        select: { blogNumber: true },
+      });
+      resolvedBlogNumber = (latest?.blogNumber ?? 0) + 1;
+    }
+
     const blog = await prisma.blog.create({
       data: {
-        title,
-        hashtags,
-        content,
-        thumbnail,
-        blogNumber,
+        title: safeTitle,
+        hashtags: typeof hashtags === "string" ? hashtags : null,
+        content: safeContent,
+        thumbnail: typeof thumbnail === "string" && thumbnail.trim() ? thumbnail.trim() : null,
+        blogNumber: resolvedBlogNumber,
+        tags,
+        user: { connect: { email: me.email } },
+      },
+      include: {
         user: {
-          connect: {
-            email: userEmail // Associate the blog with the logged-in user
-          }
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatarUrl: true,
+            image: true,
+          },
         },
       },
     });
@@ -107,4 +147,4 @@ export const POST = async (req) => {
       { status: 500 }
     );
   }
-};
+}

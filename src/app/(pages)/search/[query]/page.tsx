@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
@@ -169,9 +169,14 @@ export default function SearchedItems() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 xl:grid-cols-5 gap-8">
+            <div
+              className="grid justify-center gap-x-6 gap-y-10 pt-8"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(165px, 185px))" }}
+            >
               {movies.map((item, index) => (
-                <MovieBlock key={item.id} item={item} index={index} />
+                <div key={item.id} className="w-[165px] sm:w-[185px] pt-8">
+                  <MovieBlock item={item} index={index} />
+                </div>
               ))}
             </div>
           </section>
@@ -202,13 +207,13 @@ export default function SearchedItems() {
               <p className="text-gray-300">
                 Found <span className="text-yellow-400 font-bold">{total}</span> total results
                 {users.length > 0 && (
-                  <span className="mx-2">•</span>
+                  <span className="mx-2">â€¢</span>
                 )}
                 {users.length > 0 && (
                   <span>{users.length} user{users.length !== 1 ? 's' : ''}</span>
                 )}
                 {movies.length > 0 && users.length > 0 && (
-                  <span className="mx-2">•</span>
+                  <span className="mx-2">â€¢</span>
                 )}
                 {movies.length > 0 && (
                   <span>{movies.length} movie{movies.length !== 1 ? 's' : ''}</span>

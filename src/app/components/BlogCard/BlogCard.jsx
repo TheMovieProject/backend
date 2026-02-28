@@ -41,7 +41,7 @@ const BlogCard = ({ item }) => {
         <div className="text-[0.9rem] text-gray-600">{item.desc}</div>
         <div className="border-b-2 border-red-500">Read More</div> */}
         <Image 
-        src={item.thumbnail || "img/NoImage.jpg"} 
+        src={item.thumbnail || "/img/logo.png"} 
         alt={item.title} layout="fill" objectFit="cover" 
         />
         </div>

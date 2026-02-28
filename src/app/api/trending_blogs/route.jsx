@@ -1,43 +1,51 @@
-import prisma from "@/app/api/auth/[...nextauth]/connect";
+import prisma from "@/app/libs/prismaDB";
 import { NextResponse } from "next/server";
 
 const calculateTrendingScore = (likes, comments, views, createdAt) => {
-  const hoursSincePosted = Math.max((Date.now() - new Date(createdAt)) / (1000 * 60 * 60), 1);
-  return (likes * 3) + (comments * 2) + (views * 1) / hoursSincePosted;
+  const hoursSincePosted = Math.max((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60), 1);
+  return ((likes * 3) + (comments * 2) + views) / hoursSincePosted;
 };
- 
-export const GET = async () => {
-  try {
-    console.log("Fetching trending blogs...");
 
-    // Fetch blogs with user details
+export async function GET() {
+  try {
     const blogs = await prisma.blog.findMany({
       include: {
-        user: true,  // Include author details
-        comments: true, // Get comments count
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatarUrl: true,
+            image: true,
+          },
+        },
+        comments: { select: { id: true } },
       },
-      orderBy: { createdAt: "desc" }, // Order by newest
-      take: 50, // Limit results
+      orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
-    // Calculate trending score for each blog
-    const trendingBlogs = blogs.map(blog => ({
-      ...blog,
-      trendingScore: calculateTrendingScore(blog.likes, blog.comments.length, blog.views, blog.createdAt),
-    }));
-
-    // Sort blogs by trending score (highest first)
-    trendingBlogs.sort((a, b) => b.trendingScore - a.trendingScore);
-
-    console.log("Trending blogs fetched successfully");
+    const trendingBlogs = blogs
+      .map((blog) => ({
+        ...blog,
+        trendingScore: calculateTrendingScore(
+          blog.likes || 0,
+          blog.comments?.length || 0,
+          blog.views || 0,
+          blog.createdAt
+        ),
+      }))
+      .sort((a, b) => b.trendingScore - a.trendingScore);
 
     return NextResponse.json(trendingBlogs, { status: 200 });
   } catch (err) {
     console.error("Error fetching trending blogs:", err);
-
     return NextResponse.json(
-      { message: "Error fetching trending blogs.", error: err.message },
+      {
+        message: "Error fetching trending blogs.",
+        error: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 }
     );
   }
-};
+}

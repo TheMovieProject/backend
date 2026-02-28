@@ -3,19 +3,36 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MdFavorite, MdAdd, MdStar } from "react-icons/md";
+import { MdFavorite, MdStar } from "react-icons/md";
 import { gsap } from "gsap";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
+import AddToWatchlistControl from "@/app/components/Watchlists/AddToWatchlistControlRevamp";
+
+function isAbsoluteUrl(value) {
+  return typeof value === "string" && /^(https?:)?\/\//.test(value);
+}
+
+function getPosterSource(item) {
+  const rawPoster = item?.posterUrl || item?.poster_path || item?.posterPath;
+  if (!rawPoster) return "/img/logo.png";
+  if (isAbsoluteUrl(rawPoster)) return rawPoster;
+  return `https://image.tmdb.org/t/p/w500${rawPoster}`;
+}
+
+function getReleaseYear(item) {
+  const rawDate = item?.release_date || item?.releaseDate;
+  if (!rawDate) return null;
+  const year = String(rawDate).split("-")[0];
+  return year && year !== "undefined" ? year : null;
+}
 
 export default function MovieBlock({ 
   item, 
   index, 
-  defaultLiked = false, 
-  defaultInWatchlist = false 
+  defaultLiked = false
 }) {
   const [isLiked, setIsLiked] = useState(!!defaultLiked);
-  const [isInWatchlist, setIsInWatchlist] = useState(!!defaultInWatchlist);
 
   const cardRef = useRef(null);
   const tapeRef = useRef(null);
@@ -78,18 +95,13 @@ export default function MovieBlock({
   };
 
   async function addToLiked() {
-    const payload = {
-      movieId: String(item.id),
-      title: item.title,
-      posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path ? item.poser_path : item.posterUrl}` : null,
-    };
     const res = await fetch("/api/liked/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         movieId: String(item.id),
         title: item.title || item.original_title,
-        posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+        posterUrl: getPosterSource(item) === "/img/logo.png" ? null : getPosterSource(item),
       }),
     });
     if (!res.ok) throw new Error("add failed");
@@ -107,22 +119,14 @@ export default function MovieBlock({
 useEffect(() => {
   const getStatus = async () => {
     try {
-      const [likedResponse, watchlistResponse] = await Promise.all([
-        fetch(`/api/liked/status?movieId=${item.id}`),
-        fetch(`/api/watchlist/status?movieId=${item.id}`)
-      ]);
-
-      if (!likedResponse.ok || !watchlistResponse.ok) {
+      const likedResponse = await fetch(`/api/liked/status?movieId=${item.id}`);
+      if (!likedResponse.ok) {
         throw new Error("Network response was not ok");
       }
 
-      const [likedData, watchlistData] = await Promise.all([
-        likedResponse.json(),
-        watchlistResponse.json()
-      ]);
+      const likedData = await likedResponse.json();
 
       setIsLiked(!!likedData.isLiked);
-      setIsInWatchlist(!!watchlistData.inWatchlist);
     } catch (error) {
       console.log("Error fetching status:", error.message);
     }
@@ -150,7 +154,7 @@ useEffect(() => {
           createFlyingPosterAnimation(
             rect.left + rect.width / 2,
             rect.top + rect.height / 2,
-            item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "/img/NoImage.png",
+            getPosterSource(item),
             rect.width,
             rect.height
           );
@@ -162,7 +166,7 @@ useEffect(() => {
           payload: {
             tmdbId: String(item.id),
             title: item.title,
-            posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+            posterUrl: getPosterSource(item) === "/img/logo.png" ? null : getPosterSource(item),
           },
         });
 
@@ -183,39 +187,6 @@ useEffect(() => {
     } catch {
       setIsLiked((prev) => !prev); // rollback
       showToast("Something went wrong", 1400);
-    }
-  };
-
-  async function addToWatchlist() {
-    const res = await fetch("/api/watchlist/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        movieId: String(item.id),
-        title: item.title,
-        posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/original${item.poster_path}` : null,
-      }),
-    });
-    if (!res.ok) throw new Error("watchlist add failed");
-  }
-
-  const handleAddToWatchlist = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      if (!isInWatchlist) {
-        setIsInWatchlist(true);
-        gsap.to(".watchlist-btn", { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 });
-        await addToWatchlist();
-        showToast("Added to Watchlist");
-      } else {
-        setIsInWatchlist(false);
-        showToast("Removed from Watchlist");
-        // TODO: call /api/watchlist/remove when you have it
-      }
-    } catch {
-      setIsInWatchlist((p) => !p);
-      showToast("Action failed", 1400);
     }
   };
 
@@ -255,7 +226,7 @@ useEffect(() => {
         <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-yellow-400 to-yellow-600 relative">
           <div ref={posterRef}>
             <Image
-              src={item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "/img/NoImage.png"}
+              src={getPosterSource(item)}
               alt={item.title}
               width={200}
               height={300}
@@ -280,30 +251,31 @@ useEffect(() => {
               <MdFavorite size={16} />
             </button>
 
-            <button
-              onClick={handleAddToWatchlist}
-              className={`watchlist-btn p-2 rounded-full shadow-lg transition-all duration-200 transform hover:scale-110 border border-white/30 ${
-                isInWatchlist ? "bg-blue-500 text-white" : "bg-white/95 text-gray-800 hover:bg-blue-500 hover:text-white"
-              }`}
-              aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-            >
-              <MdAdd size={16} />
-            </button>
+            <AddToWatchlistControl
+              compact
+              movie={{
+                id: item.id,
+                title: item.title || item.original_title,
+                poster_path: item.poster_path,
+                posterUrl: item.posterUrl || null,
+              }}
+            />
           </div>
         </div>
 
         <div className="text-center space-y-2 px-2">
-          <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center tracking-tight">
+          <h3
+            className="font-bold text-gray-900 text-sm leading-tight min-h-[1.25rem] truncate tracking-tight"
+            title={item.title}
+          >
             {item.title}
           </h3>
           <div className="flex items-center justify-center gap-2 text-xs text-gray-600 font-medium">
-            <span className="bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
-              {item.release_date?.split("-")[0] || "TBA"}
-            </span>
-            <span className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full text-yellow-700 border border-yellow-200">
-              <MdStar size={12} />
-              {(item.vote_average ?? 0).toFixed(1)}
-            </span>
+            {getReleaseYear(item) ? (
+              <span className="bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                {getReleaseYear(item)}
+              </span>
+            ) : null}
           </div>
         </div>
 

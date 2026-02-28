@@ -5,7 +5,8 @@ const nextConfig = {
         domains: [
           'lh3.googleusercontent.com', 
           'avatars.githubusercontent.com',
-          "firebasestorage.googleapis.com"
+          "firebasestorage.googleapis.com",
+          "image.tmdb.org"
         ],
         unoptimized: true, // Disable image optimization
       },

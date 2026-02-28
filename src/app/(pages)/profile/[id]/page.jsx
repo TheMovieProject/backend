@@ -367,17 +367,6 @@ export default function UserProfilePage({ params }) {
   
       if (!response.ok) throw new Error('Failed to update follow status');
   
-      if (!state.isFollowing) {
-        await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'FOLLOW',
-            toUserId: id,
-          })
-        });
-      }
-  
       dispatch({ type: 'SET_FOLLOW_STATUS', payload: !state.isFollowing });
       dispatch({ type: 'UPDATE_FOLLOW_COUNTS', payload: { isFollowing: !state.isFollowing } });
       

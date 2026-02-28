@@ -4,6 +4,27 @@ import { NextResponse } from "next/server";
 const calculateWeeklyTrendingScore = (likes7d, ratings7d, watchlist7d, reviews7d) =>
   likes7d * 4 + reviews7d * 3 + watchlist7d * 2 + ratings7d;
 
+const TMDB_BASE = "https://api.themoviedb.org/3";
+const TMDB_FALLBACK_KEY = "095ba7f7fba6c8e94aa5f385a319cea7";
+
+const tmdbApiKey = () =>
+  process.env.TMDB_API_KEY ||
+  process.env.MOVIEDB_API_KEY ||
+  process.env.NEXT_PUBLIC_API_KEY ||
+  TMDB_FALLBACK_KEY;
+
+async function enrichTmdbMovie(tmdbId) {
+  if (!tmdbId) return null;
+
+  const res = await fetch(
+    `${TMDB_BASE}/movie/${tmdbId}?api_key=${tmdbApiKey()}&language=en-US`,
+    { next: { revalidate: 900 } }
+  );
+
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export const GET = async () => {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -70,11 +91,27 @@ export const GET = async () => {
           trendingScore,
         };
       })
-      // optional: drop movies with 0 score so list isn't all zeros
-      // .filter((m) => m.trendingScore > 0)
       .sort((a, b) => b.trendingScore - a.trendingScore);
 
-    return NextResponse.json(weeklyTrending, { status: 200 });
+    const topTrending = weeklyTrending.slice(0, 20);
+    const enrichedMeta = await Promise.all(
+      topTrending.map(async (movie) => {
+        const tmdbMovie = await enrichTmdbMovie(movie.tmdbId);
+        return {
+          ...movie,
+          posterPath: tmdbMovie?.poster_path ?? null,
+          releaseDate: tmdbMovie?.release_date ?? null,
+          tmdbVoteAverage: Number(tmdbMovie?.vote_average ?? 0),
+        };
+      })
+    );
+
+    return NextResponse.json(enrichedMeta, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=3600",
+      },
+    });
   } catch (err) {
     console.error("Error fetching weekly trending movies:", err);
     return NextResponse.json(

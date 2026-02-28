@@ -104,11 +104,14 @@ const UserBlogs = ({ id }) => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white text-center p-4">
-                      <div>
-                        <h3 className="font-bold text-sm mb-1 line-clamp-2">{blog.title}</h3>
-                        <p className="text-xs opacity-90">No thumbnail</p>
-                      </div>
+                    <div className="w-full h-full flex items-center justify-center p-4">
+                      <Image
+                        src="/img/logo.png"
+                        alt="TheMovieProject"
+                        width={72}
+                        height={72}
+                        className="h-16 w-16 object-contain opacity-90"
+                      />
                     </div>
                   )}
                 </div>

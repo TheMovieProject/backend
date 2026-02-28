@@ -10,6 +10,8 @@ declare module "next-auth" {
       image?: string | null
       username?: string | null
       bio?: string | null
+      avatarUrl?: string | null
+      movieGenres?: string[]
     }
   }
 
@@ -20,12 +22,17 @@ declare module "next-auth" {
     image?: string | null
     username?: string | null
     bio?: string | null
+    avatarUrl?: string | null
+    movieGenres?: string[]
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
+    email?: string | null
+    avatarUrl?: string | null
+    movieGenres?: string[]
     username?: string | null
     bio?: string | null
   }

@@ -74,6 +74,8 @@ export async function POST(req: Request) {
         },
       },
     });
+    if (!updated) return new Response("Review not found", { status: 404 });
+
     return new Response(JSON.stringify(shapeReview(updated)), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -116,6 +118,78 @@ export async function GET(req: Request) {
     });
   } catch (e: any) {
     console.error("[reviewComments GET]", e);
+    return new Response("Server error", { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions as unknown as NextAuthOptions);
+    if (!session?.user?.email) return new Response("Unauthorized", { status: 401 });
+
+    const me = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!me) return new Response("User not found", { status: 404 });
+
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get("commentId");
+    if (!commentId) return new Response("Missing commentId", { status: 400 });
+
+    const target = await prisma.reviewComment.findUnique({
+      where: { id: commentId },
+      include: { review: { select: { id: true, userId: true } } },
+    });
+    if (!target) return new Response("Comment not found", { status: 404 });
+
+    const isOwner = target.userId === me.id;
+    const isReviewAuthor = target.review?.userId === me.id;
+    if (!isOwner && !isReviewAuthor) return new Response("Forbidden", { status: 403 });
+
+    const toDelete = new Set<string>([commentId]);
+    const queue = [commentId];
+    while (queue.length) {
+      const currentId = queue.shift();
+      if (!currentId) continue;
+
+      const children = await prisma.reviewComment.findMany({
+        where: { parentId: currentId },
+        select: { id: true },
+      });
+      for (const child of children) {
+        if (toDelete.has(child.id)) continue;
+        toDelete.add(child.id);
+        queue.push(child.id);
+      }
+    }
+
+    await prisma.reviewComment.deleteMany({
+      where: { id: { in: Array.from(toDelete) } },
+    });
+
+    const updated = await prisma.review.findUnique({
+      where: { id: target.reviewId },
+      include: {
+        movie: { select: includeMovie },
+        user: { select: includeUser },
+        reviewComments: {
+          include: { user: { select: includeUser } },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!updated) {
+      return new Response(JSON.stringify({ deleted: true, reviewId: target.reviewId }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify(shapeReview(updated)), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e: any) {
+    console.error("[reviewComments DELETE]", e);
     return new Response("Server error", { status: 500 });
   }
 }

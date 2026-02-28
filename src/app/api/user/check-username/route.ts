@@ -1,22 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/api/auth/[...nextauth]/connect";
+import prisma from "@/app/libs/prismaDB";
+import { getClientIp, normalizeUsername, rateLimit } from "@/app/libs/auth_security";
 
 export async function GET(req: NextRequest) {
   try {
-    const u = req.nextUrl.searchParams.get("u")?.toLowerCase() || "";
-    if (!u) return NextResponse.json({ available: false });
+    const ip = getClientIp(req);
+    const limiter = rateLimit(`auth:username:${ip}`, {
+      windowMs: 60 * 1000,
+      max: 45,
+      blockMs: 5 * 60 * 1000,
+    });
 
-    // Validate quickly here too
-    const USERNAME_RE = /^[a-z0-9_\.]{3,20}$/;
-    if (!USERNAME_RE.test(u)) return NextResponse.json({ available: false });
+    if (!limiter.allowed) {
+      return NextResponse.json(
+        { available: false },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limiter.retryAfterSec),
+          },
+        }
+      );
+    }
 
-    const existing = await prisma.user.findFirst({
-      where: { username: u },
+    const u = req.nextUrl.searchParams.get("u");
+    const username = normalizeUsername(u);
+    if (!username) return NextResponse.json({ available: false });
+
+    const existing = await prisma.user.findUnique({
+      where: { username },
       select: { id: true },
     });
 
     return NextResponse.json({ available: !existing });
-  } catch (e) {
-    return NextResponse.json({ available: false });
+  } catch {
+    return NextResponse.json({ available: false }, { status: 500 });
   }
 }

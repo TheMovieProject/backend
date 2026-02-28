@@ -25,7 +25,7 @@ export default function Hero() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(requests.requestPopular, { cache: "no-store" });
+        const res = await fetch(requests.requestPopular);
         const data = await res.json();
         setItems(data?.results ?? []);
       } catch (e) {
@@ -138,7 +138,7 @@ export default function Hero() {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-yellow-600 text-white/70">
         <Image
-          src="/img/NoImage.png"
+          src="/img/logo.png"
           alt="No Image"
           width={120}
           height={120}

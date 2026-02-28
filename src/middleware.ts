@@ -1,94 +1,97 @@
-// middleware.ts
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const protectedPaths = [
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET ?? process.env.SECRET;
+
+const AUTH_PAGES = new Set(["/login", "/signup"]);
+const PROTECTED_PATHS = [
   "/profile",
   "/write",
   "/watchlist",
+  "/watchlists",
   "/liked",
   "/movies",
   "/home",
-  "theater",
-
+  "/theater",
 ];
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  process.env.NODE_ENV === "development"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"
+    : "script-src 'self' 'unsafe-inline' https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "font-src 'self' data: https:",
+  "connect-src 'self' https: wss:",
+].join("; ");
 
-  // 🔍 Debug: confirm middleware is running, and what path
-  console.log("🔹 MIDDLEWARE RUN →", pathname);
-
-  // 1. Auth protection
-  const isProtected = protectedPaths.some(
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
-
-  if (isProtected) {
-    // ✅ Explicitly use the same SECRET as NextAuth
-    const token = await getToken({
-      req,
-      secret: process.env.SECRET,
-    });
-
-    console.log("   → isProtected:", pathname, "token?", !!token);
-
-    if (!token) {
-      const loginUrl = new URL("/login", req.url); // or "/login"
-      // loginUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  // 2. Simple in-memory rate limiting (single server only)
-  const ip = req.ip ?? "127.0.0.1";
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 minute
-  const maxRequests = 60;
-
-  const globalAny = globalThis as any;
-  if (!globalAny.rateLimit) {
-    globalAny.rateLimit = new Map<string, number[]>();
-  }
-
-  const requests: number[] = globalAny.rateLimit.get(ip) || [];
-  const recentRequests = requests.filter((t) => now - t < windowMs);
-  recentRequests.push(now);
-  globalAny.rateLimit.set(ip, recentRequests);
-
-  if (recentRequests.length > maxRequests) {
-    return new NextResponse("Too Many Requests", { status: 429 });
-  }
-
-  // 3. Security headers
- // 3. Security headers
-const res = NextResponse.next();
-res.headers.set("X-Frame-Options", "DENY");
-res.headers.set("X-Content-Type-Options", "nosniff");
-res.headers.set("X-XSS-Protection", "1; mode=block");
-res.headers.set(
-  "Strict-Transport-Security",
-  "max-age=63072000; includeSubDomains; preload"
-);
-
-// 👇 UPDATED CSP
-res.headers.set(
-  "Content-Security-Policy",
-  [
-    "default-src 'self'",
-    "connect-src 'self' https://api.themoviedb.org", // allow TMDB API
-    "img-src * blob: data:",
-    "media-src *",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    "frame-ancestors 'none'",
-  ].join("; ")
-);
-
-return res;
 }
 
-// Run on all non-static, non-API routes
+function isSafeInternalPath(pathname: string | null): pathname is string {
+  return Boolean(pathname && pathname.startsWith("/") && !pathname.startsWith("//"));
+}
+
+function isAuthPath(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login?") ||
+    pathname === "/signup" ||
+    pathname.startsWith("/signup?")
+  );
+}
+
+function applySecurityHeaders(res: NextResponse, req: NextRequest): NextResponse {
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+
+  if (req.nextUrl.protocol === "https:") {
+    res.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    );
+  }
+
+  return res;
+}
+
+export async function middleware(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+  const token = await getToken({ req, secret: AUTH_SECRET });
+
+  if (!token && isProtectedPath(pathname)) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("from", `${pathname}${search}`);
+    return applySecurityHeaders(NextResponse.redirect(loginUrl), req);
+  }
+
+  if (token && AUTH_PAGES.has(pathname)) {
+    const from = req.nextUrl.searchParams.get("from");
+    const redirectPath =
+      isSafeInternalPath(from) && !isAuthPath(from) ? from : "/profile";
+
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL(redirectPath, req.url)),
+      req
+    );
+  }
+
+  return applySecurityHeaders(NextResponse.next(), req);
+}
+
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
+
