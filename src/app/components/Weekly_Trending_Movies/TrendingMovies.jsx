@@ -1,40 +1,66 @@
 "use client";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import NoImage from '../../../../public/img/NoImage.jpg'
-import { MdPlayArrow } from "react-icons/md";
+import MovieBlock from "@/app/components/MovieBlock/MovieBlock";
+
+const SECTION_HEADING_CLASS = "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white";
+const SECTION_SUBTITLE_CLASS = "text-sm md:text-base text-yellow-100/80";
+
+function toMovieBlockItem(item) {
+  return {
+    id: item?.tmdbId ?? item?.id,
+    title: item?.title || item?.original_title || "Untitled",
+    original_title: item?.original_title || item?.title || "Untitled",
+    poster_path: item?.posterPath ?? null,
+    posterUrl: item?.posterUrl ?? null,
+    vote_average: Number(item?.avgRating7d ?? item?.tmdbVoteAverage ?? item?.vote_average ?? 0),
+    release_date: item?.releaseDate ?? item?.release_date ?? null,
+  };
+}
+
 const TrendingMovies = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchTrendingMovies = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await axios.get("/api/trending_movies_week");
-      const top15 = (res.data || []).slice(0, 15);
-
-      setMovies(top15);
-    } catch (err) {
-      console.log(err);
-      setError(err?.response?.data?.message || "Failed to load trending movies.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTrendingMovies();
+    const controller = new AbortController();
+    let alive = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await fetch("/api/trending_movies_week", { signal: controller.signal });
+        if (!res.ok) {
+          throw new Error(`Failed to load trending movies (${res.status})`);
+        }
+        const data = await res.json();
+        if (!alive) return;
+        setMovies((data || []).slice(0, 15));
+      } catch (err) {
+        if (!alive || err?.name === "AbortError") return;
+        console.log(err);
+        setError(err?.message || "Failed to load trending movies.");
+      } finally {
+        if (alive) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      alive = false;
+      controller.abort();
+    };
   }, []);
 
   const SkeletonLoader = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+    <div
+      className="grid grid-cols-2 gap-x-6 gap-y-10 pt-8 sm:grid-cols-3 lg:grid-cols-6"
+    >
       {[...Array(6)].map((_, index) => (
-        <div key={index} className="animate-pulse">
+        <div key={index} className="w-full max-w-[185px] justify-self-center animate-pulse pt-8">
           <div className="bg-gray-700/50 rounded-xl h-64 mb-2"></div>
           <div className="h-4 bg-gray-700/50 rounded w-3/4 mb-2"></div>
           <div className="h-3 bg-gray-700/50 rounded w-1/2"></div>
@@ -44,14 +70,17 @@ const TrendingMovies = () => {
   );
 
   return (
-    <div className="min-h-screen p-6 pt-20 font-sans">
-      <div className="max-w-7xl mx-auto mb-12">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <h1 className="text-2xl lg:text-4xl font-bold text-white">
+    <section className="px-4 pt-16 md:px-6 md:pt-20 font-sans">
+      <div className="max-w-7xl mx-auto mb-12 space-y-6">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-3 mb-2">
+            <h1 className={SECTION_HEADING_CLASS}>
               This Week&apos;s Trending on TheMovieProject
             </h1>
           </div>
+          <p className={`mx-auto max-w-3xl ${SECTION_SUBTITLE_CLASS}`}>
+            Worldwide momentum ranked from the last 7 days of likes, ratings, watchlists, reviews, and movie-to-movie demand.
+          </p>
         </div>
 
         {loading ? (
@@ -77,56 +106,18 @@ const TrendingMovies = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          <div
+            className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-6"
+          >
             {movies.map((item, index) => (
-              <div 
-                                key={index} 
-                                className="group relative"
-                            >
-                                {/* Polaroid-style Movie Card */}
-                                <div className="bg-white  shadow-lg hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2 p-4 border border-gray-200">
-                                    {/* Movie Poster Polaroid */}
-                                    <Link href={`/movies/${item.tmdbId}`} passHref>
-                                        <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-yellow-400 to-orange-500 relative">
-                                            <Image
-                                                src={item.posterUrl ? `https://image.tmdb.org/t/p/w500${item.posterUrl}` : NoImage}
-                                                alt={item.title || "Movie Image"}
-                                                width={200}
-                                                height={300}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                            />
-                                            
-                                            {/* Play Overlay */}
-                                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center">
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:scale-110">
-                                                    <MdPlayArrow size={48} className="text-white drop-shadow-lg" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                    
-                                    {/* Movie Title & Remove Button */}
-                                    <div className="text-center space-y-3">
-                                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">
-                                            {item.title}
-                                        </h3>
-                                        
-                                        {/* <button
-                                            onClick={() => removeFromWatchlist(item.movieId)}
-                                            className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group/btn transform hover:scale-105"
-                                        >
-                                            <MdDelete size={16} className="group-hover/btn:scale-110 transition-transform" />
-                                            <span className="text-xs">Remove</span>
-                                        </button> */}
-                                    </div>
-                                </div>
-                                
-                            </div>
+              <div key={item.id || item.tmdbId || index} className="w-full max-w-[185px] justify-self-center pt-8">
+                <MovieBlock item={toMovieBlockItem(item)} index={index} />
+              </div>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 

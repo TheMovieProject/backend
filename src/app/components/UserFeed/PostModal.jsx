@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Portal from "../Portal/Portal";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Heart, Flame, MessageCircle, Clock, Smile, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
@@ -66,7 +66,16 @@ export default function PostModal({ post, onClose, onReactionUpdate }) {
       firedByMe: !!post.firedByMe,
       commentsCount: post.commentsCount,
     });
-  }, [post.id, entityType]);
+  }, [
+    post.id,
+    post.likes,
+    post.fire,
+    post.likedByMe,
+    post.firedByMe,
+    post.commentsCount,
+    entityType,
+    upsert,
+  ]);
 
   const [tree, setTree] = useState([]);
   const [text, setText] = useState("");
@@ -84,7 +93,7 @@ export default function PostModal({ post, onClose, onReactionUpdate }) {
   const emojis = ["😂", "😍", "😮", "😢", "😡", "👍", "🔥", "✨", "🎯", "💯"];
 
   /* ---------- fetch comments as TREE ---------- */
-  async function fetchComments() {
+  const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
       const qs = entityType === "review" ? `?reviewId=${post.id}` : `?blogId=${post.id}`;
@@ -117,11 +126,11 @@ export default function PostModal({ post, onClose, onReactionUpdate }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [entityType, post.id, listEndpoint, upsert]);
 
   useEffect(() => {
     fetchComments();
-  }, [entityType, post.id]);
+  }, [fetchComments]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });

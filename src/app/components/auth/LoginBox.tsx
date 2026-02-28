@@ -1,9 +1,17 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+
+function loginErrorMessage(error?: string) {
+  if (typeof error === "string" && error.toLowerCase().includes("too many")) {
+    return error;
+  }
+  return "Invalid email or password.";
+}
 
 export default function LoginBox() {
   const { status } = useSession();
@@ -18,22 +26,41 @@ export default function LoginBox() {
 
   const userLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    const result = await signIn("credentials", { ...user, redirect: false });
-    setSubmitting(false);
+    const email = user.email.trim().toLowerCase();
+    const password = user.password;
 
-    if (result?.error) {
-      toast.error("Login failed: " + result.error);
-    } else {
+    if (!email || !password) {
+      toast.error("Email and password are required.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error(loginErrorMessage(result.error));
+        return;
+      }
+
       toast.success("Welcome back!");
       router.push("/profile");
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const googleLogin = () => {
     setSubmitting(true);
-    signIn("google", { callbackUrl: "/profile", redirect: true })
-      .finally(() => setSubmitting(false));
+    signIn("google", { callbackUrl: "/profile", redirect: true }).catch(() => {
+      setSubmitting(false);
+      toast.error("Google sign in failed. Please try again.");
+    });
   };
 
   return (
@@ -43,7 +70,7 @@ export default function LoginBox() {
         <p className="text-sm text-white/60 mt-1">Welcome to Movie Project</p>
       </div>
 
-      {/* <form onSubmit={userLogin} className="space-y-4">
+      <form onSubmit={userLogin} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
             Email
@@ -56,6 +83,7 @@ export default function LoginBox() {
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
             placeholder="you@example.com"
             required
+            autoComplete="email"
           />
         </div>
 
@@ -70,8 +98,9 @@ export default function LoginBox() {
               value={user.password}
               onChange={(e) => setUser((p) => ({ ...p, password: e.target.value }))}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
-              placeholder="••••••••"
+              placeholder="********"
               required
+              autoComplete="current-password"
             />
             <button
               type="button"
@@ -86,28 +115,38 @@ export default function LoginBox() {
         <button
           type="submit"
           disabled={submitting}
-          className={`w-full rounded-xl py-2.5 text-sm font-semibold transition
-            ${submitting ? "bg-white/30 text-white/60 cursor-not-allowed" : "bg-white text-black hover:bg-white/90"}`}
+          className={`w-full rounded-xl py-2.5 text-sm font-semibold transition ${
+            submitting
+              ? "bg-white/30 text-white/60 cursor-not-allowed"
+              : "bg-white text-black hover:bg-white/90"
+          }`}
         >
-          {submitting ? "Signing in…" : "Login"}
+          {submitting ? "Signing in..." : "Login"}
         </button>
-      </form> */}
+      </form>
+
+      <p className="mt-3 text-xs text-center text-white/70">
+        <Link href="/forgot-password" className="text-white hover:underline">
+          Forgot password?
+        </Link>
+      </p>
 
       <button
         onClick={googleLogin}
         disabled={submitting}
-        className={`w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition
-          ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+        className={`w-full mt-4 rounded-xl border border-white/10 bg-white/10 py-2.5 text-sm text-white hover:bg-white/15 transition ${
+          submitting ? "opacity-60 cursor-not-allowed" : ""
+        }`}
       >
-        {submitting ? "Please wait…" : "Sign in with Google"}
+        {submitting ? "Please wait..." : "Sign in with Google"}
       </button>
 
-      {/* <p className="mt-6 text-sm text-center text-white/70">
-        Don&apos;t have an account?{" "}
+      <p className="mt-6 text-sm text-center text-white/70">
+        Do not have an account?{" "}
         <Link href="/signup" className="text-white hover:underline">
           Sign up
         </Link>
-      </p> */}
+      </p>
     </div>
   );
 }

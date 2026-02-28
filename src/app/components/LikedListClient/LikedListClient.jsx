@@ -45,7 +45,7 @@ export default function LikedListClient({ initialLikedList = [] }) {
                   <Link href={`/movies/${item.movie.tmdbId}`} passHref>
                     <div className="aspect-[3/4] overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-yellow-500 relative">
                       <Image
-                        src={item.movie.posterUrl || "/img/NoImage.png"}
+                        src={item.movie.posterUrl || "/img/logo.png"}
                         alt={item.movie.title || "Movie"}
                         width={200}
                         height={300}

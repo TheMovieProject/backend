@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Watchlist {
+model LegacyWatchlist {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
   userId  String   @db.ObjectId
   movieId String   @db.ObjectId
@@ -19,6 +19,7 @@ model Watchlist {
   movie   Movie    @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId])
+  @@map("Watchlist")
 }
 
 model Liked {
@@ -129,7 +130,8 @@ model Movie {
   tmdbId    String      @unique
   title     String
   posterUrl String?
-  watchlist Watchlist[]
+  watchlist LegacyWatchlist[]
+  watchlistItems WatchlistItem[]
   liked     Liked[]
   ratings   Rating[]
   reviews   Review[] // Relationship to reviews
@@ -158,7 +160,7 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   accounts        Account[]
-  watchlist       Watchlist[]
+  watchlist       LegacyWatchlist[]
   liked           Liked[]
   ratings         Rating[]
   reviews         Review[]
@@ -175,6 +177,140 @@ model User {
   videos Video[]
 
   videoComments VideoComment[]
+
+  watchlistCollections Watchlist[] @relation("WatchlistOwner")
+  watchlistMemberships WatchlistMember[] @relation("WatchlistMemberships")
+  watchlistMemberInvitesSent WatchlistMember[] @relation("WatchlistMemberInvitedBy")
+  watchlistItemsAdded  WatchlistItem[] @relation("WatchlistItemsAdded")
+  watchlistInvitesSent WatchlistInvite[] @relation("WatchlistInvitesSent")
+  watchlistInviteTargets WatchlistInvite[] @relation("WatchlistInviteTargetUser")
+  watchlistActivities WatchlistActivity[] @relation("WatchlistActivityActor")
+  notifications       Notification[] @relation("notifications")
+  sentNotifications   Notification[] @relation("sentNotifications")
+}
+
+model Watchlist {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId    String   @map("userId") @db.ObjectId
+  name       String
+  slug       String
+  visibility WatchlistVisibility?
+  isPublic   Boolean  @default(false) // legacy mirror field for backward compatibility
+  coverImage String?
+  isSystemDefault Boolean?
+  shareToken String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner      User               @relation("WatchlistOwner", fields: [ownerId], references: [id])
+  items      WatchlistItem[]
+  members    WatchlistMember[]
+  invites    WatchlistInvite[]
+  activities WatchlistActivity[]
+
+  @@unique([ownerId, slug])
+  @@index([ownerId])
+  @@index([visibility])
+  @@map("WatchlistCollection")
+}
+
+model WatchlistItem {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  watchlistId  String   @map("collectionId") @db.ObjectId
+  movieId      String   @db.ObjectId
+  addedByUserId String? @db.ObjectId
+  notes        String?
+  rank         Float?
+  addedAt      DateTime @default(now())
+  updatedAt    DateTime? @updatedAt
+
+  watchlist   Watchlist          @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  movie       Movie              @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  addedByUser User?              @relation("WatchlistItemsAdded", fields: [addedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([watchlistId, movieId])
+  @@index([watchlistId])
+  @@index([watchlistId, rank])
+  @@index([movieId])
+  @@map("WatchlistCollectionItem")
+}
+
+model WatchlistMember {
+  id             String               @id @default(auto()) @map("_id") @db.ObjectId
+  watchlistId    String               @db.ObjectId
+  userId         String               @db.ObjectId
+  role           WatchlistMemberRole
+  status         WatchlistMemberStatus @default(ACTIVE)
+  invitedByUserId String?             @db.ObjectId
+  joinedAt       DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  watchlist      Watchlist            @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  user           User                 @relation("WatchlistMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  invitedByUser  User?                @relation("WatchlistMemberInvitedBy", fields: [invitedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([watchlistId, userId])
+  @@index([userId, status])
+}
+
+model WatchlistInvite {
+  id              String              @id @default(auto()) @map("_id") @db.ObjectId
+  watchlistId     String              @db.ObjectId
+  token           String              @unique
+  email           String?
+  invitedUserId   String?             @db.ObjectId
+  invitedByUserId String              @db.ObjectId
+  role            WatchlistMemberRole
+  status          WatchlistInviteStatus @default(INVITED)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  watchlist       Watchlist           @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  invitedUser     User?               @relation("WatchlistInviteTargetUser", fields: [invitedUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invitedByUser   User                @relation("WatchlistInvitesSent", fields: [invitedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([watchlistId, status])
+  @@index([expiresAt])
+}
+
+model WatchlistActivity {
+  id         String               @id @default(auto()) @map("_id") @db.ObjectId
+  watchlistId String              @db.ObjectId
+  actorId    String?              @db.ObjectId
+  type       WatchlistActivityType
+  movieId    String?              @db.ObjectId
+  targetUserId String?            @db.ObjectId
+  metadata   Json?
+  createdAt  DateTime             @default(now())
+
+  watchlist  Watchlist            @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  actor      User?                @relation("WatchlistActivityActor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([watchlistId, createdAt])
+}
+
+model Notification {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String           @db.ObjectId
+  actorId    String?          @db.ObjectId
+  type       NotificationType
+  entityType String?
+  entityId   String?
+  title      String
+  body       String?
+  link       String?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user  User  @relation("notifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("sentNotifications", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model MovieVote {
@@ -202,6 +338,20 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model AuthToken {
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  tokenHash  String        @unique
+  type       AuthTokenType
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([identifier, type])
+  @@index([expiresAt])
 }
 
 model Account {
@@ -299,11 +449,58 @@ enum Visibility {
   private
 }
 
+enum WatchlistVisibility {
+  PRIVATE
+  SHARED
+}
+
+enum WatchlistMemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum WatchlistMemberStatus {
+  ACTIVE
+  INVITED
+  REVOKED
+  LEFT
+}
+
+enum WatchlistInviteStatus {
+  INVITED
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum WatchlistActivityType {
+  WATCHLIST_CREATED
+  WATCHLIST_UPDATED
+  ITEM_ADDED
+  ITEM_REMOVED
+  ITEMS_REORDERED
+  MEMBER_INVITED
+  MEMBER_JOINED
+}
+
 enum VideoStatus {
   pending
   processing
   ready
   failed
+}
+
+enum AuthTokenType {
+  email_verification
+  password_reset
+}
+
+enum NotificationType {
+  FOLLOW
+  REACTION_LIKE
+  REACTION_FIRE
+  SYSTEM
 }
 
 

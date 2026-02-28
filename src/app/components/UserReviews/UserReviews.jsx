@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
 import { AiOutlineDelete, AiOutlineLike, AiOutlineFire } from 'react-icons/ai';
 
-const FALLBACK_POSTER = '/img/NoImage.jpg';
+const FALLBACK_POSTER = "/img/logo.png";
 
 export default function UserReviews({ id }) {
   const { data: session, status } = useSession();

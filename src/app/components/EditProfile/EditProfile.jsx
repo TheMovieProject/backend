@@ -127,14 +127,18 @@ const EditProfile = ({ setProfile , userId }) => {
 
       console.log("Server response:", response.data);
 
-      // Update the session with new user data
+      // Only send the fields NextAuth needs to patch in the JWT.
+      const sessionAvatarUrl =
+        typeof response.data?.avatarUrl === "string" &&
+        !response.data.avatarUrl.startsWith("data:")
+          ? response.data.avatarUrl
+          : null;
+
       await update({
-        ...session,
         user: {
-          ...session?.user,
           username,
           bio,
-          avatarUrl: avatar,
+          avatarUrl: sessionAvatarUrl,
           movieGenres,
         },
       });

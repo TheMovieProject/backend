@@ -20,6 +20,7 @@ type Store = {
   byId: Record<EntityKey, EntitySnapshot>;
   // write APIs
   upsert: (snap: Partial<EntitySnapshot> & {id:string; entityType:EntityType}) => void;
+  upsertFromBroadcast: (snap: Partial<EntitySnapshot> & {id:string; entityType:EntityType}) => void;
   optimisticToggle: (
     entityType: EntityType,
     id: string,
@@ -30,6 +31,14 @@ type Store = {
   clear: () => void;
 };
 
+function isBroadcastSnapshot(
+  payload: unknown
+): payload is Partial<EntitySnapshot> & { id: string; entityType: EntityType } {
+  if (!payload || typeof payload !== "object") return false;
+  const snap = payload as { id?: unknown; entityType?: unknown };
+  if (typeof snap.id !== "string" || snap.id.trim() === "") return false;
+  return snap.entityType === "review" || snap.entityType === "blog";
+}
 const channel =
   typeof window !== "undefined" ? new BroadcastChannel("entity-updates") : null;
 
@@ -42,8 +51,17 @@ export const useEntityStore = create<Store>((set, get) => ({
       const prev = s.byId[key] || { id: snap.id, entityType: snap.entityType, likes: 0, fire: 0 };
       const next = { ...prev, ...snap };
       const byId = { ...s.byId, [key]: next };
-      // cross-tab broadcast
-      channel?.postMessage({ type: "upsert", payload: next });
+      return { byId };
+    });
+    channel?.postMessage({ type: "upsert", payload: snap });
+  },
+
+  upsertFromBroadcast: (snap) => {
+    const key: EntityKey = `${snap.entityType}:${snap.id}`;
+    set((s) => {
+      const prev = s.byId[key] || { id: snap.id, entityType: snap.entityType, likes: 0, fire: 0 };
+      const next = { ...prev, ...snap };
+      const byId = { ...s.byId, [key]: next };
       return { byId };
     });
   },
@@ -112,8 +130,8 @@ export const useEntityStore = create<Store>((set, get) => ({
 
 // cross-tab listener
 channel?.addEventListener("message", (ev) => {
-  if (ev.data?.type === "upsert") {
-    useEntityStore.getState().upsert(ev.data.payload);
+  if (ev.data?.type === "upsert" && isBroadcastSnapshot(ev.data?.payload)) {
+    useEntityStore.getState().upsertFromBroadcast(ev.data.payload);
   }
 });
 

@@ -128,7 +128,9 @@ export async function GET(req: Request) {
           likedByMe: false,
           firedByMe: false,
         };
-        if (r.reactionType === "likes") myReactions[r.entityId].likedByMe = true;
+        if (r.reactionType === "like" || r.reactionType === "likes") {
+          myReactions[r.entityId].likedByMe = true;
+        }
         if (r.reactionType === "fire") myReactions[r.entityId].firedByMe = true;
       }
     }
@@ -264,7 +266,13 @@ export async function DELETE(req: Request) {
     if (!review) return new Response("Review not found", { status: 404 });
     if (review.userId !== me.id) return new Response("Forbidden", { status: 403 });
 
-    await prisma.review.delete({ where: { id: reviewId } });
+    await prisma.$transaction([
+      prisma.reviewComment.deleteMany({ where: { reviewId } }),
+      prisma.entityReaction.deleteMany({
+        where: { entityType: "review", entityId: reviewId },
+      }),
+      prisma.review.delete({ where: { id: reviewId } }),
+    ]);
 
     return new Response("Deleted", { status: 200 });
   } catch (e: any) {

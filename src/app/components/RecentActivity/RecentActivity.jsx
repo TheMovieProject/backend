@@ -94,7 +94,7 @@ const FollowerActivity = () => {
                 link: `/movies/${review.movie?.tmdbId || ""}`,
                 posterPath: movieInfo?.poster_path
                   ? `https://image.tmdb.org/t/p/w500${movieInfo.poster_path}`
-                  : "/img/NoImage.png",
+                  : "/img/logo.png",
                 likes: review.likes || 0,
                 comments: review.comments?.length || 0,
                 views: review.views || 0,
@@ -110,7 +110,7 @@ const FollowerActivity = () => {
             createdAt: blog.createdAt,
             title: blog.title,
             link: `/blog/${blog.id}`,
-            posterPath: blog.thumbnail || "/img/NoImage.png",
+            posterPath: blog.thumbnail || "/img/logo.png",
             likes: blog.likes || 0,
             comments: blog.comments?.length || 0,
             views: blog.views || 0,
@@ -210,12 +210,12 @@ const FollowerActivity = () => {
             onClick={() => openActivityModal(activity)}
           >
             <Image
-              src={activity.posterPath || "/placeholder.svg"}
+              src={activity.posterPath || "/img/logo.png"}
               alt={activity.title}
               fill
               className="object-cover hover:scale-105 transition-transform duration-300"
               onError={(e) => {
-                e.currentTarget.src = "/img/NoImage.png"
+                e.currentTarget.src = "/img/logo.png"
               }}
             />
 
@@ -248,12 +248,12 @@ const FollowerActivity = () => {
               {/* Left side - Image */}
               <div className="relative w-full md:w-1/2 aspect-square md:aspect-auto">
                 <Image
-                  src={selectedActivity.posterPath || "/placeholder.svg"}
+                  src={selectedActivity.posterPath || "/img/logo.png"}
                   alt={selectedActivity.title}
                   fill
                   className="object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = "/img/NoImage.png"
+                    e.currentTarget.src = "/img/logo.png"
                   }}
                 />
               </div>

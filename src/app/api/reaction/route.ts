@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import type { NextAuthOptions } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
+import { createNotification } from "@/app/libs/notifications";
 
 /* ---------- helpers ---------- */
 function buildTree(flat: any[] = []) {
@@ -46,7 +47,7 @@ async function ensureCounters(entityType: "blog" | "review", entityId: string) {
 async function syncCountsFromReactions(entityType: "blog" | "review", entityId: string) {
   const [likeCount, fireCount] = await Promise.all([
     prisma.entityReaction.count({
-      where: { entityType, entityId, reactionType: "like" },
+      where: { entityType, entityId, reactionType: { in: ["like", "likes"] } },
     }),
     prisma.entityReaction.count({
       where: { entityType, entityId, reactionType: "fire" },
@@ -86,8 +87,37 @@ export async function POST(req: Request) {
 
     await ensureCounters(entityType, entityId);
 
+    const targetMeta =
+      entityType === "review"
+        ? await prisma.review.findUnique({
+            where: { id: entityId },
+            select: {
+              userId: true,
+              movie: { select: { tmdbId: true } },
+            },
+          })
+        : await prisma.blog.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              user: { select: { id: true } },
+            },
+          });
+
+    if (!targetMeta) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    const targetOwnerId =
+      entityType === "review" ? targetMeta.userId : targetMeta.user?.id;
+
     const existing = await prisma.entityReaction.findFirst({
-      where: { userId: me.id, entityId, entityType, reactionType: type },
+      where: {
+        userId: me.id,
+        entityId,
+        entityType,
+        reactionType: { in: type === "like" ? ["like", "likes"] : [type] },
+      },
     });
 
     if (existing) {
@@ -115,7 +145,7 @@ export async function POST(req: Request) {
             userId: me.id,
             entityId,
             entityType,
-            reactionType: type, // ✅ always singular
+            reactionType: type,
           },
         }),
         entityType === "review"
@@ -131,6 +161,26 @@ export async function POST(req: Request) {
               data: { [type === "like" ? "likes" : "fire"]: { increment: 1 } as any },
             }),
       ]);
+
+      if (targetOwnerId) {
+        await createNotification({
+          userId: targetOwnerId,
+          actorId: me.id,
+          type: type === "like" ? "REACTION_LIKE" : "REACTION_FIRE",
+          entityType,
+          entityId,
+          title:
+            type === "like"
+              ? `${me.username || "Someone"} liked your ${entityType}`
+              : `${me.username || "Someone"} reacted with fire on your ${entityType}`,
+          link:
+            entityType === "review"
+              ? targetMeta?.movie?.tmdbId
+                ? `/movies/${targetMeta.movie.tmdbId}`
+                : "/"
+              : `/blog/${entityId}`,
+        });
+      }
     }
 
     await syncCountsFromReactions(entityType, entityId);
@@ -155,7 +205,9 @@ export async function POST(req: Request) {
         select: { reactionType: true },
       });
 
-      const likedByMe = meReacts.some((x: { reactionType: string; }) => x.reactionType === "like");
+      const likedByMe = meReacts.some(
+        (x: { reactionType: string; }) => x.reactionType === "like" || x.reactionType === "likes"
+      );
       const firedByMe = meReacts.some((x: { reactionType: string; }) => x.reactionType === "fire");
 
       const payload = {
@@ -185,7 +237,9 @@ export async function POST(req: Request) {
       select: { reactionType: true },
     });
 
-    const likedByMe = myBlogReacts.some((x: { reactionType: string; }) => x.reactionType === "like");
+    const likedByMe = myBlogReacts.some(
+      (x: { reactionType: string; }) => x.reactionType === "like" || x.reactionType === "likes"
+    );
     const firedByMe = myBlogReacts.some((x: { reactionType: string; }) => x.reactionType === "fire");
 
     return new Response(
@@ -230,7 +284,7 @@ export async function GET(req: Request) {
     const map: Record<string, { likedByMe: boolean; firedByMe: boolean }> = {};
     for (const id of ids) map[id] = { likedByMe: false, firedByMe: false };
     for (const r of reacts) {
-      if (r.reactionType === "like") map[r.entityId].likedByMe = true;
+      if (r.reactionType === "like" || r.reactionType === "likes") map[r.entityId].likedByMe = true;
       if (r.reactionType === "fire") map[r.entityId].firedByMe = true;
     }
 

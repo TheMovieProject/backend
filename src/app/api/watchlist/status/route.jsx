@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
+import { ensureDefaultCollection } from "@/app/libs/watchlist_collections";
 
 
 export async function GET(req) {
@@ -26,12 +27,25 @@ export async function GET(req) {
 
   if (!movie) return Response.json({ inWatchlist: false });
 
-  const exists = await prisma.watchlist.findUnique({
-    where: {
-      userId_movieId: { userId: user.id, movieId: movie.id },
-    },
-    select: { id: true },
-  });
+  const defaultCollection = await ensureDefaultCollection(user.id);
 
-  return Response.json({ inWatchlist: !!exists });
+  const [legacy, collectionEntry] = await Promise.all([
+    prisma.legacyWatchlist.findUnique({
+      where: {
+        userId_movieId: { userId: user.id, movieId: movie.id },
+      },
+      select: { id: true },
+    }),
+    prisma.watchlistItem.findUnique({
+      where: {
+        watchlistId_movieId: {
+          watchlistId: defaultCollection.id,
+          movieId: movie.id,
+        },
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  return Response.json({ inWatchlist: !!legacy || !!collectionEntry });
 }

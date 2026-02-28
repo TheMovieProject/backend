@@ -2,38 +2,53 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { FaStar , FaHeart , FaRegEye } from "react-icons/fa";
+import { FaStar , FaHeart } from "react-icons/fa";
 import { Sparkles } from "lucide-react";
 import { FaEye } from "react-icons/fa6";
 import Link from "next/link"
-import axios from "axios"
 
 
-const img = (path, size = 154) => (path ? `https://image.tmdb.org/t/p/w${size}${path}` : null)
+const img = (path, size = 154) => {
+  if (!path) return null
+  if (/^(https?:)?\/\//.test(path)) return path
+  return `https://image.tmdb.org/t/p/w${size}${path}`
+}
 
 export default function TrendingMoviesMini() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const getData = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-     
-        const res = await axios.get('/api/trending_movies_week')
-        const data = await res.data
-      setItems(data.slice(0, 20))
-    } catch (e) {
-      setError(e?.message || "Failed to fetch trending movies.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    getData()
+    const controller = new AbortController()
+    let alive = true
+
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const res = await fetch("/api/trending_movies_week", { signal: controller.signal })
+        if (!res.ok) {
+          throw new Error(`Failed to fetch trending movies (${res.status})`)
+        }
+        const data = await res.json()
+        if (!alive) return
+        setItems(data.slice(0, 20))
+      } catch (e) {
+        if (!alive || e?.name === "AbortError") return
+        setError(e?.message || "Failed to fetch trending movies.")
+      } finally {
+        if (alive) {
+          setLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      alive = false
+      controller.abort()
+    }
   }, [])
 
   return (
@@ -71,7 +86,7 @@ export default function TrendingMoviesMini() {
           {items.slice(0, 8).map((m, idx) => {
             const title = m.title || m.original_title || "Untitled"
             // const year = m.release_date ? new Date(m.release_date).getFullYear() : null
-            const poster = img(m.posterUrl, 154)
+            const poster = img(m.posterPath || m.posterUrl, 154)
             const rating = m.avgRating7d ?? 0;
             const liked= m.likes7d ?? 0;
             const watchlisted = m.watchlist7d ?? 0;
@@ -85,7 +100,7 @@ export default function TrendingMoviesMini() {
                 <div className="h-14 w-10 overflow-hidden rounded-lg bg-white/10 flex-shrink-0 border border-white/10 group-hover:border-amber-400/40 transition-all duration-300">
                   {poster ? (
                     <Image
-                      src={poster || "/placeholder.svg"}
+                      src={poster || "/img/logo.png"}
                       alt={title}
                       width={40}
                       height={56}

@@ -69,7 +69,7 @@ const Upcoming = () => {
         {categories[category.index].data.length === 0 ? (
           <div className="text-center py-12">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 max-w-md mx-auto">
-              <div className="text-6xl mb-4">🎬</div>
+              <div className="mb-4 text-6xl">{"\u{1F3AC}"}</div>
               <h3 className="text-xl font-bold text-white mb-2">No {category.title}</h3>
               <p className="text-gray-300">
                 Check back later for new movie announcements.
@@ -77,9 +77,14 @@ const Upcoming = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          <div
+            className="grid justify-center gap-x-6 gap-y-10 pt-8"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(165px, 185px))" }}
+          >
             {categories[category.index].data.map((item, index) => (
-              <MovieBlock item={item} key={index} /> 
+              <div key={item.id || index} className="w-[165px] sm:w-[185px] pt-8">
+                <MovieBlock item={item} index={index} />
+              </div>
             ))}
           </div>
         )}
@@ -90,3 +95,4 @@ const Upcoming = () => {
 }
 
 export default Upcoming
+

@@ -12,13 +12,12 @@ type Props = {
 
 export default function LoginGate({ threshold = 0.2, once = true }: Props) {
   const { status } = useSession(); // "authenticated" | "loading" | "unauthenticated"
-  const authed = status === "authenticated";
   const [open, setOpen] = useState(false);
   const [triggered, setTriggered] = useState(false);
 
   const shouldListen = useMemo(
-    () => !authed && !triggered,
-    [authed, triggered]
+    () => status === "unauthenticated" && !triggered,
+    [status, triggered]
   );
 
   useEffect(() => {
@@ -40,17 +39,23 @@ export default function LoginGate({ threshold = 0.2, once = true }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [threshold, once, shouldListen]);
 
+  useEffect(() => {
+    if (status !== "unauthenticated" && open) {
+      setOpen(false);
+    }
+  }, [status, open]);
+
   // lock background scroll when open
   useEffect(() => {
-    if (!open) return;
+    if (!open || status !== "unauthenticated") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, status]);
 
-  if (authed || !open) return null;
+  if (status !== "unauthenticated" || !open) return null;
 
   return (
     <div className="fixed inset-0 z-[100]">

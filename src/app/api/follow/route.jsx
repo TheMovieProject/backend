@@ -2,6 +2,7 @@ import prismadb from "@/app/api/auth/[...nextauth]/connect";
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth'
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
+import { createNotification } from "@/app/libs/notifications";
 
 export async function POST(req) {
   try {
@@ -23,6 +24,19 @@ export async function POST(req) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    const existing = await prismadb.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: currentUser.id,
+          followingId: targetUserId,
+        },
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(existing);
+    }
+
     // Create follow relationship
     const follow = await prismadb.follow.create({
       data: {
@@ -30,6 +44,16 @@ export async function POST(req) {
         followingId: targetUserId
       }
     })
+
+    await createNotification({
+      userId: targetUserId,
+      actorId: currentUser.id,
+      type: "FOLLOW",
+      entityType: "user",
+      entityId: currentUser.id,
+      title: `${currentUser.username || "Someone"} started following you`,
+      link: `/profile/${currentUser.id}`,
+    });
 
     return NextResponse.json(follow)
   } catch (error) {

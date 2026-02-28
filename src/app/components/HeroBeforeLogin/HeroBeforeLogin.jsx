@@ -28,7 +28,7 @@ export default function HeroBeforeLogin() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(requests.requestPopular, { cache: "no-store" });
+        const res = await fetch(requests.requestPopular);
         const data = await res.json();
         setItems(data?.results ?? []);
       } catch (e) {
@@ -159,7 +159,7 @@ export default function HeroBeforeLogin() {
   if (!item) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-yellow-600 text-white/70">
-        <Image src="/img/NoImage.jpg" alt="No Image" width={120} height={120} />
+        <Image src="/img/logo.png" alt="No Image" width={120} height={120} />
         <p className="mt-3 text-sm">No movie available</p>
       </div>
     );
