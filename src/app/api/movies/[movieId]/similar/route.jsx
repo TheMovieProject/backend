@@ -17,7 +17,16 @@ export async function GET(req, { params }) {
     return NextResponse.json(data.results);
   } catch (error) {
     console.error("GET /api/movies/[movieId]/similar error", error);
-    return NextResponse.json([], { status: 504 });
+    const isTimeout =
+      error?.name === "AbortError" ||
+      error?.code === "ETIMEDOUT" ||
+      (typeof error?.message === "string" && error.message.toLowerCase().includes("timed out"));
+
+    if (isTimeout) {
+      return NextResponse.json([], { status: 504 });
+    }
+
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
  

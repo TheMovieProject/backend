@@ -5,6 +5,7 @@ import { getCurrentUserOrNull } from "@/app/libs/watchlists";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+const MAX_BULK_IDS = 250;
 
 export async function POST(req: NextRequest) {
   const logger = createRouteLogger("POST /api/liked/status/bulk");
@@ -16,6 +17,13 @@ export async function POST(req: NextRequest) {
 
     if (!movieIds.length) {
       return NextResponse.json({ liked: {} });
+    }
+
+    if (movieIds.length > MAX_BULK_IDS) {
+      return NextResponse.json(
+        { message: `Too many movieIds. Max ${MAX_BULK_IDS}.` },
+        { status: 413 }
+      );
     }
 
     const authTimer = logger.start("auth_lookup");

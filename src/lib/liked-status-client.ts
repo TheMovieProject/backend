@@ -116,13 +116,14 @@ export function useLikedStatus(
     if (initialValue) {
       likedCache.set(normalizedMovieId, true);
       setIsLiked(true);
-      return;
     }
 
     const cachedValue = likedCache.get(normalizedMovieId);
     if (typeof cachedValue === "boolean") {
       setIsLiked(cachedValue);
-      return;
+      if (!initialValue) {
+        return;
+      }
     }
 
     return subscribeToPending(normalizedMovieId, setIsLiked);

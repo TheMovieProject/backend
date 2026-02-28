@@ -1,5 +1,6 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/api/auth/[...nextauth]/connect";
+import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 
 export async function GET(req: NextRequest) {
@@ -27,13 +28,17 @@ export async function GET(req: NextRequest) {
 
     let users;
     if (exact) {
+      const exactFilters: Prisma.UserWhereInput[] = [
+        { username: { equals: q, mode: Prisma.QueryMode.insensitive } },
+      ];
+      if (meId) {
+        exactFilters.push({ id: { not: meId } });
+      }
+
       // exact username match (case-insensitive)
       users = await prisma.user.findMany({
         where: {
-          AND: [
-            { username: { equals: q, mode: "insensitive" } },
-            meId ? { id: { not: meId } } : {},
-          ].filter(Boolean), // Remove empty objects
+          AND: exactFilters,
         },
         take: 1,
         select: {
@@ -45,17 +50,21 @@ export async function GET(req: NextRequest) {
         },
       });
     } else {
+      const searchFilters: Prisma.UserWhereInput[] = [
+        {
+          OR: [
+            { username: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          ],
+        },
+      ];
+      if (meId) {
+        searchFilters.push({ id: { not: meId } });
+      }
+
       users = await prisma.user.findMany({
         where: {
-          AND: [
-            {
-              OR: [
-                { username: { contains: q, mode: "insensitive" } },
-                { name: { contains: q, mode: "insensitive" } },
-              ],
-            },
-            meId ? { id: { not: meId } } : {},
-          ].filter(Boolean), // Remove empty objects
+          AND: searchFilters,
         },
         orderBy: { createdAt: "desc" },
         take: limit,

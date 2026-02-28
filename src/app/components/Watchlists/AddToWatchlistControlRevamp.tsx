@@ -195,19 +195,14 @@ export default function AddToWatchlistControlRevamp({
         ? await loadMovieWatchlists(tmdbId, options?.force)
         : await loadBaseWatchlists(options?.force);
 
-      let nextData: ApiState | null = null;
-      setData((prev) => {
-        const resolvedData: ApiState = {
-          watchlists: getVisibleWatchlists(nextState.watchlists || []),
-          defaultWatchlistId: nextState.defaultWatchlistId || null,
-          movieMembership: options?.withMovieMembership
-            ? nextState.movieMembership || null
-            : prev.movieMembership,
-        };
-        nextData = resolvedData;
-        return resolvedData;
-      });
-      if (!nextData) return null;
+      const nextData: ApiState = {
+        watchlists: getVisibleWatchlists(nextState.watchlists || []),
+        defaultWatchlistId: nextState.defaultWatchlistId || null,
+        movieMembership: options?.withMovieMembership
+          ? nextState.movieMembership || null
+          : data.movieMembership,
+      };
+      setData(nextData);
       if (options?.withMovieMembership) {
         setFallbackInDefault(Boolean(nextData.movieMembership?.inDefault));
       }
