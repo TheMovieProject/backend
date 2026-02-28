@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
+import { createRouteLogger } from "@/lib/api-debug";
 import { createNotification } from "@/app/libs/notifications";
 import {
   buildUniqueWatchlistSlug,
@@ -16,17 +17,40 @@ import {
   visibilityToLegacyIsPublic,
 } from "@/app/libs/watchlists";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
+  const logger = createRouteLogger("GET /api/watchlists");
+  const handlerTimer = logger.start("handler_total");
+
   try {
+    const authTimer = logger.start("auth_lookup");
     const me = await getCurrentUserOrNull();
+    logger.end(authTimer);
     if (!me) return err("UNAUTHORIZED", "Unauthorized", 401);
 
+    const syncTimer = logger.start("legacy_sync");
     const defaultWatchlist = await syncLegacyWatchlistToDefault(me.id);
+    logger.end(syncTimer);
 
+    logger.log("db query start", { userId: me.id, movieId: req.nextUrl.searchParams.get("movieId") });
+    const dbTimer = logger.start("db_query");
     const watchlists = await prisma.watchlist.findMany({
       where: buildWatchlistWhereForUser(me.id),
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-      include: {
+      select: {
+        id: true,
+        ownerId: true,
+        name: true,
+        slug: true,
+        visibility: true,
+        isPublic: true,
+        coverImage: true,
+        isSystemDefault: true,
+        shareToken: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: { items: true },
         },
@@ -49,7 +73,7 @@ export async function GET(req: NextRequest) {
       (w) => !(w.slug === "my-watchlist" && !w.isSystemDefault)
     );
 
-    const movieIdQuery = req.nextUrl.searchParams.get("movieId");
+    const movieIdQuery = req.nextUrl.searchParams.get("movieId")?.trim();
     let movieMembership:
       | {
           requestedMovieId: string;
@@ -93,6 +117,8 @@ export async function GET(req: NextRequest) {
         };
       }
     }
+    logger.end(dbTimer);
+    logger.log("db query end", { watchlistCount: visibleWatchlists.length, userId: me.id });
 
     return ok({
       watchlists: visibleWatchlists.map((w) => parseWatchlistSummary(w, me.id)),
@@ -102,6 +128,8 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("GET /api/watchlists error", error);
     return err("INTERNAL_ERROR", "Failed to load watchlists", 500);
+  } finally {
+    logger.end(handlerTimer);
   }
 }
 

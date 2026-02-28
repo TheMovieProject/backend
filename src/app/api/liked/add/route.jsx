@@ -1,7 +1,7 @@
 // app/api/liked/add/route.js
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
 export async function POST(req) {
   try {
    const session = await getServerSession(authOptions);

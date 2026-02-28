@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
 import { getSeasonalQueryParams } from "@/app/helpers/Seasonal";
 import { getHybridRecommendationsForMovie } from "@/app/libs/movieRecommendations";
+import { fetchWithTimeout } from "@/lib/server-fetch";
 
 export const dynamic = "force-dynamic";
 
@@ -79,12 +80,10 @@ async function tmdbFetch<T = any>(
     }
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  const res = await fetch(`${TMDB_BASE}${path}?${q.toString()}`, {
+  const res = await fetchWithTimeout(`${TMDB_BASE}${path}?${q.toString()}`, {
     next: { revalidate: 900 },
-    signal: controller.signal,
-  }).finally(() => clearTimeout(timeout));
+    timeoutMs: 8000,
+  });
   if (!res.ok) {
     throw new Error(`TMDB request failed: ${path} (${res.status})`);
   }

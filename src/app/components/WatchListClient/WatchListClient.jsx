@@ -19,6 +19,7 @@ import {
   MdLocalMovies,
 } from "react-icons/md";
 import toast from "react-hot-toast";
+import { invalidateWatchlistsCache, loadBaseWatchlists } from "@/lib/watchlists-client";
 const PROJECT_ICON = "/img/logo.png";
 
 function safePoster(movie) {
@@ -135,15 +136,11 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
     }
   }, []);
 
-  const loadCollections = useCallback(async () => {
+  const loadCollections = useCallback(async (force = false) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/watchlists", { cache: "no-store" });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok || payload?.ok === false) {
-        throw new Error(payload?.error?.message || "Failed to fetch watchlists");
-      }
-      const fetched = (payload?.data?.watchlists || []).map(normalizeSummary);
+      const payload = await loadBaseWatchlists(force);
+      const fetched = (payload?.watchlists || []).map(normalizeSummary);
       setCollections(fetched);
       setActiveId((prev) => {
         if (prev && fetched.some((x) => x.id === prev)) return prev;
@@ -191,7 +188,8 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       setNewName("");
       setInviteLink("");
       toast.success("List created.");
-      await loadCollections();
+      invalidateWatchlistsCache();
+      await loadCollections(true);
       setActiveId(payload?.data?.watchlist?.id || null);
     } catch (error) {
       toast.error(error.message || "Failed to create list.");
@@ -236,6 +234,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
         throw new Error(payload?.error?.message || "Failed to remove movie");
       }
       toast.success("Removed from list.");
+      invalidateWatchlistsCache();
       if (activeList.id) await loadActiveListDetail(activeList.id);
     } catch (error) {
       if (previousDetail) setActiveListDetail(previousDetail);
@@ -261,7 +260,8 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
       }
       toast.success("List deleted.");
       if (activeId === listId) setActiveListDetail(null);
-      await loadCollections();
+      invalidateWatchlistsCache();
+      await loadCollections(true);
     } catch (error) {
       toast.error(error.message || "Failed to delete list.");
     }
@@ -282,6 +282,7 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
         throw new Error(payload?.error?.message || "Failed to update visibility");
       }
       const updated = normalizeSummary(payload?.data?.watchlist || {});
+      invalidateWatchlistsCache();
 
       setCollections((prev) =>
         prev.map((list) =>
@@ -340,7 +341,8 @@ export default function WatchlistClient({ initialWatchlistId = null }) {
   const refreshAll = async () => {
     try {
       setRefreshing(true);
-      await loadCollections();
+      invalidateWatchlistsCache();
+      await loadCollections(true);
       if (activeId) await loadActiveListDetail(activeId);
     } finally {
       setRefreshing(false);

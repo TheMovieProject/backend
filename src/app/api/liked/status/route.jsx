@@ -1,47 +1,40 @@
+import { NextResponse } from "next/server";
+import { createRouteLogger } from "@/lib/api-debug";
+import { getLikedStatusMapForUser } from "@/lib/liked";
+import { getCurrentUserOrNull } from "@/app/libs/watchlists";
 
-import { getServerSession } from "next-auth";
-import {authOptions} from "../../auth/[...nextauth]/options"
-import prisma  from "@/app/libs/prismaDB";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const GET=async(req)=>{
+    const logger = createRouteLogger("GET /api/liked/status");
+    const handlerTimer = logger.start("handler_total");
+
     try {
-        const session = await getServerSession(authOptions)
-
-        if(!session?.user?.email){
-            return Response.json({isLiked:false})
-        }
         const url = new URL(req.url)
-        const tmdbId = url.searchParams.get("movieId")
+        const tmdbId = String(url.searchParams.get("movieId") || "").trim()
 
-        if(!tmdbId) return Response.json({message:"movieId required"} , {status:400})
+        if(!tmdbId) return NextResponse.json({message:"movieId required"} , {status:400})
 
-        const user = await prisma.user.findUnique({
-            where:{email:session.user.email},
-            select:{id:true}
-        })
+        const authTimer = logger.start("auth_lookup");
+        const user = await getCurrentUserOrNull();
+        logger.end(authTimer);
 
-        if(!user) return Response.json({isLiked:false})
+        if(!user){
+            return NextResponse.json({isLiked:false})
+        }
 
-            const movie = await prisma.movie.findUnique({
-                where:{tmdbId:String(tmdbId)},
-                select:{id:true}
-            })
-        if(!movie) return Response.json({isLiked:false})
+        logger.log("db query start", { movieId: tmdbId, userId: user.id });
+        const dbTimer = logger.start("db_query");
+        const liked = await getLikedStatusMapForUser(user.id, [tmdbId]);
+        logger.end(dbTimer);
+        logger.log("db query end", { movieId: tmdbId, userId: user.id });
 
-       const exist = await prisma.liked.findUnique({
-        where:{
-            userId_movieId:{
-                userId:user.id,
-                movieId:movie.id
-            },
-
-        },
-        select:{id:true}
-       })
-
-       return Response.json({isLiked:!!exist})
+        return NextResponse.json({isLiked:Boolean(liked[tmdbId])})
     } catch (error) {
-        return Response.json({message:"Error",error} , {status:500})
+        console.error("GET /api/liked/status error", error);
+        return NextResponse.json({message:"Error"} , {status:500})
+    } finally {
+        logger.end(handlerTimer);
     }
-
 }

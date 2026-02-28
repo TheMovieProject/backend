@@ -1,5 +1,5 @@
 // app/api/liked/remove/route.js
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 
 export async function POST(req) {

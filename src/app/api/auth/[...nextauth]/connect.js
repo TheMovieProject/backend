@@ -1,16 +1,3 @@
-const { PrismaClient } = require('@prisma/client');
+import prisma from "@/lib/prisma";
 
-const globalForPrisma = global;
-
-const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    // log: ['query'], 
-    log: [], 
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-
-module.exports = prisma;
+export default prisma;
