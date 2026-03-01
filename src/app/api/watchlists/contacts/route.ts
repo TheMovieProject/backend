@@ -10,7 +10,6 @@ type ContactUser = {
   id: string;
   username: string | null;
   name: string | null;
-  email: string | null;
   avatarUrl: string | null;
   image: string | null;
   relation: {
@@ -24,7 +23,6 @@ function toContactUser(
     id: string;
     username: string | null;
     name: string | null;
-    email: string | null;
     avatarUrl: string | null;
     image: string | null;
   },
@@ -34,7 +32,6 @@ function toContactUser(
     id: user.id,
     username: user.username ?? null,
     name: user.name ?? null,
-    email: user.email ?? null,
     avatarUrl: user.avatarUrl ?? null,
     image: user.image ?? null,
     relation,
@@ -54,11 +51,13 @@ export async function GET(req: NextRequest) {
       prisma.follow.findMany({
         where: { followingId: me.id },
         select: { followerId: true },
+        orderBy: { createdAt: "desc" },
         take: 500,
       }),
       prisma.follow.findMany({
         where: { followerId: me.id },
         select: { followingId: true },
+        orderBy: { createdAt: "desc" },
         take: 500,
       }),
     ]);
@@ -92,7 +91,6 @@ export async function GET(req: NextRequest) {
         id: true,
         username: true,
         name: true,
-        email: true,
         avatarUrl: true,
         image: true,
       },
@@ -108,14 +106,14 @@ export async function GET(req: NextRequest) {
     let contacts = [...merged.values()];
     if (q) {
       contacts = contacts.filter((user) => {
-        const haystack = [user.username, user.name, user.email].filter(Boolean).join(" ").toLowerCase();
+        const haystack = [user.username, user.name].filter(Boolean).join(" ").toLowerCase();
         return haystack.includes(q);
       });
     }
 
     contacts.sort((a, b) => {
-      const aLabel = (a.username || a.name || a.email || "").toLowerCase();
-      const bLabel = (b.username || b.name || b.email || "").toLowerCase();
+      const aLabel = (a.username || a.name || "").toLowerCase();
+      const bLabel = (b.username || b.name || "").toLowerCase();
       return aLabel.localeCompare(bLabel);
     });
 
