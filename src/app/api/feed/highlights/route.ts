@@ -51,6 +51,7 @@ export async function GET() {
             },
             orderBy: { createdAt: "desc" },
             select: {
+              movieId: true,
               userId: true,
               user: { select: { id: true, username: true, avatarUrl: true, image: true } },
               movie: { select: { id: true, tmdbId: true, title: true, posterUrl: true } },

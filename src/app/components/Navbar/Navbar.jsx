@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Menu, Search, X } from "lucide-react";
-import gsap from "gsap";
+import { getGsap } from "@/app/libs/gsapClient";
 import Logout from "../Logout/Logout";
 import NotificationBell from "../Notification/Notification";
 import logo from "../../../../public/img/logo.png";
@@ -41,37 +41,52 @@ export default function Navbar() {
   useEffect(() => {
     if (!searchOverlayRef.current) return;
 
-    if (searchOpen) {
-      gsap.fromTo(
-        searchOverlayRef.current,
-        {
-          y: -100,
-          opacity: 0,
-          scale: 0.95,
-        },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.4,
-          ease: "power2.out",
-        }
-      );
+    let cancelled = false;
+    let focusTimer;
 
-      const focusTimer = setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 400);
+    const runAnimation = async () => {
+      const gsap = await getGsap();
+      if (cancelled || !gsap || !searchOverlayRef.current) return;
 
-      return () => clearTimeout(focusTimer);
-    }
+      if (searchOpen) {
+        gsap.fromTo(
+          searchOverlayRef.current,
+          {
+            y: -100,
+            opacity: 0,
+            scale: 0.95,
+          },
+          {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            duration: 0.4,
+            ease: "power2.out",
+          }
+        );
 
-    gsap.to(searchOverlayRef.current, {
-      y: -100,
-      opacity: 0,
-      scale: 0.95,
-      duration: 0.3,
-      ease: "power2.in",
-    });
+        focusTimer = setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 400);
+
+        return;
+      }
+
+      gsap.to(searchOverlayRef.current, {
+        y: -100,
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.3,
+        ease: "power2.in",
+      });
+    };
+
+    void runAnimation();
+
+    return () => {
+      cancelled = true;
+      if (focusTimer) clearTimeout(focusTimer);
+    };
   }, [searchOpen]);
 
   useEffect(() => {

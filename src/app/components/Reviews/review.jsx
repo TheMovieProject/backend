@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AiOutlineFire, AiFillFire, AiOutlineDelete, AiOutlineComment } from "react-icons/ai";
@@ -72,35 +72,28 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
     return [mine, ...rest];
   }, [reviews, currentUserId]);
 
+  const fetchReviews = useCallback(async () => {
+    const res = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to fetch reviews");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }, [movieId]);
+
+  const refreshReviews = useCallback(async () => {
+    const nextReviews = sortByEngagement(await fetchReviews());
+    setReviews(nextReviews);
+    return nextReviews;
+  }, [fetchReviews]);
+
   /* ---------- initial load ---------- */
   useEffect(() => {
     let cancelled = false;
     const inflightMap = inflight.current;
     (async () => {
       try {
-        const res = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to fetch reviews");
-        const data = await res.json();
+        const data = sortByEngagement(await fetchReviews());
         if (cancelled) return;
-
-        const ids = data.map((r) => r.id).join(",");
-        let reactionMap = {};
-        if (ids) {
-          try {
-            const rx = await fetch(`/api/reaction?entityType=review&ids=${ids}`, { cache: "no-store" });
-            if (rx.ok) reactionMap = await rx.json();
-          } catch (err) {
-            console.warn("Reaction hydration failed", err);
-          }
-        }
-
-        const hydrated = data.map((r) => ({
-          ...r,
-          likedByMe: reactionMap[r.id]?.likedByMe ?? false,
-          firedByMe: reactionMap[r.id]?.firedByMe ?? false,
-        }));
-
-        setReviews(sortByEngagement(hydrated));
+        setReviews(data);
       } catch (e) {
         console.error(e);
       } finally {
@@ -113,7 +106,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
       for (const { controller } of inflightMap.values()) controller?.abort();
       inflightMap.clear();
     };
-  }, [movieId]);
+  }, [fetchReviews]);
 
   /* ---------- tiny burst anim ---------- */
   const burst = (el) => {
@@ -206,8 +199,11 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
     } catch (e) {
       if (e.name !== "AbortError") {
         console.error(e);
-        const res = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
-        if (res.ok) setReviews(sortByEngagement(await res.json()));
+        try {
+          await refreshReviews();
+        } catch (refreshError) {
+          console.error(refreshError);
+        }
       }
     } finally {
       const cur = inflight.current.get(reviewId);
@@ -253,10 +249,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
         body: JSON.stringify({ reviewId, comment: content, parentId }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const shapedReview = await res.json();
-      setReviews((prev) =>
-        sortByEngagement(prev.map((r) => (r.id === reviewId ? shapedReview : r)))
-      );
+      await refreshReviews();
       if (parentId) setReplyOpen((p) => ({ ...p, [parentId]: false }));
     } catch (e) {
       console.error(e);
@@ -278,10 +271,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
     if (!confirm("Delete this comment?")) return;
     try {
       const rs = await fetch(`/api/reviewComments?commentId=${commentId}`, { method: "DELETE" });
-      if (rs.ok) {
-        const rr = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
-        if (rr.ok) setReviews(sortByEngagement(await rr.json()));
-      }
+      if (rs.ok) await refreshReviews();
     } catch (e) {
       console.error(e);
     }

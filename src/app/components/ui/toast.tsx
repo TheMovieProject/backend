@@ -1,7 +1,7 @@
 // app/components/ui/toast.tsx
 "use client";
 
-import { gsap } from "gsap";
+import { getGsap } from "@/app/libs/gsapClient";
 
 let toastContainer: HTMLDivElement | null = null;
 
@@ -28,19 +28,31 @@ export function showToast(message = "", duration = 1400) {
 
   toastContainer.appendChild(el);
 
-  gsap.to(el, { opacity: 1, y: 6, duration: 0.18, ease: "power2.out" });
+  void getGsap().then((gsap) => {
+    if (!gsap) return;
+    gsap.to(el, { opacity: 1, y: 6, duration: 0.18, ease: "power2.out" });
+  });
 
   setTimeout(() => {
-    gsap.to(el, {
-      opacity: 0,
-      y: -6,
-      duration: 0.18,
-      ease: "power2.in",
-      onComplete: () => {
+    void getGsap().then((gsap) => {
+      if (!gsap) {
         if (toastContainer && el.parentNode === toastContainer) {
           toastContainer.removeChild(el);
         }
-      },
+        return;
+      }
+
+      gsap.to(el, {
+        opacity: 0,
+        y: -6,
+        duration: 0.18,
+        ease: "power2.in",
+        onComplete: () => {
+          if (toastContainer && el.parentNode === toastContainer) {
+            toastContainer.removeChild(el);
+          }
+        },
+      });
     });
   }, duration);
 }

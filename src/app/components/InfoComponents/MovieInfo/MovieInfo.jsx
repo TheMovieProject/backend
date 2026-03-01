@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MdFavorite } from "react-icons/md";
 import { FaStar, FaHeart, FaImdb, FaYoutube } from "react-icons/fa";
 import { SiRottentomatoes, SiNetflix, SiPrimevideo, SiAppletv, SiYoutube } from "react-icons/si";
-import { gsap } from "gsap";
+import { getGsap } from "@/app/libs/gsapClient";
 import StarRating from "@/app/components/StarRating/StarRating";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
@@ -94,9 +94,10 @@ const MovieInfo = ({
     const previousLiked = isLiked;
 
     try {
+      const gsap = await getGsap();
       if (!isLiked) {
         setIsLiked(true);
-        if (likeBtnRef.current)
+        if (gsap && likeBtnRef.current)
           gsap.fromTo(likeBtnRef.current, { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 });
 
         await likeOnServer();
@@ -114,7 +115,7 @@ const MovieInfo = ({
         showToast("Added to Liked ❤️");
       } else {
         setIsLiked(false);
-        if (likeBtnRef.current)
+        if (gsap && likeBtnRef.current)
           gsap.fromTo(likeBtnRef.current, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
 
         await unlikeOnServer();

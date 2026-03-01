@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Image from "next/image"
 import Link from "next/link"
 import { Clock, MessageCircle, Heart, Eye, X, ExternalLink, Flame } from "lucide-react"
-import { formatDistanceToNow, subHours, isAfter } from "date-fns"
+import { formatRelativeTime, subtractHours, isAfterDate } from "@/app/libs/dateUtils"
 
 const REFRESH_INTERVAL = 5 * 60 * 1000 // 5 minutes
 const ACTIVITY_LIMIT = 50
@@ -58,7 +58,7 @@ const FollowerActivity = () => {
         try {
           const [reviewsRes, blogsRes] = await Promise.all([
             fetch(`/api/review?userId=${follower.id}&limit=${FOLLOWER_ITEM_LIMIT}`),
-            fetch(`/api/blog?userEmail=${follower.email}&limit=${FOLLOWER_ITEM_LIMIT}`),
+            fetch(`/api/blog?userId=${follower.id}&limit=${FOLLOWER_ITEM_LIMIT}`),
           ])
 
           const [reviews, blogs] = await Promise.all([
@@ -66,19 +66,21 @@ const FollowerActivity = () => {
             blogsRes.ok ? blogsRes.json() : [],
           ])
 
-          const reviewActivities = reviews.map((review) => ({
-            type: "review",
-            user: follower,
-            data: review,
-            createdAt: review.createdAt,
-            title: review.movie?.title || review.title || "Review",
-            link: `/movies/${review.movie?.tmdbId || ""}`,
-            posterPath: review.movie?.posterUrl || "/img/logo.png",
-            likes: review.likes || 0,
-            comments: review.commentsCount || 0,
-            views: review.views || 0,
-            fire: review.fire || 0,
-          }))
+          const reviewActivities = reviews
+            .filter((review) => review?.movie?.tmdbId)
+            .map((review) => ({
+              type: "review",
+              user: follower,
+              data: review,
+              createdAt: review.createdAt,
+              title: review.movie?.title || review.title || "Review",
+              link: `/movies/${review.movie.tmdbId}`,
+              posterPath: review.movie?.posterUrl || "/img/logo.png",
+              likes: review.likes || 0,
+              comments: review.commentsCount || 0,
+              views: review.views || 0,
+              fire: review.fire || 0,
+            }))
 
           const blogActivities = blogs.map((blog) => ({
             type: "blog",
@@ -103,14 +105,14 @@ const FollowerActivity = () => {
 
       const allActivities = await Promise.all(activitiesPromises)
 
-      const twentyFourHoursAgo = subHours(new Date(), 24)
+      const twentyFourHoursAgo = subtractHours(new Date(), 24)
 
       const sortedActivities = allActivities
         .flat()
         .filter((activity) => {
           if (!activity?.createdAt) return false
           const activityDate = new Date(activity.createdAt)
-          return isAfter(activityDate, twentyFourHoursAgo)
+          return isAfterDate(activityDate, twentyFourHoursAgo)
         })
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, ACTIVITY_LIMIT)
@@ -255,11 +257,11 @@ const FollowerActivity = () => {
                       href={`/profile/${selectedActivity.user.id}`}
                       className="text-white font-medium hover:underline"
                     >
-                      @{selectedActivity.user.username || selectedActivity.user.email?.split("@")[0] || "anonymous"}
+                      @{selectedActivity.user.username || "anonymous"}
                     </Link>
                     <div className="flex items-center text-gray-400 text-xs">
                       <Clock className="w-3 h-3 mr-1" />
-                      <span>{formatDistanceToNow(new Date(selectedActivity.createdAt))} ago</span>
+                      <span>{formatRelativeTime(selectedActivity.createdAt)} ago</span>
                     </div>
                   </div>
                   <button className="text-gray-400 hover:text-white" onClick={() => setIsModalOpen(false)}>

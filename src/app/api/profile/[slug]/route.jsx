@@ -23,7 +23,6 @@ export const GET = async (req, { params }) => {
         id: true,
         name: true,
         username: true,
-        email: true,
         image: true,
         avatarUrl: true,
         bio: true,
@@ -44,7 +43,7 @@ export const GET = async (req, { params }) => {
       followingPreview,
     ] = await Promise.all([
       prisma.review.count({ where: { userId: slug } }),
-      prisma.blog.count({ where: { userEmail: user.email } }),
+      prisma.blog.count({ where: { user: { is: { id: slug } } } }),
       prisma.follow.count({ where: { followingId: slug } }),
       prisma.follow.count({ where: { followerId: slug } }),
       prisma.follow.findMany({

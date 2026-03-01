@@ -64,7 +64,7 @@ model Rating {
   movie Movie @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
-  @@index([userId])
+  @@index([userId, createdAt])
   @@index([movieId])
 }
 

@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fa';
 import { SiImdb } from 'react-icons/si';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
+import { formatLongDate } from '@/app/libs/dateUtils';
 
 // TMDB configuration
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/';
@@ -90,7 +90,7 @@ const PersonPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     try {
-      return format(new Date(dateString), 'MMMM dd, yyyy');
+      return formatLongDate(dateString);
     } catch {
       return dateString;
     }

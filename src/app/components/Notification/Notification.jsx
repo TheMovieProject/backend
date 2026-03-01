@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bell, Flame, Heart, UserPlus } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeTime } from "@/app/libs/dateUtils";
 
 const NOTIFICATION_POLL_INTERVAL = 30000;
 
@@ -44,7 +44,7 @@ function NotificationItem({ item, onNavigate }) {
         </p>
         {item.body ? <p className="text-xs text-white/70 mt-1">{item.body}</p> : null}
         <p className="text-[11px] text-white/50 mt-1">
-          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+          {formatRelativeTime(item.createdAt, { addSuffix: true })}
         </p>
       </div>
 

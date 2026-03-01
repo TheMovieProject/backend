@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MdFavorite, MdStar } from "react-icons/md";
-import { gsap } from "gsap";
+import { getGsap } from "@/app/libs/gsapClient";
 import { showToast } from "@/app/components/ui/toast";
 import { getLikedChannel } from "@/app/libs/likedBus";
 import AddToWatchlistControl from "@/app/components/Watchlists/AddToWatchlistControlRevamp";
@@ -41,17 +41,26 @@ export default function MovieBlock({
   const posterRef = useRef(null);
 
   useEffect(() => {
-    const card = cardRef.current;
-    if (card) {
+    let cancelled = false;
+
+    void (async () => {
+      const card = cardRef.current;
+      const gsap = await getGsap();
+      if (cancelled || !card || !gsap) return;
+
       gsap.fromTo(
         card,
         { opacity: 0, y: 24, scale: 0.96 },
         { opacity: 1, y: 0, scale: 1, duration: 0.35, delay: index * 0.02, ease: "power2.out" }
       );
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [index]);
 
-  const createFlyingPosterAnimation = (startX, startY, posterUrl, posterWidth, posterHeight) => {
+  const createFlyingPosterAnimation = (gsap, startX, startY, posterUrl, posterWidth, posterHeight) => {
     const flyingPoster = document.createElement("div");
     Object.assign(flyingPoster.style, {
       position: "fixed",
@@ -127,17 +136,21 @@ export default function MovieBlock({
     const nextLiked = !isLiked;
 
     try {
+      const gsap = await getGsap();
       setIsLiked(nextLiked);
       setLikedStatusCache(item.id, nextLiked);
 
       if (!isLiked) {
-        if (likeButton) gsap.fromTo(likeButton, { scale: 1 }, { scale: 1.18, duration: 0.12, yoyo: true, repeat: 1 });
+        if (gsap && likeButton) {
+          gsap.fromTo(likeButton, { scale: 1 }, { scale: 1.18, duration: 0.12, yoyo: true, repeat: 1 });
+        }
 
         await addToLiked();
 
-        if (poster) {
+        if (gsap && poster) {
           const rect = poster.getBoundingClientRect();
           createFlyingPosterAnimation(
+            gsap,
             rect.left + rect.width / 2,
             rect.top + rect.height / 2,
             getPosterSource(item),
@@ -158,8 +171,9 @@ export default function MovieBlock({
 
         showToast("Added to Liked ❤️");
       } else {
-        // setIsLiked(false); // optimistic
-        if (likeButton) gsap.fromTo(likeButton, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
+        if (gsap && likeButton) {
+          gsap.fromTo(likeButton, { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 });
+        }
 
         await removeFromLiked();
 
@@ -177,7 +191,9 @@ export default function MovieBlock({
     }
   };
 
-  const handleHover = () => {
+  const handleHover = async () => {
+    const gsap = await getGsap();
+    if (!gsap) return;
     const tl = gsap.timeline();
     tl.to(cardRef.current, { y: -6, duration: 0.18, ease: "power2.out" })
       .to(cardRef.current, { rotation: 0.6, duration: 0.08 })
@@ -185,12 +201,16 @@ export default function MovieBlock({
     gsap.to(tapeRef.current, { rotation: 2, y: -2, duration: 0.12, yoyo: true, repeat: 1 });
   };
 
-  const handleHoverExit = () => {
+  const handleHoverExit = async () => {
+    const gsap = await getGsap();
+    if (!gsap) return;
     gsap.to(cardRef.current, { y: 0, rotation: 0, duration: 0.25, ease: "power2.out" });
     gsap.to(tapeRef.current, { rotation: 0, y: 0, duration: 0.2 });
   };
 
-  const handleTap = () => {
+  const handleTap = async () => {
+    const gsap = await getGsap();
+    if (!gsap) return;
     const tl = gsap.timeline();
     tl.to(cardRef.current, { scale: 0.97, duration: 0.08 }).to(cardRef.current, { scale: 1, duration: 0.2, ease: "power2.out" });
   };

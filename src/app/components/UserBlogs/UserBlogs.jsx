@@ -6,7 +6,6 @@ import Link from 'next/link';
 
 const UserBlogs = ({ id }) => {
   const [blogs, setBlogs] = useState([]);
-  const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { data: session, status } = useSession();
@@ -19,25 +18,12 @@ const UserBlogs = ({ id }) => {
       setError(null);
       
       try {
-        let userData = null;
-        
-        if (id && id !== 'undefined') {
-          const userDetailsResponse = await fetch(`/api/user/${id}`);
-          if (!userDetailsResponse.ok) {
-            const errorData = await userDetailsResponse.json();
-            throw new Error(errorData.message || 'Failed to fetch user details');
-          }
-          userData = await userDetailsResponse.json();
-          setUserDetails(userData);
+        const targetUserId = id && id !== 'undefined' ? id : session?.user?.id;
+        if (!targetUserId) {
+          throw new Error('No user available');
         }
 
-        const emailToFetch = userData?.email || session?.user?.email;
-        
-        if (!emailToFetch) {
-          throw new Error('No user email available');
-        }
-
-        const userBlogsResponse = await fetch(`/api/blog?userEmail=${emailToFetch}`);
+        const userBlogsResponse = await fetch(`/api/blog?userId=${targetUserId}`);
         if (!userBlogsResponse.ok) {
           const errorData = await userBlogsResponse.json();
           throw new Error(errorData.message || 'Failed to fetch blogs');
@@ -55,7 +41,7 @@ const UserBlogs = ({ id }) => {
     };
 
     fetchData();
-  }, [id, status, session?.user?.email]);
+  }, [id, status, session?.user?.id]);
 
   if (status === 'loading' || loading) {
    return (
