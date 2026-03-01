@@ -12,6 +12,8 @@ import {
   roleCanEdit,
 } from "@/app/libs/watchlists";
 
+export const maxDuration = 30;
+
 function isDefaultWatchlist(watchlist: { slug?: string | null; isSystemDefault?: boolean | null }) {
   return Boolean(watchlist.isSystemDefault) || watchlist.slug === DEFAULT_WATCHLIST_SLUG || watchlist.slug === LEGACY_DEFAULT_WATCHLIST_SLUG;
 }

@@ -11,6 +11,8 @@ import {
   roleCanEdit,
 } from "@/app/libs/watchlists";
 
+export const maxDuration = 30;
+
 function mapItem(item: any) {
   return {
     id: item.id,

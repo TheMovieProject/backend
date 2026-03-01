@@ -239,7 +239,7 @@ export async function syncLegacyWatchlistToDefault(ownerId: string) {
         watchlistId: defaultWatchlist.id,
         movieId,
         addedByUserId: ownerId,
-        rank: baseRank + idx * RANK_STEP,
+        rank: typeof baseRank === "number" ? baseRank + idx * RANK_STEP : null,
       }));
 
     if (!itemsToCreate.length) return;
@@ -269,13 +269,23 @@ export async function syncLegacyWatchlistToDefault(ownerId: string) {
 }
 
 export async function getNextRank(watchlistId: string) {
-  const last = await prisma.watchlistItem.findFirst({
-    where: { watchlistId },
-    orderBy: [{ rank: "desc" }, { addedAt: "desc" }],
-    select: { rank: true },
-  });
+  const [lastRanked, hasAnyItem] = await Promise.all([
+    prisma.watchlistItem.findFirst({
+      where: { watchlistId, rank: { not: null } },
+      orderBy: [{ rank: "desc" }, { addedAt: "desc" }],
+      select: { rank: true },
+    }),
+    prisma.watchlistItem.findFirst({
+      where: { watchlistId },
+      select: { id: true },
+    }),
+  ]);
 
-  return (typeof last?.rank === "number" ? last.rank : 0) + RANK_STEP;
+  if (typeof lastRanked?.rank === "number") {
+    return lastRanked.rank + RANK_STEP;
+  }
+
+  return hasAnyItem ? null : RANK_STEP;
 }
 
 export async function ensureRanks(watchlistId: string) {
@@ -296,6 +306,18 @@ export async function ensureRanks(watchlistId: string) {
       })
     )
   );
+}
+
+export function sortWatchlistItemsByRank<T extends { rank?: number | null; addedAt?: Date | string | null }>(items: T[]) {
+  return [...items].sort((a, b) => {
+    const aRank = typeof a.rank === "number" ? a.rank : Number.POSITIVE_INFINITY;
+    const bRank = typeof b.rank === "number" ? b.rank : Number.POSITIVE_INFINITY;
+    if (aRank !== bRank) return aRank - bRank;
+
+    const aAddedAt = a.addedAt ? new Date(a.addedAt).getTime() : 0;
+    const bAddedAt = b.addedAt ? new Date(b.addedAt).getTime() : 0;
+    return aAddedAt - bAddedAt;
+  });
 }
 
 export async function recordWatchlistActivity({
@@ -434,7 +456,6 @@ export async function addMovieToWatchlist({
 }) {
   const movie = await resolveMovieForWatchlist({ movieId, title, posterUrl });
 
-  await ensureRanks(watchlistId);
   const nextRank = await getNextRank(watchlistId);
 
   const item = await prisma.watchlistItem.upsert({
@@ -453,7 +474,7 @@ export async function addMovieToWatchlist({
       movieId: movie.id,
       addedByUserId: actorUserId,
       notes: typeof notes === "string" ? notes.slice(0, 280) : null,
-      rank: nextRank,
+      rank: typeof nextRank === "number" ? nextRank : null,
     },
     include: {
       movie: true,
@@ -480,7 +501,6 @@ export async function addMovieToDefaultOwnerWatchlistIfNeeded({
   const defaultWatchlist = await ensureDefaultWatchlist(ownerId);
   if (defaultWatchlist.id === sourceWatchlistId) return defaultWatchlist;
 
-  await ensureRanks(defaultWatchlist.id);
   const nextRank = await getNextRank(defaultWatchlist.id);
 
   try {
@@ -494,13 +514,13 @@ export async function addMovieToDefaultOwnerWatchlistIfNeeded({
       update: {
         addedByUserId: actorUserId,
       },
-      create: {
-        watchlistId: defaultWatchlist.id,
-        movieId: movieDbId,
-        addedByUserId: actorUserId,
-        rank: nextRank,
-      },
-    });
+        create: {
+          watchlistId: defaultWatchlist.id,
+          movieId: movieDbId,
+          addedByUserId: actorUserId,
+          rank: typeof nextRank === "number" ? nextRank : null,
+        },
+      });
   } catch (error) {
     const maybe = error as { code?: string };
     if (maybe?.code !== "P2002") throw error;

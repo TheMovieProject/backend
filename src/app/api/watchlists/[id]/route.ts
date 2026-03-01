@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
-import prisma from "@/app/libs/prismaDB";
+import prisma from "@/lib/prisma";
 import {
   DEFAULT_WATCHLIST_SLUG,
   LEGACY_DEFAULT_WATCHLIST_SLUG,
   buildUniqueWatchlistSlug,
-  ensureRanks,
   err,
   getAccessibleWatchlistForUser,
   getCurrentUserOrNull,
@@ -14,8 +13,13 @@ import {
   parseWatchlistSummary,
   recordWatchlistActivity,
   roleCanManage,
+  sortWatchlistItemsByRank,
   visibilityToLegacyIsPublic,
 } from "@/app/libs/watchlists";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const maxDuration = 30;
 
 function mapMember(member: any) {
   return {
@@ -102,8 +106,6 @@ export async function GET(
     const access = await getAccessibleWatchlistForUser(params.id, me.id);
     if (!access) return err("NOT_FOUND", "Watchlist not found", 404);
 
-    await ensureRanks(access.watchlist.id);
-
     const full = await prisma.watchlist.findUnique({
       where: { id: params.id },
       include: {
@@ -116,7 +118,14 @@ export async function GET(
         items: {
           orderBy: [{ rank: "asc" }, { addedAt: "asc" }],
           include: {
-            movie: true,
+            movie: {
+              select: {
+                id: true,
+                tmdbId: true,
+                title: true,
+                posterUrl: true,
+              },
+            },
             addedByUser: {
               select: { id: true, name: true, username: true, avatarUrl: true, image: true },
             },
@@ -151,6 +160,7 @@ export async function GET(
     if (!full) return err("NOT_FOUND", "Watchlist not found", 404);
 
     const summary = parseWatchlistSummary(full, me.id);
+    const sortedItems = sortWatchlistItemsByRank(full.items);
 
     return ok({
       watchlist: {
@@ -159,7 +169,7 @@ export async function GET(
         owner: full.owner,
         canEdit: access.role === "OWNER" || access.role === "EDITOR",
         canManage: roleCanManage(access.role),
-        items: full.items.map(mapItem),
+        items: sortedItems.map(mapItem),
         members: full.members.map(mapMember),
         pendingInvites: Array.isArray(full.invites) ? full.invites.map(mapInvite) : [],
       },
