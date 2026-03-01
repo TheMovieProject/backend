@@ -33,10 +33,10 @@ const normalize = (l) => ({
   visibility: l?.visibility || (l?.isPublic ? "SHARED" : "PRIVATE"),
   isSystemDefault: Boolean(l?.isSystemDefault) || isDefault(l),
 });
-const userLabel = (u) => u?.name || u?.username || u?.email || "User";
+const userLabel = (u) => u?.name || u?.username || "User";
 
 /**
- * @param {{ user?: { avatarUrl?: string | null; image?: string | null; name?: string | null; username?: string | null; email?: string | null }, size?: number, ring?: string }} props
+ * @param {{ user?: { avatarUrl?: string | null; image?: string | null; name?: string | null; username?: string | null }, size?: number, ring?: string }} props
  */
 function Avatar({ user, size = 24, ring = "border-white/15" }) {
   const src = user?.avatarUrl || user?.image;
@@ -83,7 +83,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
   const filteredContacts = useMemo(() => {
     const q = contactQuery.trim().toLowerCase();
     if (!q) return contacts;
-    return contacts.filter((u) => [u.username, u.name, u.email].filter(Boolean).join(" ").toLowerCase().includes(q));
+    return contacts.filter((u) => [u.username, u.name].filter(Boolean).join(" ").toLowerCase().includes(q));
   }, [contacts, contactQuery]);
 
   const loadLists = async (force = false) => {
@@ -486,7 +486,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
                               <Avatar user={u} size={38} />
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-white">{userLabel(u)}</p>
-                                <p className="truncate text-xs text-white/60">{u.username ? `@${u.username}` : u.email || ""}</p>
+                                <p className="truncate text-xs text-white/60">{u.username ? `@${u.username}` : ""}</p>
                                 <div className="mt-1 flex gap-1 text-[10px]">
                                   {u.relation?.following ? <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-white/70">Following</span> : null}
                                   {u.relation?.follower ? <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-white/70">Follower</span> : null}
