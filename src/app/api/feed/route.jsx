@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
-const LIMIT_DEFAULT = 20;
-const LIMIT_MAX = 50;
+export const maxDuration = 30;
+
+const LIMIT_DEFAULT = 12;
+const LIMIT_MAX = 24;
 const VALID_MODES = new Set(["forYou", "following"]);
 const VALID_ENTITY_TYPES = new Set(["review", "blog"]);
 const VALID_REACTION_TYPES = new Set(["like", "fire"]);
@@ -79,7 +81,7 @@ export async function GET(req) {
     const requestedMode = searchParams.get("mode") ?? "forYou";
     const mode = VALID_MODES.has(requestedMode) ? requestedMode : "forYou";
     const limit = parseLimit(searchParams.get("limit"));
-    const take = limit * 2;
+    const take = mode === "following" ? Math.min(limit * 2, 32) : Math.min(limit * 2, 40);
 
     const me = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -117,36 +119,54 @@ export async function GET(req) {
         : [];
     const followingEmails = new Set(followingUsers.map((u) => u.email).filter(Boolean));
 
-    const reviewWhere =
-      mode === "following" ? { userId: { in: Array.from(followingIds) } } : {};
-    const blogWhere =
-      mode === "following" ? { userEmail: { in: Array.from(followingEmails) } } : {};
+    const reviewWhere = mode === "following" ? { userId: { in: Array.from(followingIds) } } : {};
+    const blogWhere = mode === "following" ? { userEmail: { in: Array.from(followingEmails) } } : {};
 
     const [reviews, blogs] = await Promise.all([
       prisma.review.findMany({
         where: reviewWhere,
         orderBy: { createdAt: "desc" },
         take,
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          movieId: true,
+          content: true,
+          createdAt: true,
+          likes: true,
+          fire: true,
           user: { select: { id: true, username: true, email: true, avatarUrl: true, image: true } },
           movie: { select: { id: true, tmdbId: true, title: true, posterUrl: true } },
-          reviewComments: { select: { id: true } },
+          _count: { select: { reviewComments: true } },
         },
       }),
       prisma.blog.findMany({
         where: blogWhere,
         orderBy: { createdAt: "desc" },
         take,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          thumbnail: true,
+          createdAt: true,
+          likes: true,
+          fire: true,
           user: { select: { id: true, username: true, email: true, avatarUrl: true, image: true } },
-          comments: { select: { id: true } },
+          _count: { select: { comments: true } },
         },
       }),
     ]);
 
-    const ratingPairs = reviews
-      .filter((r) => r.userId && r.movieId)
-      .map((r) => ({ userId: r.userId, movieId: r.movieId }));
+    const ratingPairs = [];
+    const ratingPairKeys = new Set();
+    for (const review of reviews) {
+      if (!review.userId || !review.movieId) continue;
+      const key = `${review.userId}-${review.movieId}`;
+      if (ratingPairKeys.has(key)) continue;
+      ratingPairKeys.add(key);
+      ratingPairs.push({ userId: review.userId, movieId: review.movieId });
+    }
 
     const authorRatings = ratingPairs.length
       ? await prisma.rating.findMany({
@@ -155,9 +175,7 @@ export async function GET(req) {
         })
       : [];
 
-    const authorRatingMap = new Map(
-      authorRatings.map((r) => [`${r.userId}-${r.movieId}`, r.value])
-    );
+    const authorRatingMap = new Map(authorRatings.map((r) => [`${r.userId}-${r.movieId}`, r.value]));
 
     const items = [
       ...reviews.map((r) => ({
@@ -174,7 +192,7 @@ export async function GET(req) {
         createdAt: r.createdAt,
         likes: r.likes ?? 0,
         fire: r.fire ?? 0,
-        commentsCount: r.reviewComments?.length || 0,
+        commentsCount: r._count?.reviewComments ?? 0,
         movie: r.movie
           ? {
               id: r.movie.id,
@@ -186,9 +204,7 @@ export async function GET(req) {
         authorRating: r.movieId ? authorRatingMap.get(`${r.userId}-${r.movieId}`) ?? null : null,
         title: r.movie?.title ?? "Unknown",
         thumbnail: r.movie?.posterUrl ?? null,
-        excerpt: r.content
-          ? r.content.slice(0, 440) + (r.content.length > 440 ? "...." : "")
-          : "",
+        excerpt: r.content ? r.content.slice(0, 360) + (r.content.length > 360 ? "..." : "") : "",
         content: r.content ?? "",
       })),
       ...blogs.map((b) => ({
@@ -205,10 +221,10 @@ export async function GET(req) {
         createdAt: b.createdAt,
         likes: b.likes ?? 0,
         fire: b.fire ?? 0,
-        commentsCount: b.comments?.length || 0,
+        commentsCount: b._count?.comments ?? 0,
         title: b.title,
         thumbnail: b.thumbnail ?? null,
-        excerpt: b.content ? b.content.slice(0, 240) + (b.content.length > 240 ? "..." : "") : "",
+        excerpt: b.content ? b.content.slice(0, 220) + (b.content.length > 220 ? "..." : "") : "",
         content: b.content ?? "",
         authorRating: null,
       })),

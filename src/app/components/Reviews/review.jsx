@@ -7,6 +7,16 @@ import { AiOutlineFire, AiFillFire, AiOutlineDelete, AiOutlineComment } from "re
 import { CiHeart } from "react-icons/ci";
 import { FaHeart } from "react-icons/fa";
 
+const engagementScore = (r) =>
+  (r.likes || 0) + (r.fire || 0) + (r.commentsCount || 0);
+
+const sortByEngagement = (arr) =>
+  [...arr].sort(
+    (a, b) =>
+      engagementScore(b) - engagementScore(a) ||
+      +new Date(b.createdAt) - +new Date(a.createdAt)
+  );
+
 /* ---------- local reply input ---------- */
 const ReplyBox = memo(function ReplyBox({ open, onSubmit, placeholder = "Reply…" }) {
   const [val, setVal] = useState("");
@@ -54,16 +64,6 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
 
   const inflight = useRef(new Map());
 
-  const engagementScore = (r) =>
-    (r.likes || 0) + (r.fire || 0) + (r.commentsCount || 0);
-
-  const sortByEngagement = (arr) =>
-    [...arr].sort(
-      (a, b) =>
-        engagementScore(b) - engagementScore(a) ||
-        +new Date(b.createdAt) - +new Date(a.createdAt)
-    );
-
   const displayReviews = useMemo(() => {
     if (!currentUserId) return reviews;
     const mine = reviews.find((r) => r.user?.id === currentUserId);
@@ -75,9 +75,10 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
   /* ---------- initial load ---------- */
   useEffect(() => {
     let cancelled = false;
+    const inflightMap = inflight.current;
     (async () => {
       try {
-        const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        const res = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch reviews");
         const data = await res.json();
         if (cancelled) return;
@@ -109,8 +110,8 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
 
     return () => {
       cancelled = true;
-      for (const { controller } of inflight.current.values()) controller?.abort();
-      inflight.current.clear();
+      for (const { controller } of inflightMap.values()) controller?.abort();
+      inflightMap.clear();
     };
   }, [movieId]);
 
@@ -205,7 +206,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
     } catch (e) {
       if (e.name !== "AbortError") {
         console.error(e);
-        const res = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        const res = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
         if (res.ok) setReviews(sortByEngagement(await res.json()));
       }
     } finally {
@@ -278,7 +279,7 @@ export default function Review({ movieId, currentUserId, title, posterUrl }) {
     try {
       const rs = await fetch(`/api/reviewComments?commentId=${commentId}`, { method: "DELETE" });
       if (rs.ok) {
-        const rr = await fetch(`/api/review?movieId=${movieId}`, { cache: "no-store" });
+        const rr = await fetch(`/api/review?movieId=${movieId}&limit=40`, { cache: "no-store" });
         if (rr.ok) setReviews(sortByEngagement(await rr.json()));
       }
     } catch (e) {

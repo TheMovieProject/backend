@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import Image from "next/image"
 import Link from "next/link"
 import { Clock, MessageCircle, Heart, Eye, X, ExternalLink, Flame } from "lucide-react"
 import { formatDistanceToNow, subHours, isAfter } from "date-fns"
 
-const TMDB_API_KEY = "095ba7f7fba6c8e94aa5f385a319cea7"
 const REFRESH_INTERVAL = 5 * 60 * 1000 // 5 minutes
 const ACTIVITY_LIMIT = 50
+const FOLLOWER_FETCH_LIMIT = 12
+const FOLLOWER_ITEM_LIMIT = 5
 
 const FollowerActivity = () => {
   const { data: session, status } = useSession()
@@ -41,26 +42,14 @@ const FollowerActivity = () => {
     }
   }, [isModalOpen])
 
-  const fetchMovieInfo = async (movieId) => {
-    try {
-      const response = await fetch(
-        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`,
-      )
-      if (!response.ok) throw new Error("Failed to fetch movie info")
-      const movieData = await response.json()
-      return movieData
-    } catch (error) {
-      console.error(`Error fetching movie info for ${movieId}:`, error)
-      return null
-    }
-  }
-
-  const fetchFollowersActivities = async () => {
+  const fetchFollowersActivities = useCallback(async () => {
     try {
       if (!session?.user?.id) return
       setError(null)
 
-      const followersRes = await fetch(`/api/user/${session.user.id}/followers`)
+      const followersRes = await fetch(
+        `/api/user/${session.user.id}/followers?limit=${FOLLOWER_FETCH_LIMIT}`
+      )
       if (!followersRes.ok) throw new Error("Failed to fetch followers")
       const followersData = await followersRes.json()
       const followersList = followersData.followersList || []
@@ -68,8 +57,8 @@ const FollowerActivity = () => {
       const activitiesPromises = followersList.map(async (follower) => {
         try {
           const [reviewsRes, blogsRes] = await Promise.all([
-            fetch(`/api/review?userId=${follower.id}&limit=10`),
-            fetch(`/api/blog?userEmail=${follower.email}&limit=10`),
+            fetch(`/api/review?userId=${follower.id}&limit=${FOLLOWER_ITEM_LIMIT}`),
+            fetch(`/api/blog?userEmail=${follower.email}&limit=${FOLLOWER_ITEM_LIMIT}`),
           ])
 
           const [reviews, blogs] = await Promise.all([
@@ -77,31 +66,19 @@ const FollowerActivity = () => {
             blogsRes.ok ? blogsRes.json() : [],
           ])
 
-          // Fetch movie info for each review
-          const reviewActivities = await Promise.all(
-            reviews.map(async (review) => {
-              const movieInfo = review.movie?.tmdbId ? await fetchMovieInfo(review.movie.tmdbId) : null
-
-              return {
-                type: "review",
-                user: follower,
-                data: {
-                  ...review,
-                  movieInfo,
-                },
-                createdAt: review.createdAt,
-                title: movieInfo?.title || review.title || "Review",
-                link: `/movies/${review.movie?.tmdbId || ""}`,
-                posterPath: movieInfo?.poster_path
-                  ? `https://image.tmdb.org/t/p/w500${movieInfo.poster_path}`
-                  : "/img/logo.png",
-                likes: review.likes || 0,
-                comments: review.comments?.length || 0,
-                views: review.views || 0,
-                fire: review.fire || 0,
-              }
-            }),
-          )
+          const reviewActivities = reviews.map((review) => ({
+            type: "review",
+            user: follower,
+            data: review,
+            createdAt: review.createdAt,
+            title: review.movie?.title || review.title || "Review",
+            link: `/movies/${review.movie?.tmdbId || ""}`,
+            posterPath: review.movie?.posterUrl || "/img/logo.png",
+            likes: review.likes || 0,
+            comments: review.commentsCount || 0,
+            views: review.views || 0,
+            fire: review.fire || 0,
+          }))
 
           const blogActivities = blogs.map((blog) => ({
             type: "blog",
@@ -145,16 +122,16 @@ const FollowerActivity = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.id) {
-      fetchFollowersActivities()
+      void fetchFollowersActivities()
 
       const refreshInterval = setInterval(fetchFollowersActivities, REFRESH_INTERVAL)
       return () => clearInterval(refreshInterval)
     }
-  }, [status, session])
+  }, [status, session?.user?.id, fetchFollowersActivities])
 
   const openActivityModal = (activity) => {
     setSelectedActivity(activity)

@@ -6,6 +6,8 @@ import Image from "next/image";
 import { Bell, Flame, Heart, UserPlus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+const NOTIFICATION_POLL_INTERVAL = 30000;
+
 function typeIcon(type) {
   switch (type) {
     case "FOLLOW":
@@ -66,8 +68,6 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const dropdownRef = useRef(null);
-  const streamRef = useRef(null);
-  const reconnectTimerRef = useRef(null);
   const preparedRef = useRef(false);
 
   const sorted = useMemo(
@@ -88,7 +88,7 @@ export default function NotificationBell() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications?limit=40");
+      const res = await fetch("/api/notifications?limit=40", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       const nextNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
@@ -105,50 +105,6 @@ export default function NotificationBell() {
       console.error("Failed to fetch notifications", error);
     }
   }, []);
-
-  const startStream = () => {
-    if (streamRef.current) return;
-
-    const connect = () => {
-      const source = new EventSource("/api/notifications/stream");
-      streamRef.current = source;
-
-      source.onmessage = (event) => {
-        try {
-          const parsed = JSON.parse(event.data);
-          if (parsed?.type !== "notification" || !parsed?.payload) return;
-          const notification = parsed.payload;
-
-          setNotifications((prev) => {
-            const withoutDuplicate = prev.filter((item) => item.id !== notification.id);
-            return [notification, ...withoutDuplicate].slice(0, 80);
-          });
-          setUnreadCount((prev) => prev + (notification?.read ? 0 : 1));
-          setLoaded(true);
-        } catch (error) {
-          console.error("SSE parse error", error);
-        }
-      };
-
-      source.onerror = () => {
-        source.close();
-        if (streamRef.current === source) {
-          streamRef.current = null;
-        }
-
-        if (reconnectTimerRef.current) {
-          window.clearTimeout(reconnectTimerRef.current);
-        }
-
-        reconnectTimerRef.current = window.setTimeout(() => {
-          reconnectTimerRef.current = null;
-          startStream();
-        }, 2500);
-      };
-    };
-
-    connect();
-  };
 
   const prepareNotifications = useCallback(async () => {
     if (preparedRef.current) return;
@@ -172,15 +128,7 @@ export default function NotificationBell() {
       return () => window.clearTimeout(timeoutId);
     };
 
-    const cleanupIdle = scheduleIdleWarmup();
-    return () => {
-      cleanupIdle();
-      streamRef.current?.close();
-      streamRef.current = null;
-      if (reconnectTimerRef.current) {
-        window.clearTimeout(reconnectTimerRef.current);
-      }
-    };
+    return scheduleIdleWarmup();
   }, [prepareNotifications]);
 
   useEffect(() => {
@@ -194,6 +142,18 @@ export default function NotificationBell() {
     window.addEventListener("mousedown", onClickOutside);
     return () => window.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    void fetchNotifications();
+
+    const intervalId = window.setInterval(() => {
+      void fetchNotifications();
+    }, NOTIFICATION_POLL_INTERVAL);
+
+    return () => window.clearInterval(intervalId);
+  }, [open, fetchNotifications]);
 
   const markRead = async () => {
     if (!effectiveUnreadCount) return;
@@ -210,14 +170,7 @@ export default function NotificationBell() {
   };
 
   const toggle = () => {
-    setOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        void prepareNotifications();
-        startStream();
-      }
-      return next;
-    });
+    setOpen((prev) => !prev);
   };
 
   const handleNavigate = () => {

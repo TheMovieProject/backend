@@ -64,6 +64,8 @@ model Rating {
   movie Movie @relation(fields: [movieId], references: [id])
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
+  @@index([userId])
+  @@index([movieId])
 }
 
 model Review {
@@ -85,6 +87,9 @@ model Review {
   popularity Int @default(0)
 
   @@unique([userId, movieId]) // Ensures a unique combination of userId and movieId
+  @@index([userId, createdAt])
+  @@index([movieId, createdAt])
+  @@index([createdAt])
 }
 
 model Blog {
@@ -105,6 +110,9 @@ model Blog {
   // Relations
   userEmail String
   user      User   @relation(fields: [userEmail], references: [email])
+
+  @@index([userEmail, createdAt])
+  @@index([createdAt])
 }
 model reviewComment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
