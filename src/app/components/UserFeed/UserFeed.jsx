@@ -63,7 +63,7 @@ export default function UserFeed() {
         setLoading(true);
         setErr(null);
 
-        const limit = targetMode === "following" ? 40 : 60;
+        const limit = targetMode === "following" ? 16 : 20;
         const response = await fetch(`/api/feed?mode=${targetMode}&limit=${limit}`, {
           cache: "no-store",
           signal: controller.signal,

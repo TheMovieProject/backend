@@ -3,6 +3,12 @@ import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 15;
+
+const FRIEND_REVIEW_LIMIT = 80;
+const RECENT_REVIEW_LIMIT = 60;
+const RECENT_BLOG_LIMIT = 60;
+const POLL_MOVIE_LIMIT = 8;
 
 type FriendsMovieBucket = {
   movieId: string;
@@ -44,31 +50,40 @@ export async function GET() {
               createdAt: { gte: since14d },
             },
             orderBy: { createdAt: "desc" },
-            include: {
+            select: {
+              movieId: true,
+              userId: true,
               user: { select: { id: true, username: true, avatarUrl: true, image: true } },
               movie: { select: { id: true, tmdbId: true, title: true, posterUrl: true } },
             },
-            take: 150,
+            take: FRIEND_REVIEW_LIMIT,
           })
         : Promise.resolve([]),
       prisma.review.findMany({
         where: { createdAt: { gte: since7d } },
         orderBy: { createdAt: "desc" },
-        include: {
+        select: {
+          id: true,
+          likes: true,
+          fire: true,
           user: { select: { id: true, username: true, avatarUrl: true, image: true } },
           movie: { select: { id: true, tmdbId: true, title: true, posterUrl: true } },
-          reviewComments: { select: { id: true } },
+          _count: { select: { reviewComments: true } },
         },
-        take: 120,
+        take: RECENT_REVIEW_LIMIT,
       }),
       prisma.blog.findMany({
         where: { createdAt: { gte: since7d } },
         orderBy: { createdAt: "desc" },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          likes: true,
+          fire: true,
           user: { select: { id: true, username: true, avatarUrl: true, image: true } },
-          comments: { select: { id: true } },
+          _count: { select: { comments: true } },
         },
-        take: 120,
+        take: RECENT_BLOG_LIMIT,
       }),
       prisma.movie.findMany({
         orderBy: [{ votes: "desc" }, { title: "asc" }],
@@ -79,7 +94,7 @@ export async function GET() {
           posterUrl: true,
           votes: true,
         },
-        take: 8,
+        take: POLL_MOVIE_LIMIT,
       }),
     ]);
 
@@ -116,7 +131,7 @@ export async function GET() {
 
     const mostDiscussed = [
       ...recentReviews.map((r: any) => {
-        const comments = r.reviewComments?.length || 0;
+        const comments = r._count?.reviewComments || 0;
         const likes = r.likes || 0;
         const fire = r.fire || 0;
         return {
@@ -136,7 +151,7 @@ export async function GET() {
         };
       }),
       ...recentBlogs.map((b: any) => {
-        const comments = b.comments?.length || 0;
+        const comments = b._count?.comments || 0;
         const likes = b.likes || 0;
         const fire = b.fire || 0;
         return {

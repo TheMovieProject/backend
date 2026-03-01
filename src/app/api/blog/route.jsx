@@ -29,11 +29,17 @@ function parseLimit(rawValue) {
 
 export async function GET(req) {
   try {
+    const userId = req.nextUrl.searchParams.get("userId");
     const userEmail = req.nextUrl.searchParams.get("userEmail");
     const limit = parseLimit(req.nextUrl.searchParams.get("limit"));
+    const where = userId
+      ? { user: { is: { id: userId } } }
+      : userEmail
+        ? { userEmail }
+        : undefined;
 
     const blogs = await prisma.blog.findMany({
-      where: userEmail ? { userEmail } : undefined,
+      where,
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {

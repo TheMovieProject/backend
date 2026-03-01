@@ -33,7 +33,7 @@ export default function UserReviews({ id }) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/review?userId=${userId}`, { cache: 'no-store' });
+        const res = await fetch(`/api/review?userId=${userId}&limit=60`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch reviews');
         const data = await res.json();
 

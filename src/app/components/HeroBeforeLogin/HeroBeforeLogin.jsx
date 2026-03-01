@@ -3,14 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import requests from "@/app/helpers/Requests";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { getGsapWithScrollTrigger } from "@/app/libs/gsapClient";
 import Link from "next/link";
-
-// Register ScrollTrigger plugin
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 export default function HeroBeforeLogin() {
   const [items, setItems] = useState([]);
@@ -48,77 +42,81 @@ export default function HeroBeforeLogin() {
   useEffect(() => {
     if (!item || loading || typeof window === 'undefined') return;
 
+    let cancelled = false;
+    let ctx;
+
     const timer = setTimeout(() => {
-      if (!titleRef.current || !actionTextRef.current) {
-        console.log('Refs not ready yet');
-        return;
-      }
+      void (async () => {
+        const { gsap } = await getGsapWithScrollTrigger();
+        if (cancelled || !gsap || !titleRef.current || !actionTextRef.current) {
+          return;
+        }
 
-      const ctx = gsap.context(() => {
-        // Lights, Camera, Action animation sequence
-        const tl = gsap.timeline({ delay: 0.5 });
-        
-        tl.fromTo(titleRef.current, 
-          { y: 100, opacity: 0 },
-          { y: 0, opacity: 1, duration: 1.2, ease: "power3.out" }
-        );
-        
-        tl.fromTo(actionTextRef.current.children,
-          { y: 50, opacity: 0 },
-          { 
-            y: 0, 
-            opacity: 1, 
-            duration: 0.8, 
-            stagger: 0.3,
-            ease: "back.out(1.7)"
-          },
-          "-=0.5"
-        );
+        ctx = gsap.context(() => {
+          const tl = gsap.timeline({ delay: 0.5 });
 
-        // Cards animation on scroll
-        cardsRef.current.forEach((card, index) => {
-          gsap.fromTo(card,
-            { y: 60, opacity: 0 },
+          tl.fromTo(
+            titleRef.current,
+            { y: 100, opacity: 0 },
+            { y: 0, opacity: 1, duration: 1.2, ease: "power3.out" }
+          );
+
+          tl.fromTo(
+            actionTextRef.current.children,
+            { y: 50, opacity: 0 },
             {
               y: 0,
               opacity: 1,
-              duration: 1,
-              delay: index * 0.2,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: card,
-                start: "top 85%",
-                end: "bottom 20%",
-                toggleActions: "play none none reverse"
-              }
-            }
+              duration: 0.8,
+              stagger: 0.3,
+              ease: "back.out(1.7)",
+            },
+            "-=0.5"
           );
-        });
 
-        // Background parallax
-        if (backgroundRef.current && heroRef.current) {
-          gsap.to(backgroundRef.current, {
-            y: -80,
-            ease: "none",
-            scrollTrigger: {
-              trigger: heroRef.current,
-              start: "top top",
-              end: "bottom top",
-              scrub: true
-            }
+          cardsRef.current.forEach((card, index) => {
+            gsap.fromTo(
+              card,
+              { y: 60, opacity: 0 },
+              {
+                y: 0,
+                opacity: 1,
+                duration: 1,
+                delay: index * 0.2,
+                ease: "power2.out",
+                scrollTrigger: {
+                  trigger: card,
+                  start: "top 85%",
+                  end: "bottom 20%",
+                  toggleActions: "play none none reverse",
+                },
+              }
+            );
           });
-        }
 
-      }, heroRef);
-
-      return () => {
-        if (ctx && ctx.revert) {
-          ctx.revert();
-        }
-      };
+          if (backgroundRef.current && heroRef.current) {
+            gsap.to(backgroundRef.current, {
+              y: -80,
+              ease: "none",
+              scrollTrigger: {
+                trigger: heroRef.current,
+                start: "top top",
+                end: "bottom top",
+                scrub: true,
+              },
+            });
+          }
+        }, heroRef);
+      })();
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (ctx?.revert) {
+        ctx.revert();
+      }
+    };
   }, [item, loading]);
 
   const addToCardsRef = (el) => {

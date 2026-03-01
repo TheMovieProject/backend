@@ -5,12 +5,10 @@ import Image from 'next/image';
 import { MdLocalMovies, MdArticle, MdClose } from "react-icons/md";
 import Link from 'next/link';
 
-// Lazy load heavy components
 const UserBlogs = lazy(() => import('@/app/components/UserBlogs/UserBlogs'));
 const UserReviews = lazy(() => import('@/app/components/UserReviews/UserReviews'));
 const EditProfile = lazy(() => import('@/app/components/EditProfile/EditProfile'));
 
-// ===== MEMOIZED COMPONENTS =====
 const FollowList = ({ type, data, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
@@ -26,13 +24,13 @@ const FollowList = ({ type, data, onClose }) => {
             <p className="text-center text-gray-300 py-4">No {type.toLowerCase()} yet</p>
           ) : (
             data.map((user) => (
-              <Link 
-                href={`/profile/${user.id}`} 
+              <Link
+                href={`/profile/${user.id}`}
                 key={user.id}
                 onClick={onClose}
                 className="flex items-center gap-3 p-3 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <Image 
+                <Image
                   src={user.avatarUrl || user.image || '/img/profile.png'}
                   width={32}
                   height={32}
@@ -51,35 +49,22 @@ const FollowList = ({ type, data, onClose }) => {
   );
 };
 
-// ===== LOADING & ERROR STATES =====
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-gradient-to-br from-black via-yellow-700 to-yellow-900 p-6 pt-20">
     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-      {/* Left Sidebar Skeleton */}
       <div className="lg:col-span-1">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 animate-pulse">
-          {/* Profile Image */}
           <div className="flex justify-center mb-4">
             <div className="w-24 h-24 rounded-full bg-gray-700/50 border-4 border-white/30"></div>
           </div>
-          
-          {/* Name */}
           <div className="h-6 w-3/4 mx-auto bg-gray-700/50 rounded mb-4"></div>
-          
-          {/* Bio */}
           <div className="h-4 w-full bg-gray-700/50 rounded mb-6"></div>
-          
-          {/* Button */}
           <div className="h-10 w-full bg-gray-700/50 rounded-lg mb-6"></div>
-          
-          {/* Stats */}
           <div className="space-y-3 mb-6">
             {[...Array(2)].map((_, i) => (
               <div key={i} className="h-12 bg-gray-700/50 rounded-lg"></div>
             ))}
           </div>
-          
-          {/* Follow Section */}
           <div className="space-y-4">
             {[...Array(2)].map((_, i) => (
               <div key={i} className="p-4 bg-gray-700/30 rounded-xl">
@@ -94,17 +79,14 @@ const LoadingSkeleton = () => (
           </div>
         </div>
       </div>
-      
-      {/* Right Content Skeleton */}
+
       <div className="lg:col-span-3">
-        {/* Tab Navigation Skeleton */}
         <div className="flex gap-4 mb-8">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="h-12 w-32 bg-gray-700/50 rounded-full"></div>
           ))}
         </div>
-        
-        {/* Content Grid Skeleton */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-64 bg-gray-700/30 rounded-2xl border border-white/10"></div>
@@ -126,8 +108,8 @@ const ErrorState = ({ message, onRetry }) => (
       >
         Try Again
       </button>
-      <Link 
-        href="/" 
+      <Link
+        href="/"
         className="px-6 py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
       >
         Go Back Home
@@ -135,120 +117,76 @@ const ErrorState = ({ message, onRetry }) => (
     </div>
   </div>
 );
-// ===== END LOADING & ERROR STATES =====
 
-// ===== MAIN COMPONENT =====
 export default function Page() {
   const { data: session, status } = useSession();
-  
-  // State management
-  const [userData, setUserData] = useState(null);
+
+  const [profileData, setProfileData] = useState(null);
   const [activeTab, setActiveTab] = useState('reviews');
-  const [reviewCount, setReviewCount] = useState(0);
-  const [blogCount, setBlogCount] = useState(0);
   const [profile, setProfile] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  
-  // Loading and error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Memoized values
-  const memoizedUserData = useMemo(() => userData, [userData]);
-  const memoizedFollowers = useMemo(() => followers, [followers]);
-  const memoizedFollowing = useMemo(() => following, [following]);
+  const memoizedUserData = useMemo(() => profileData?.user || null, [profileData]);
+  const memoizedStats = useMemo(() => profileData?.stats || {}, [profileData]);
+  const memoizedFollowers = useMemo(
+    () => (followers.length ? followers : profileData?.followers?.preview || []),
+    [followers, profileData]
+  );
+  const memoizedFollowing = useMemo(
+    () => (following.length ? following : profileData?.following?.preview || []),
+    [following, profileData]
+  );
 
-  // Data fetching functions with useCallback
-  const fetchReviews = useCallback(async () => {
-    if (status !== 'authenticated' || !session?.user?.email) return;
+  const fetchProfileData = useCallback(async () => {
+    if (!session?.user?.id) return null;
+
     try {
-      const response = await fetch(`/api/review?userId=${session.user.id}`);
-      if (!response.ok) throw new Error('Failed to fetch reviews');
+      const response = await fetch(`/api/profile/${session.user.id}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch profile data');
       const data = await response.json();
-      setReviews(data);
-      setReviewCount(data.length);
+      setProfileData(data);
+      setFollowers(data?.followers?.preview || []);
+      setFollowing(data?.following?.preview || []);
       return data;
     } catch (err) {
-      console.error('Error fetching reviews:', err);
-      throw err;
-    }
-  }, [session?.user?.id, status]);
-
-  const fetchBlogCount = useCallback(async () => {
-    if (status !== 'authenticated' || !session?.user?.email) return;
-    try {
-      const response = await fetch(`/api/blog?userEmail=${session.user.email}`);
-      if (!response.ok) throw new Error('Failed to fetch blog count');
-      const data = await response.json();
-      setBlogCount(data.length);
-      return data;
-    } catch (err) {
-      console.error('Error fetching blog count:', err);
-      throw err;
-    }
-  }, [session?.user?.email, status]);
-
-  const fetchUserData = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/user/${session?.user?.id}`);
-      if (!response.ok) throw new Error('Failed to fetch user data');
-      const data = await response.json();
-      setUserData(data);
-      return data;
-    } catch (err) {
-      console.error('Error fetching user data:', err);
+      console.error('Error fetching profile data:', err);
       throw err;
     }
   }, [session?.user?.id]);
 
-  const fetchFollowData = useCallback(async () => {
-    if (!session?.user?.id) return;
-    try {
-      const [followersRes, followingRes] = await Promise.all([
-        fetch(`/api/user/${session.user.id}/followers`),
-        fetch(`/api/user/${session.user.id}/following`)
-      ]);
-      
-      if (!followersRes.ok || !followingRes.ok) {
-        throw new Error('Failed to fetch follow data');
+  const fetchConnections = useCallback(
+    async (type) => {
+      if (!session?.user?.id) return;
+      const response = await fetch(`/api/user/${session.user.id}/${type}?limit=50`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${type}`);
       }
-      
-      const followersData = await followersRes.json();
-      const followingData = await followingRes.json();
-      
-      setFollowerCount(followersData.followers || 0);
-      setFollowingCount(followingData.following || 0);
-      setFollowers(followersData.followersList || []);
-      setFollowing(followingData.followingList || []);
-      
-      return { followersData, followingData };
-    } catch (error) {
-      console.error('Error fetching follow data:', error);
-      throw error;
-    }
-  }, [session?.user?.id]);
+      const data = await response.json();
+      if (type === 'followers') {
+        setFollowers(data.followersList || []);
+      } else {
+        setFollowing(data.followingList || []);
+      }
+    },
+    [session?.user?.id]
+  );
 
-  // Main data loading effect
   useEffect(() => {
     const loadData = async () => {
-      if (status === 'authenticated' && session?.user?.email) {
+      if (status === 'authenticated' && session?.user?.id) {
         setLoading(true);
         setError(null);
-        
+
         try {
-          await Promise.all([
-            fetchBlogCount(),
-            fetchReviews(),
-            fetchUserData(),
-            fetchFollowData()
-          ]);
+          await fetchProfileData();
           setHasLoaded(true);
         } catch (err) {
           setError(err.message || 'Failed to load profile data');
@@ -260,23 +198,56 @@ export default function Page() {
         setLoading(false);
         setError('Please log in to view this page');
       } else if (status === 'loading') {
-        // Keep loading true while NextAuth is checking session
         setLoading(true);
       }
     };
 
     loadData();
-  }, [status, session?.user?.email, fetchBlogCount, fetchReviews, fetchUserData, fetchFollowData]);
+  }, [status, session?.user?.id, fetchProfileData]);
 
-  // Handle loading, error, and auth states
+  const openFollowers = async () => {
+    setShowFollowers(true);
+    if ((profileData?.followers?.count || 0) > memoizedFollowers.length) {
+      try {
+        await fetchConnections('followers');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const openFollowing = async () => {
+    setShowFollowing(true);
+    if ((profileData?.following?.count || 0) > memoizedFollowing.length) {
+      try {
+        await fetchConnections('following');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const retryProfileLoad = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await fetchProfileData();
+      setHasLoaded(true);
+    } catch (err) {
+      setError(err.message || 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (status === 'unauthenticated' || error === 'Please log in to view this page') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-yellow-700 to-yellow-900 flex items-center justify-center">
         <div className="text-center text-white p-8 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20">
           <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
           <p className="mb-6">Please log in to view your profile.</p>
-          <Link 
-            href="/login" 
+          <Link
+            href="/login"
             className="px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
           >
             Go to Login
@@ -291,70 +262,40 @@ export default function Page() {
   }
 
   if (error && !loading) {
-    return (
-      <ErrorState 
-        message={error} 
-        onRetry={() => {
-          setError(null);
-          setLoading(true);
-          // Retry loading all data
-          Promise.all([
-            fetchBlogCount(),
-            fetchReviews(),
-            fetchUserData(),
-            fetchFollowData()
-          ]).finally(() => setLoading(false));
-        }}
-      />
-    );
+    return <ErrorState message={error} onRetry={() => void retryProfileLoad()} />;
   }
 
-  // Main render
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-black via-yellow-700 to-yellow-900 p-6 pt-20 font-sans">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Left Sidebar - Glassmorphism Profile Section */}
           <div className="lg:col-span-1">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 sticky top-6 shadow-2xl">
-              {/* Profile Header */}
               <div className="text-center mb-6">
                 <div className="relative inline-block mb-4">
-                  {memoizedUserData ? (
-                    <Image
-                      className="rounded-full w-24 h-24 object-cover border-4 border-white/30 shadow-2xl"
-                      src={memoizedUserData.avatarUrl || memoizedUserData.image || '/img/profile.png'}
-                      width={96}
-                      height={96}
-                      alt="Profile Image"
-                      priority
-                    />
-                  ) : (
-                    <Image
-                      className="rounded-full w-24 h-24 object-cover border-4 border-white/30 shadow-2xl"
-                      src="/img/profile.png"
-                      width={96}
-                      height={96}
-                      alt="Profile Image"
-                      priority
-                    />
-                  )}
+                  <Image
+                    className="rounded-full w-24 h-24 object-cover border-4 border-white/30 shadow-2xl"
+                    src={memoizedUserData?.avatarUrl || memoizedUserData?.image || '/img/profile.png'}
+                    width={96}
+                    height={96}
+                    alt="Profile Image"
+                    priority
+                  />
                 </div>
-                
+
                 <h2 className="text-xl font-bold text-white mb-2">
-                  {memoizedUserData ? (memoizedUserData.username || session?.user?.email) : session?.user?.email}
+                  {memoizedUserData?.username || session?.user?.email}
                 </h2>
-                
+
                 <p className="text-gray-200 text-sm mb-4">
                   {memoizedUserData?.bio || 'Share your story with the world...'}
                 </p>
 
-                {memoizedUserData && memoizedUserData.movieGenres?.length > 0 && (
+                {memoizedUserData?.movieGenres?.length > 0 && (
                   <div className='flex flex-wrap justify-center gap-2 mb-4'>
                     {memoizedUserData.movieGenres.map((item, index) => (
-                      <span 
-                        key={index} 
+                      <span
+                        key={index}
                         className="px-2 py-1 bg-white/20 text-white rounded-full text-xs border border-white/30 font-medium"
                       >
                         {item}
@@ -363,36 +304,33 @@ export default function Page() {
                   </div>
                 )}
 
-                <button 
-                  onClick={() => setProfile(true)} 
+                <button
+                  onClick={() => setProfile(true)}
                   className="w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-2 rounded-lg transition-all border border-white/30 hover:border-white/40"
                 >
                   Edit Profile
                 </button>
               </div>
 
-              {/* Stats */}
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
                   <span className="text-gray-200">Blogs</span>
-                  <span className="text-white font-bold">{blogCount}</span>
+                  <span className="text-white font-bold">{memoizedStats.blogCount || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20">
                   <span className="text-gray-200">Reviews</span>
-                  <span className="text-white font-bold">{reviewCount}</span>
+                  <span className="text-white font-bold">{memoizedStats.reviewCount || 0}</span>
                 </div>
               </div>
 
-              {/* Follow Section */}
               <div className="space-y-4">
-                {/* Followers */}
-                <div 
+                <div
                   className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
-                  onClick={() => setShowFollowers(true)}
+                  onClick={() => void openFollowers()}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-gray-200">Followers</span>
-                    <span className="text-white font-bold">{followerCount}</span>
+                    <span className="text-white font-bold">{memoizedStats.followerCounts || 0}</span>
                   </div>
                   <div className="flex -space-x-2">
                     {memoizedFollowers.slice(0, 5).map((follower, index) => (
@@ -406,22 +344,21 @@ export default function Page() {
                         style={{ zIndex: 5 - index }}
                       />
                     ))}
-                    {memoizedFollowers.length > 5 && (
+                    {memoizedStats.followerCounts > 5 && (
                       <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
-                        +{memoizedFollowers.length - 5}
+                        +{memoizedStats.followerCounts - 5}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Following */}
-                <div 
+                <div
                   className="p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 cursor-pointer transition-colors"
-                  onClick={() => setShowFollowing(true)}
+                  onClick={() => void openFollowing()}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-gray-200">Following</span>
-                    <span className="text-white font-bold">{followingCount}</span>
+                    <span className="text-white font-bold">{memoizedStats.followingCounts || 0}</span>
                   </div>
                   <div className="flex -space-x-2">
                     {memoizedFollowing.slice(0, 5).map((follow, index) => (
@@ -435,9 +372,9 @@ export default function Page() {
                         style={{ zIndex: 5 - index }}
                       />
                     ))}
-                    {memoizedFollowing.length > 5 && (
+                    {memoizedStats.followingCounts > 5 && (
                       <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white font-bold">
-                        +{memoizedFollowing.length - 5}
+                        +{memoizedStats.followingCounts - 5}
                       </div>
                     )}
                   </div>
@@ -446,9 +383,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Right Content - Polaroid Review Grid */}
           <div className="lg:col-span-3">
-            {/* Sleek Tab Navigation */}
             <div className="flex gap-4 mb-8">
               <button
                 onClick={() => setActiveTab('reviews')}
@@ -474,33 +409,29 @@ export default function Page() {
               </button>
             </div>
 
-            {/* Content Area with Suspense */}
             <div className="bg-transparent rounded-2xl">
-              <Suspense fallback={
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-                </div>
-              }>
-                {activeTab === 'blogs' ? 
-                  <UserBlogs /> : 
-                  <UserReviews />
+              <Suspense
+                fallback={
+                  <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                  </div>
                 }
+              >
+                {activeTab === 'blogs' ? <UserBlogs /> : <UserReviews />}
               </Suspense>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modals with Suspense */}
       <Suspense fallback={null}>
         {profile && (
           <div className='fixed inset-0 bg-black/90 p-3 z-50'>
-            <EditProfile 
-              userId={session?.user?.id} 
+            <EditProfile
+              userId={session?.user?.id}
               setProfile={setProfile}
               onSuccess={() => {
-                // Refresh user data after editing profile
-                fetchUserData();
+                void fetchProfileData();
               }}
             />
           </div>
@@ -508,18 +439,18 @@ export default function Page() {
       </Suspense>
 
       {showFollowers && (
-        <FollowList 
-          type="Followers" 
+        <FollowList
+          type="Followers"
           data={memoizedFollowers}
-          onClose={() => setShowFollowers(false)} 
+          onClose={() => setShowFollowers(false)}
         />
       )}
-      
+
       {showFollowing && (
-        <FollowList 
-          type="Following" 
+        <FollowList
+          type="Following"
           data={memoizedFollowing}
-          onClose={() => setShowFollowing(false)} 
+          onClose={() => setShowFollowing(false)}
         />
       )}
     </>

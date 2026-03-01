@@ -3,13 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import requests from "@/app/helpers/Requests";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-// Register ScrollTrigger plugin
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
+import { getGsapWithScrollTrigger } from "@/app/libs/gsapClient";
 
 export default function Hero() {
   const [items, setItems] = useState([]);
@@ -48,82 +42,87 @@ export default function Hero() {
   useEffect(() => {
     if (!item || loading || typeof window === "undefined") return;
 
+    let cancelled = false;
+    let ctx;
+
     const timer = setTimeout(() => {
-      if (!titleRef.current || !descriptionRef.current || !detailsRef.current) {
-        return;
-      }
-
-      const ctx = gsap.context(() => {
-        gsap.set(
-          [titleRef.current, descriptionRef.current, detailsRef.current],
-          {
-            y: 50,
-            opacity: 0,
-          }
-        );
-
-        // Background parallax effect
-        if (backgroundRef.current && heroRef.current) {
-          gsap.to(backgroundRef.current, {
-            y: -100,
-            ease: "none",
-            scrollTrigger: {
-              trigger: heroRef.current,
-              start: "top top",
-              end: "bottom top",
-              scrub: true,
-            },
-          });
+      void (async () => {
+        const { gsap } = await getGsapWithScrollTrigger();
+        if (cancelled || !gsap || !titleRef.current || !descriptionRef.current || !detailsRef.current) {
+          return;
         }
 
-        gsap.to(titleRef.current, {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: titleRef.current,
-            start: "top 80%",
-            end: "bottom 20%",
-            toggleActions: "play none none reverse",
-          },
-        });
+        ctx = gsap.context(() => {
+          gsap.set(
+            [titleRef.current, descriptionRef.current, detailsRef.current],
+            {
+              y: 50,
+              opacity: 0,
+            }
+          );
 
-        gsap.to(descriptionRef.current, {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          delay: 0.2,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: descriptionRef.current,
-            start: "top 80%",
-            end: "bottom 20%",
-            toggleActions: "play none none reverse",
-          },
-        });
+          if (backgroundRef.current && heroRef.current) {
+            gsap.to(backgroundRef.current, {
+              y: -100,
+              ease: "none",
+              scrollTrigger: {
+                trigger: heroRef.current,
+                start: "top top",
+                end: "bottom top",
+                scrub: true,
+              },
+            });
+          }
 
-        gsap.to(detailsRef.current, {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          delay: 0.4,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: detailsRef.current,
-            start: "top 80%",
-            end: "bottom 20%",
-            toggleActions: "play none none reverse",
-          },
-        });
-      }, heroRef);
+          gsap.to(titleRef.current, {
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: titleRef.current,
+              start: "top 80%",
+              end: "bottom 20%",
+              toggleActions: "play none none reverse",
+            },
+          });
 
-      return () => {
-        if (ctx && ctx.revert) ctx.revert();
-      };
+          gsap.to(descriptionRef.current, {
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            delay: 0.2,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: descriptionRef.current,
+              start: "top 80%",
+              end: "bottom 20%",
+              toggleActions: "play none none reverse",
+            },
+          });
+
+          gsap.to(detailsRef.current, {
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            delay: 0.4,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: detailsRef.current,
+              start: "top 80%",
+              end: "bottom 20%",
+              toggleActions: "play none none reverse",
+            },
+          });
+        }, heroRef);
+      })();
     }, 50);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (ctx?.revert) ctx.revert();
+    };
   }, [item, loading]);
 
   if (loading) {
