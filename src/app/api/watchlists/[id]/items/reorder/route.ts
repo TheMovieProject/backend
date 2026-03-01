@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import prisma from "@/app/libs/prismaDB";
 import {
   RANK_STEP,
-  ensureRanks,
   err,
   getAccessibleWatchlistForUser,
   getCurrentUserOrNull,
@@ -10,6 +9,8 @@ import {
   recordWatchlistActivity,
   roleCanEdit,
 } from "@/app/libs/watchlists";
+
+export const maxDuration = 30;
 
 export async function PATCH(
   req: NextRequest,
@@ -28,8 +29,6 @@ export async function PATCH(
     if (!orderedMovieIds) {
       return err("VALIDATION_ERROR", "orderedMovieIds array is required", 400);
     }
-
-    await ensureRanks(access.watchlist.id);
 
     const currentItems = await prisma.watchlistItem.findMany({
       where: { watchlistId: access.watchlist.id },
