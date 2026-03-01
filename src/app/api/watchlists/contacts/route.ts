@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import prisma from "@/app/libs/prismaDB";
 import { err, getCurrentUserOrNull, ok } from "@/app/libs/watchlists";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const maxDuration = 30;
+
 type ContactUser = {
   id: string;
   username: string | null;
@@ -15,26 +19,26 @@ type ContactUser = {
   };
 };
 
-function mergeContact(map: Map<string, ContactUser>, user: any, relationKey: "follower" | "following") {
-  if (!user?.id) return;
-  const existing = map.get(user.id);
-  if (existing) {
-    existing.relation[relationKey] = true;
-    return;
-  }
-
-  map.set(user.id, {
+function toContactUser(
+  user: {
+    id: string;
+    username: string | null;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    image: string | null;
+  },
+  relation: ContactUser["relation"]
+): ContactUser {
+  return {
     id: user.id,
     username: user.username ?? null,
     name: user.name ?? null,
     email: user.email ?? null,
     avatarUrl: user.avatarUrl ?? null,
     image: user.image ?? null,
-    relation: {
-      follower: relationKey === "follower",
-      following: relationKey === "following",
-    },
-  });
+    relation,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -49,41 +53,57 @@ export async function GET(req: NextRequest) {
     const [followersRows, followingRows] = await Promise.all([
       prisma.follow.findMany({
         where: { followingId: me.id },
-        include: {
-          follower: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              email: true,
-              avatarUrl: true,
-              image: true,
-            },
-          },
-        },
+        select: { followerId: true },
         take: 500,
       }),
       prisma.follow.findMany({
         where: { followerId: me.id },
-        include: {
-          following: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              email: true,
-              avatarUrl: true,
-              image: true,
-            },
-          },
-        },
+        select: { followingId: true },
         take: 500,
       }),
     ]);
 
+    const relationMap = new Map<string, ContactUser["relation"]>();
+
+    for (const row of followersRows) {
+      const existing = relationMap.get(row.followerId);
+      relationMap.set(row.followerId, {
+        follower: true,
+        following: existing?.following ?? false,
+      });
+    }
+
+    for (const row of followingRows) {
+      const existing = relationMap.get(row.followingId);
+      relationMap.set(row.followingId, {
+        follower: existing?.follower ?? false,
+        following: true,
+      });
+    }
+
+    const userIds = [...relationMap.keys()];
+    if (!userIds.length) return ok({ contacts: [] });
+
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: userIds },
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        image: true,
+      },
+    });
+
     const merged = new Map<string, ContactUser>();
-    for (const row of followersRows) mergeContact(merged, row.follower, "follower");
-    for (const row of followingRows) mergeContact(merged, row.following, "following");
+    for (const user of users) {
+      const relation = relationMap.get(user.id);
+      if (!relation) continue;
+      merged.set(user.id, toContactUser(user, relation));
+    }
 
     let contacts = [...merged.values()];
     if (q) {
