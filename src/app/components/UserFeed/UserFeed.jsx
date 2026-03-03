@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PostCard from "./PostCard";
 import PostModal from "./PostModal";
+import { useIncrementalList } from "@/app/hooks/useIncrementalList";
 
 function FeedSkeleton() {
   return (
@@ -110,6 +111,15 @@ export default function UserFeed() {
     if (mode === "following") return followingItems;
     return dedupeItems([...followingItems, ...forYouItems]);
   }, [mode, forYouItems, followingItems]);
+  const {
+    hasMore,
+    loadMoreRef,
+    visibleItems: renderedItems,
+  } = useIncrementalList(visibleItems, {
+    initialCount: mode === "following" ? 16 : 20,
+    increment: 12,
+    enabled: visibleItems.length > (mode === "following" ? 16 : 20),
+  });
 
   return (
     <>
@@ -152,13 +162,16 @@ export default function UserFeed() {
           )}
 
           {!loading && !err && visibleItems.length > 0 && (
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 [column-gap:1rem]">
-              {visibleItems.map((item) => (
-                <div key={`${item.type}-${item.id}`} className="mb-4 break-inside-avoid">
-                  <PostCard item={item} onOpenPost={setActivePost} />
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 [column-gap:1rem]">
+                {renderedItems.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="mb-4 break-inside-avoid">
+                    <PostCard item={item} onOpenPost={setActivePost} />
+                  </div>
+                ))}
+              </div>
+              {hasMore ? <div ref={loadMoreRef} className="h-8 w-full" aria-hidden="true" /> : null}
+            </>
           )}
         </section>
       </div>

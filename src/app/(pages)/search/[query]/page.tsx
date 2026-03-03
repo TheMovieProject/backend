@@ -6,6 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import MovieBlock from "@/app/components/MovieBlock/MovieBlock"
 import { Users, Film, Search, User } from "lucide-react"
+import { useIncrementalList } from "@/app/hooks/useIncrementalList"
 
 const PERSON_FALLBACK =
   "data:image/svg+xml;utf8," +
@@ -29,9 +30,30 @@ export default function SearchedItems() {
   const [users, setUsers] = useState<SiteUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const {
+    hasMore: hasMoreMovies,
+    loadMoreRef: loadMoreMoviesRef,
+    visibleItems: visibleMovies,
+  } = useIncrementalList(movies, {
+    initialCount: 18,
+    increment: 12,
+    enabled: movies.length > 18,
+  })
+  const {
+    hasMore: hasMoreUsers,
+    loadMoreRef: loadMoreUsersRef,
+    visibleItems: visibleUsers,
+  } = useIncrementalList(users, {
+    initialCount: 12,
+    increment: 12,
+    enabled: users.length > 12,
+  })
 
   useEffect(() => {
     if (!q) return
+    let alive = true
+    const controller = new AbortController()
+
     const fetchAll = async () => {
       setIsLoading(true)
       setError(null)
@@ -39,10 +61,12 @@ export default function SearchedItems() {
         const movieReq = fetch(
           `https://api.themoviedb.org/3/search/movie?api_key=${process.env.NEXT_PUBLIC_API_KEY}&query=${encodeURIComponent(
             q
-          )}&include_adult=false`
+          )}&include_adult=false`,
+          { signal: controller.signal }
         )
         const userReq = fetch(
-          `/api/user/lookup?query=${encodeURIComponent(q)}&limit=24`
+          `/api/user/lookup?query=${encodeURIComponent(q)}&limit=24`,
+          { signal: controller.signal }
         )
 
         const [mr, ur] = await Promise.all([movieReq, userReq])
@@ -50,22 +74,30 @@ export default function SearchedItems() {
         if (!mr.ok) throw new Error("Failed to fetch movies")
         const movieData = await mr.json()
         const filteredMovies = (movieData?.results ?? []).filter((m: any) => m.backdrop_path)
+        if (!alive) return
         setMovies(filteredMovies)
 
         if (ur.ok) {
           const usersData: SiteUser[] = await ur.json()
+          if (!alive) return
           setUsers(Array.isArray(usersData) ? usersData : [])
         } else {
+          if (!alive) return
           setUsers([])
         }
       } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return
         console.error(e)
         setError("An error occurred while fetching results. Please try again.")
       } finally {
-        setIsLoading(false)
+        if (alive) setIsLoading(false)
       }
     }
     fetchAll()
+    return () => {
+      alive = false
+      controller.abort()
+    }
   }, [q])
 
   if (isLoading) {
@@ -119,41 +151,44 @@ export default function SearchedItems() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {users.map((u) => {
-                const avatar = u.avatarUrl || u.image || PERSON_FALLBACK
-                return (
-                  <Link
-                    key={u.id}
-                    href={`/profile/${u.id}`}
-                    className="group bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden hover:from-yellow-500/10 hover:to-yellow-600/10 transition-all duration-300 border border-yellow-500/20 hover:border-yellow-500/40 hover:shadow-2xl hover:shadow-yellow-500/10"
-                  >
-                    <div className="relative aspect-square">
-                      <Image
-                        src={avatar}
-                        alt={u.username || u.name || "User"}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                        unoptimized={avatar === PERSON_FALLBACK}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <User className="h-5 w-5 text-yellow-400" />
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {visibleUsers.map((u) => {
+                  const avatar = u.avatarUrl || u.image || PERSON_FALLBACK
+                  return (
+                    <Link
+                      key={u.id}
+                      href={`/profile/${u.id}`}
+                      className="group bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden hover:from-yellow-500/10 hover:to-yellow-600/10 transition-all duration-300 border border-yellow-500/20 hover:border-yellow-500/40 hover:shadow-2xl hover:shadow-yellow-500/10"
+                    >
+                      <div className="relative aspect-square">
+                        <Image
+                          src={avatar}
+                          alt={u.username || u.name || "User"}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                          unoptimized={avatar === PERSON_FALLBACK}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <User className="h-5 w-5 text-yellow-400" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-4 text-center">
-                      <h3 className="font-bold text-white group-hover:text-yellow-400 transition-colors duration-300 line-clamp-1 text-sm md:text-base">
-                        {u.username || u.name || "User"}
-                      </h3>
-                      {u.name && u.username && (
-                        <p className="text-xs text-gray-400 mt-1">@{u.username}</p>
-                      )}
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+                      <div className="p-4 text-center">
+                        <h3 className="font-bold text-white group-hover:text-yellow-400 transition-colors duration-300 line-clamp-1 text-sm md:text-base">
+                          {u.username || u.name || "User"}
+                        </h3>
+                        {u.name && u.username && (
+                          <p className="text-xs text-gray-400 mt-1">@{u.username}</p>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+              {hasMoreUsers ? <div ref={loadMoreUsersRef} className="h-8 w-full" aria-hidden="true" /> : null}
+            </>
           </section>
         )}
 
@@ -169,16 +204,19 @@ export default function SearchedItems() {
               </h2>
             </div>
 
-            <div
-              className="grid justify-center gap-x-6 gap-y-10 pt-8"
-              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(165px, 185px))" }}
-            >
-              {movies.map((item, index) => (
-                <div key={item.id} className="w-[165px] sm:w-[185px] pt-8">
-                  <MovieBlock item={item} index={index} />
-                </div>
-              ))}
-            </div>
+            <>
+              <div
+                className="grid justify-center gap-x-6 gap-y-10 pt-8"
+                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(165px, 185px))" }}
+              >
+                {visibleMovies.map((item, index) => (
+                  <div key={item.id} className="w-[165px] sm:w-[185px] pt-8">
+                    <MovieBlock item={item} index={index} />
+                  </div>
+                ))}
+              </div>
+              {hasMoreMovies ? <div ref={loadMoreMoviesRef} className="h-8 w-full" aria-hidden="true" /> : null}
+            </>
           </section>
         )}
 

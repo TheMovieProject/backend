@@ -6,6 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Clock, MessageCircle, Heart, Eye, X, ExternalLink, Flame } from "lucide-react"
 import { formatRelativeTime, subtractHours, isAfterDate } from "@/app/libs/dateUtils"
+import { useIncrementalList } from "@/app/hooks/useIncrementalList"
 
 const REFRESH_INTERVAL = 5 * 60 * 1000 // 5 minutes
 const ACTIVITY_LIMIT = 50
@@ -19,6 +20,15 @@ const FollowerActivity = () => {
   const [error, setError] = useState(null)
   const [selectedActivity, setSelectedActivity] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const {
+    hasMore,
+    loadMoreRef,
+    visibleItems: visibleActivities,
+  } = useIncrementalList(activities, {
+    initialCount: 20,
+    increment: 15,
+    enabled: activities.length > 20,
+  })
 
   // Close modal when pressing escape key
   useEffect(() => {
@@ -182,7 +192,7 @@ const FollowerActivity = () => {
 
       {/* Instagram-style grid layout */}
       <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-2">
-        {activities.map((activity, index) => (
+        {visibleActivities.map((activity, index) => (
           <div
             key={`${activity.type}-${activity.data.id}-${index}`}
             className="aspect-square relative cursor-pointer overflow-hidden"
@@ -212,6 +222,7 @@ const FollowerActivity = () => {
           </div>
         ))}
       </div>
+      {hasMore ? <div ref={loadMoreRef} className="h-6 w-full" aria-hidden="true" /> : null}
 
       {/* Custom modal implementation */}
       {isModalOpen && selectedActivity && (

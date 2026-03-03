@@ -19,6 +19,8 @@ import {
 } from "react-icons/md";
 import toast from "react-hot-toast";
 import { invalidateWatchlistsCache, loadBaseWatchlists } from "@/lib/watchlists-client";
+import { useDebouncedValue } from "@/app/hooks/useDebouncedValue";
+import { useIncrementalList } from "@/app/hooks/useIncrementalList";
 
 const isShared = (l) => (l?.visibility || (l?.isPublic ? "SHARED" : "PRIVATE")) === "SHARED";
 const isLegacyHidden = (l) => l?.slug === "my-watchlist" && !l?.isSystemDefault;
@@ -78,13 +80,41 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
   const collections = useMemo(() => lists.filter((l) => !isDefault(l)), [lists]);
   const currentListId = detailMode ? initialWatchlistId : defaultList?.id || null;
   const active = detail;
+  const debouncedContactQuery = useDebouncedValue(contactQuery, 180);
 
   const selectedContacts = useMemo(() => contacts.filter((c) => selectedIds.includes(c.id)), [contacts, selectedIds]);
   const filteredContacts = useMemo(() => {
-    const q = contactQuery.trim().toLowerCase();
+    const q = debouncedContactQuery.trim().toLowerCase();
     if (!q) return contacts;
     return contacts.filter((u) => [u.username, u.name].filter(Boolean).join(" ").toLowerCase().includes(q));
-  }, [contacts, contactQuery]);
+  }, [contacts, debouncedContactQuery]);
+  const {
+    hasMore: hasMoreCollections,
+    loadMoreRef: loadMoreCollectionsRef,
+    visibleItems: visibleCollections,
+  } = useIncrementalList(collections, {
+    initialCount: 12,
+    increment: 8,
+    enabled: collections.length > 12,
+  });
+  const {
+    hasMore: hasMoreActiveItems,
+    loadMoreRef: loadMoreActiveItemsRef,
+    visibleItems: visibleActiveItems,
+  } = useIncrementalList(active?.items || [], {
+    initialCount: detailMode ? 20 : 15,
+    increment: 12,
+    enabled: (active?.items?.length || 0) > (detailMode ? 20 : 15),
+  });
+  const {
+    hasMore: hasMoreContacts,
+    loadMoreRef: loadMoreContactsRef,
+    visibleItems: visibleContacts,
+  } = useIncrementalList(filteredContacts, {
+    initialCount: 30,
+    increment: 20,
+    enabled: filteredContacts.length > 30,
+  });
 
   const loadLists = async (force = false) => {
     try {
@@ -291,29 +321,32 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
             ) : !active ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/80">Collection not found or inaccessible.</div>
             ) : active.items?.length ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {active.items.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-white/12 bg-[#fbfbfb] p-3 text-black shadow-lg">
-                    <Link href={`/movies/${item.movie?.tmdbId}`} className="block">
-                      <div className="mb-3 aspect-[3/4] overflow-hidden rounded-xl bg-zinc-200">
-                        <Image src={safePoster(item.movie || {})} alt={item.movie?.title || "Movie"} width={240} height={360} className="h-full w-full object-cover" />
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {visibleActiveItems.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/12 bg-[#fbfbfb] p-3 text-black shadow-lg">
+                      <Link href={`/movies/${item.movie?.tmdbId}`} className="block">
+                        <div className="mb-3 aspect-[3/4] overflow-hidden rounded-xl bg-zinc-200">
+                          <Image src={safePoster(item.movie || {})} alt={item.movie?.title || "Movie"} width={240} height={360} className="h-full w-full object-cover" />
+                        </div>
+                      </Link>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{item.movie?.title || "Untitled movie"}</p>
+                          {isShared(active) && item.addedByUser ? (
+                            <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
+                              <Avatar user={item.addedByUser} size={20} ring="border-zinc-300" />
+                              <span className="truncate">{item.addedByUser.username ? `@${item.addedByUser.username}` : userLabel(item.addedByUser)}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                        {(active.canEdit || active.canManage) ? <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600"><MdDelete size={14} /></button> : null}
                       </div>
-                    </Link>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{item.movie?.title || "Untitled movie"}</p>
-                        {isShared(active) && item.addedByUser ? (
-                          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
-                            <Avatar user={item.addedByUser} size={20} ring="border-zinc-300" />
-                            <span className="truncate">{item.addedByUser.username ? `@${item.addedByUser.username}` : userLabel(item.addedByUser)}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                      {(active.canEdit || active.canManage) ? <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600"><MdDelete size={14} /></button> : null}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                {hasMoreActiveItems ? <div ref={loadMoreActiveItemsRef} className="h-8 w-full" aria-hidden="true" /> : null}
+              </>
             ) : (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
                 <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5"><MdLocalMovies size={26} className="text-white/75" /></div>
@@ -350,7 +383,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
                   <p className="font-semibold text-white">Add collection</p>
                   <p className="text-xs text-white/60 mt-1">Create a new collection</p>
                 </button>
-                {collections.map((l) => (
+                {visibleCollections.map((l) => (
                   <button key={l.id} type="button" onClick={() => router.push(`/watchlists/${l.id}`)} className="group rounded-2xl border border-white/15 bg-black/20 p-3 text-left hover:bg-black/30 hover:border-white/25 transition shadow-lg">
                     <div className="relative mb-3 aspect-square overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-amber-400/25 via-orange-500/20 to-zinc-900/60">
                       {collectionPreview(l) ? (
@@ -387,6 +420,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
                   </button>
                 ))}
               </div>
+              {hasMoreCollections ? <div ref={loadMoreCollectionsRef} className="h-8 w-full" aria-hidden="true" /> : null}
               {!collections.length ? <p className="mt-4 text-sm text-white/65">No collections yet. Tap Add collection.</p> : null}
             </section>
 
@@ -405,24 +439,27 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
               {loadingDetail && !active ? (
                 <div className="min-h-[40vh] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" /></div>
               ) : active?.items?.length ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {active.items.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-white/12 bg-[#fbfbfb] p-3 text-black shadow-lg">
-                      <Link href={`/movies/${item.movie?.tmdbId}`} className="block">
-                        <div className="mb-3 aspect-[3/4] overflow-hidden rounded-xl bg-zinc-200">
-                          <Image src={safePoster(item.movie || {})} alt={item.movie?.title || "Movie"} width={240} height={360} className="h-full w-full object-cover" />
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {visibleActiveItems.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-white/12 bg-[#fbfbfb] p-3 text-black shadow-lg">
+                        <Link href={`/movies/${item.movie?.tmdbId}`} className="block">
+                          <div className="mb-3 aspect-[3/4] overflow-hidden rounded-xl bg-zinc-200">
+                            <Image src={safePoster(item.movie || {})} alt={item.movie?.title || "Movie"} width={240} height={360} className="h-full w-full object-cover" />
+                          </div>
+                        </Link>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{item.movie?.title || "Untitled movie"}</p>
+                            <p className="mt-2 text-xs text-zinc-500">{item.addedAt ? new Date(item.addedAt).toLocaleDateString() : "Watchlisted"}</p>
+                          </div>
+                          {(active.canEdit || active.canManage) ? <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600"><MdDelete size={14} /></button> : null}
                         </div>
-                      </Link>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{item.movie?.title || "Untitled movie"}</p>
-                          <p className="mt-2 text-xs text-zinc-500">{item.addedAt ? new Date(item.addedAt).toLocaleDateString() : "Watchlisted"}</p>
-                        </div>
-                        {(active.canEdit || active.canManage) ? <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600"><MdDelete size={14} /></button> : null}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  {hasMoreActiveItems ? <div ref={loadMoreActiveItemsRef} className="h-8 w-full" aria-hidden="true" /> : null}
+                </>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5"><MdLocalMovies size={26} className="text-white/75" /></div>
@@ -478,7 +515,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
                     <div className="min-h-[260px] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" /></div>
                   ) : (
                     <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-2">
-                      {filteredContacts.map((u) => {
+                      {visibleContacts.map((u) => {
                         const selected = selectedIds.includes(u.id);
                         return (
                           <button key={u.id} type="button" onClick={() => toggleUser(u.id)} className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition ${selected ? "border-emerald-300/35 bg-emerald-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
@@ -497,6 +534,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
                           </button>
                         );
                       })}
+                      {hasMoreContacts ? <div ref={loadMoreContactsRef} className="h-6 w-full" aria-hidden="true" /> : null}
                       {!contactsLoading && !filteredContacts.length ? <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/65">{contacts.length ? "No people matched your search." : "No followers/following found yet."}</div> : null}
                     </div>
                   )}
