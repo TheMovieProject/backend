@@ -7,6 +7,7 @@ import { Heart, Flame, MessageCircle, Clock, ExternalLink } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { FaStar } from "react-icons/fa";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
+import { htmlToPlainText } from "@/app/libs/textUtils";
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -33,8 +34,8 @@ function normalizeForModal(item) {
     : item?.thumbnail || "";
 
   const createdAt = item?.createdAt || item?.created_at || item?.updatedAt || new Date().toISOString();
-  const content = item?.content ?? item?.text ?? item?.reviewText ?? item?.body ?? "";
-  const excerpt = item?.excerpt ?? "";
+  const content = htmlToPlainText(item?.content ?? item?.text ?? item?.reviewText ?? item?.body ?? "");
+  const excerpt = htmlToPlainText(item?.excerpt ?? "");
 
   return {
     id: item.id,
@@ -58,6 +59,13 @@ function normalizeForModal(item) {
 
 function safeImageSrc(src) {
   return typeof src === "string" && src.trim() ? src : "/img/logo.png";
+}
+
+function releaseYear(dateValue) {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.getFullYear();
 }
 
 export default function PostCard({ item, onOpenPost }) {
@@ -178,6 +186,8 @@ export default function PostCard({ item, onOpenPost }) {
   const likedByMe = !!snap?.likedByMe;
   const firedByMe = !!snap?.firedByMe;
   const commentsCount = snap?.commentsCount ?? 0;
+  const authorLabel =
+    item?.user?.username || item?.user?.name || item?.author || item?.user?.email?.split("@")[0] || "movie fan";
 
   const openAsModal = () => {
     onOpenPost?.(
@@ -196,50 +206,59 @@ export default function PostCard({ item, onOpenPost }) {
 
   if (!isReview) {
     const blogHasImage = typeof thumbnail === "string" && thumbnail.trim().length > 0;
+    const articlePreview = htmlToPlainText(item?.excerpt || item?.content || "No article text available.");
 
     return (
-      <article className="w-full break-inside-avoid rounded-2xl overflow-hidden bg-white/5 border border-white/10 shadow-xl">
-        {blogHasImage ? (
-          <div className="relative w-full overflow-hidden">
-            <Image
-              src={safeThumb}
-              alt={title}
-              width={600}
-              height={900}
-              className="w-full h-auto object-cover"
-            />
-
-            <Link
-              href={profileHref}
-              className="absolute top-2 left-2 z-10 h-9 w-9 overflow-hidden rounded-full bg-black/40 ring-1 ring-white/30"
-            >
-              <Image src={avatar} alt="user avatar" fill className="object-cover" />
+      <article className="w-full overflow-hidden rounded-[24px] bg-black/10 shadow-[0_12px_28px_rgba(0,0,0,0.14)] backdrop-blur-[2px]">
+        <div className="p-4 sm:p-4.5">
+          <div className="flex items-start justify-between gap-3">
+            <Link href={profileHref} className="flex min-w-0 items-center gap-3">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20">
+                <Image src={avatar} alt="user avatar" fill className="object-cover" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">@{authorLabel}</p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-white/45">Article</p>
+              </div>
             </Link>
 
-            <div className="absolute top-2 right-2 text-[11px] text-white/80 bg-black/40 px-2 py-1 rounded-full flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {timeAgo(createdAtIso)}
+            <div className="shrink-0 rounded-full bg-black/15 px-2.5 py-1 text-[11px] text-white/70">
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" /> {timeAgo(createdAtIso)}
+              </span>
             </div>
           </div>
-        ) : (
-          <div className="pt-3 px-3 pb-2 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <Link
-                href={profileHref}
-                className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/30 bg-black/40"
-              >
-                <Image src={avatar} alt="user avatar" fill className="object-cover" />
+
+          <div
+            className={`mt-4 grid min-h-[136px] gap-4 ${
+              blogHasImage ? "grid-cols-[92px_minmax(0,1fr)] sm:grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-1"
+            }`}
+          >
+            {blogHasImage ? (
+              <Link href={href} className="block">
+                <div className="relative h-[124px] w-[92px] overflow-hidden rounded-[16px] shadow-[0_10px_22px_rgba(0,0,0,0.18)] sm:h-[140px] sm:w-[104px]">
+                  <Image
+                    src={safeThumb}
+                    alt={title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    sizes="(max-width: 640px) 92px, 104px"
+                  />
+                </div>
               </Link>
-              <div className="text-[11px] text-white/80 bg-black/40 px-2 py-1 rounded-full flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {timeAgo(createdAtIso)}
-              </div>
+            ) : null}
+
+            <div className="min-w-0 py-1">
+              <Link href={href} className="block text-base font-semibold leading-snug text-white transition-colors hover:text-yellow-100 sm:text-[1.08rem]">
+                <span className="line-clamp-2">{title}</span>
+              </Link>
+              <p className="mt-2 line-clamp-4 text-sm leading-5 text-white/76">
+                {articlePreview}
+              </p>
             </div>
           </div>
-        )}
 
-        <div className={`${blogHasImage ? "p-3" : "p-3 pt-2"}`}>
-          <div className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-2">{title}</div>
-
-          <div className="flex items-center gap-3 text-xs text-white/70">
+          <div className="mt-4 flex items-center gap-3 text-xs text-white/70">
             <button
               onClick={() => react("like")}
               className={`inline-flex items-center gap-1 ${likedByMe ? "text-red-500" : "hover:text-white"}`}
@@ -274,49 +293,81 @@ export default function PostCard({ item, onOpenPost }) {
     typeof item?.authorRating === "number" && !Number.isNaN(item.authorRating)
       ? item.authorRating
       : null;
+  const movieReleaseYear = releaseYear(item?.movie?.releaseDate || item?.movie?.release_date);
+  const reviewText = htmlToPlainText(item?.excerpt || item?.content || "No review text.");
+  const hasPoster = typeof thumbnail === "string" && thumbnail.trim().length > 0;
 
   return (
-    <article className="w-full rounded-2xl bg-white/5 border border-white/10 shadow-xl overflow-hidden">
+    <article className="group w-full overflow-hidden rounded-[24px] bg-black/10 shadow-[0_12px_28px_rgba(0,0,0,0.14)] backdrop-blur-[2px]">
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between">
-          <Link href={profileHref} className="relative w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/20">
-            <Image src={avatar} alt="user avatar" fill className="object-cover" />
+        <div className="flex items-start justify-between gap-3">
+          <Link href={profileHref} className="flex min-w-0 items-center gap-3">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20">
+              <Image src={avatar} alt="user avatar" fill className="object-cover" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">@{authorLabel}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-white/45">Review</p>
+            </div>
           </Link>
 
-          <div className="text-xs text-white/60 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> {timeAgo(createdAtIso)}
+          <div className="shrink-0 rounded-full bg-black/15 px-2.5 py-1 text-[11px] text-white/70">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" /> {timeAgo(createdAtIso)}
+            </span>
           </div>
         </div>
 
-        <div className="mt-3 ml-3 flex items-center gap-3">
-          {thumbnail ? (
-            <Image
-              width={40}
-              height={80}
-              src={safeThumb}
-              alt={`${title} poster`}
-              className="rounded-md h-14 w-10 object-cover"
-            />
-          ) : null}
-          <div className="text-white font-bold text-md leading-snug">{title}</div>
-        </div>
-
-        <div className="mt-5 flex items-center gap-2 text-[1.3rem] leading-relaxed text-white/80 line-clamp-3">
-          {authorRating !== null && (
-            <div className="shrink-0 px-3 py-1 text-xs text-white/80 flex items-center gap-1">
-              <FaStar className="text-yellow-400" />
-              <span className="font-semibold">{authorRating}</span>
-            </div>
+        <div className="mt-4 grid min-h-[144px] grid-cols-[84px_minmax(0,1fr)] gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
+          {hasPoster ? (
+            <Link href={href} className="block">
+              <div className="overflow-hidden rounded-[16px] shadow-[0_10px_22px_rgba(0,0,0,0.18)]">
+                <Image
+                  width={96}
+                  height={144}
+                  src={safeThumb}
+                  alt={`${title} poster`}
+                  className="h-[126px] w-[84px] object-cover transition-transform duration-300 group-hover:scale-[1.03] sm:h-[144px] sm:w-[96px]"
+                />
+              </div>
+            </Link>
+          ) : (
+            <div className="h-[126px] w-[84px] rounded-[16px] bg-white/10 sm:h-[144px] sm:w-[96px]" />
           )}
-          {item?.excerpt || "No review text."}
+
+          <div className="min-w-0 py-1">
+            <Link href={href} className="block text-[1.1rem] font-semibold leading-tight text-white transition-colors hover:text-yellow-100 sm:text-[1.2rem]">
+              <span className="line-clamp-2">{title}</span>
+            </Link>
+
+            {(movieReleaseYear || authorRating !== null) && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                {movieReleaseYear ? (
+                  <span className="rounded-full bg-white/6 px-2.5 py-1 text-white/60">
+                    {movieReleaseYear}
+                  </span>
+                ) : null}
+                {authorRating !== null ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 px-2.5 py-1 text-yellow-100">
+                    <FaStar className="text-yellow-400" />
+                    <span className="font-semibold">{authorRating}</span>
+                  </span>
+                ) : null}
+              </div>
+            )}
+
+            <p className="mt-2.5 line-clamp-4 text-[13px] leading-5 text-white/76 sm:text-sm">
+              {reviewText}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between pt-2">
           <div className="flex items-center gap-5 text-sm">
             <button
               onClick={() => react("like")}
               className={`flex items-center gap-1 transition-transform ${
-                likedByMe ? "text-red-500 scale-105" : "text-white/70 hover:text-white"
+                likedByMe ? "scale-105 text-red-500" : "text-white/70 hover:text-white"
               }`}
             >
               <Heart className={`w-5 h-5 ${likedByMe ? "fill-current" : ""}`} /> {likes}
@@ -325,7 +376,7 @@ export default function PostCard({ item, onOpenPost }) {
             <button
               onClick={() => react("fire")}
               className={`flex items-center gap-1 transition-transform ${
-                firedByMe ? "text-orange-500 scale-105" : "text-white/70 hover:text-white"
+                firedByMe ? "scale-105 text-orange-500" : "text-white/70 hover:text-white"
               }`}
             >
               <Flame className={`w-5 h-5 ${firedByMe ? "fill-current" : ""}`} /> {fire}

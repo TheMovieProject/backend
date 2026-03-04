@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Heart, Flame, MessageCircle, Clock, Smile, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
+import { htmlToPlainText } from "@/app/libs/textUtils";
  
 /* ---------- time helper ---------- */
 const timeAgo = (iso) => {
@@ -90,6 +91,7 @@ export default function PostModal({ post, onClose, onReactionUpdate }) {
   const userId = post.user?.id;
   const createdAt = post.createdAt;
   const hasImage = !!post.thumbnail;
+  const postBody = htmlToPlainText(post.content || post.excerpt || post.title);
   const emojis = ["😂", "😍", "😮", "😢", "😡", "👍", "🔥", "✨", "🎯", "💯"];
 
   /* ---------- fetch comments as TREE ---------- */
@@ -322,7 +324,7 @@ async function react(kind) {
             {/* Post text */}
             <div className="px-4 py-3 border-b border-white/10"> 
               <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
-                {post.content || post.excerpt || post.title}
+                {postBody}
               </p>
             </div>
 

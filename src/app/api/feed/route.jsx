@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
+import { htmlToPlainText, truncateText } from "@/app/libs/textUtils";
 
 export const maxDuration = 30;
 
@@ -45,6 +46,13 @@ function parseLimit(rawLimit) {
   return Math.min(Math.floor(parsed), LIMIT_MAX);
 }
 
+function parseCursor(rawCursor) {
+  if (rawCursor == null) return 0;
+  const parsed = Number(rawCursor);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.floor(parsed);
+}
+
 async function syncReactionCounters(entityType, entityId) {
   const [likes, fire] = await Promise.all([
     prisma.entityReaction.count({
@@ -81,7 +89,12 @@ export async function GET(req) {
     const requestedMode = searchParams.get("mode") ?? "forYou";
     const mode = VALID_MODES.has(requestedMode) ? requestedMode : "forYou";
     const limit = parseLimit(searchParams.get("limit"));
-    const take = mode === "following" ? Math.min(limit * 2, 32) : Math.min(limit * 2, 40);
+    const cursor = parseCursor(searchParams.get("cursor"));
+    const baseWindow = cursor + limit;
+    const take =
+      mode === "following"
+        ? Math.min(Math.max(baseWindow, limit * 2), 120)
+        : Math.min(Math.max(baseWindow, limit * 2), 160);
 
     const me = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -103,6 +116,7 @@ export async function GET(req) {
         nextCursor: null,
         meta: {
           mode,
+          cursor,
           totalFetched: 0,
           returned: 0,
           hasMore: false,
@@ -204,7 +218,7 @@ export async function GET(req) {
         authorRating: r.movieId ? authorRatingMap.get(`${r.userId}-${r.movieId}`) ?? null : null,
         title: r.movie?.title ?? "Unknown",
         thumbnail: r.movie?.posterUrl ?? null,
-        excerpt: r.content ? r.content.slice(0, 360) + (r.content.length > 360 ? "..." : "") : "",
+        excerpt: truncateText(htmlToPlainText(r.content ?? ""), 360),
         content: r.content ?? "",
       })),
       ...blogs.map((b) => ({
@@ -224,7 +238,7 @@ export async function GET(req) {
         commentsCount: b._count?.comments ?? 0,
         title: b.title,
         thumbnail: b.thumbnail ?? null,
-        excerpt: b.content ? b.content.slice(0, 220) + (b.content.length > 220 ? "..." : "") : "",
+        excerpt: truncateText(htmlToPlainText(b.content ?? ""), 220),
         content: b.content ?? "",
         authorRating: null,
       })),
@@ -266,14 +280,15 @@ export async function GET(req) {
             .sort((a, b) => (b.score || 0) - (a.score || 0))
         : items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    const page = scored.slice(0, limit);
-    const nextCursor = page.length === limit && scored.length > limit ? page[page.length - 1].id : null;
+    const page = scored.slice(cursor, cursor + limit);
+    const nextCursor = cursor + page.length < scored.length ? cursor + page.length : null;
 
     return NextResponse.json({
       items: page,
       nextCursor,
       meta: {
         mode,
+        cursor,
         totalFetched: items.length,
         returned: page.length,
         hasMore: nextCursor !== null,
