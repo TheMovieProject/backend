@@ -132,6 +132,7 @@ export default function PollPage() {
     initialCount: 20,
     increment: 12,
     enabled: ranked.length > 20,
+    resetKey: debouncedQuery.trim().toLowerCase(),
   });
 
   return (

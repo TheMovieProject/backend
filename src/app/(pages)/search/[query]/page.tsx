@@ -38,6 +38,7 @@ export default function SearchedItems() {
     initialCount: 18,
     increment: 12,
     enabled: movies.length > 18,
+    resetKey: q,
   })
   const {
     hasMore: hasMoreUsers,
@@ -47,6 +48,7 @@ export default function SearchedItems() {
     initialCount: 12,
     increment: 12,
     enabled: users.length > 12,
+    resetKey: q,
   })
 
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function SearchedItems() {
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") return
         console.error(e)
+        if (!alive) return
         setError("An error occurred while fetching results. Please try again.")
       } finally {
         if (alive) setIsLoading(false)

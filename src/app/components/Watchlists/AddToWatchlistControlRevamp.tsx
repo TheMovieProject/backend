@@ -184,7 +184,7 @@ export default function AddToWatchlistControlRevamp({
       window.removeEventListener("resize", updatePanelPosition);
       window.removeEventListener("scroll", updatePanelPosition, true);
     };
-  }, [panelOpen, updatePanelPosition]);
+  }, [compact, panelOpen, updatePanelPosition]);
 
   const emitStatus = (nextData: ApiState) => {
     if (!onStatusChange) return;

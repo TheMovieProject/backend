@@ -105,6 +105,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
     initialCount: detailMode ? 20 : 15,
     increment: 12,
     enabled: (active?.items?.length || 0) > (detailMode ? 20 : 15),
+    resetKey: currentListId || "default-watchlist",
   });
   const {
     hasMore: hasMoreContacts,
@@ -114,6 +115,7 @@ export default function WatchListClientRevamp({ initialWatchlistId = null }) {
     initialCount: 30,
     increment: 20,
     enabled: filteredContacts.length > 30,
+    resetKey: debouncedContactQuery.trim().toLowerCase(),
   });
 
   const loadLists = async (force = false) => {

@@ -7,6 +7,7 @@ type UseIncrementalListOptions = {
   increment?: number;
   rootMargin?: string;
   enabled?: boolean;
+  resetKey?: unknown;
 };
 
 export function useIncrementalList<T>(items: T[], options: UseIncrementalListOptions = {}) {
@@ -15,6 +16,7 @@ export function useIncrementalList<T>(items: T[], options: UseIncrementalListOpt
     increment = 12,
     rootMargin = "320px",
     enabled = true,
+    resetKey,
   } = options;
 
   const normalizedInitialCount = Math.max(1, initialCount);
@@ -23,10 +25,21 @@ export function useIncrementalList<T>(items: T[], options: UseIncrementalListOpt
     enabled ? Math.min(items.length, normalizedInitialCount) : items.length
   );
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const previousResetKeyRef = useRef(resetKey);
 
   useEffect(() => {
-    setVisibleCount(enabled ? Math.min(items.length, normalizedInitialCount) : items.length);
-  }, [enabled, items, normalizedInitialCount]);
+    const didResetKeyChange = previousResetKeyRef.current !== resetKey;
+    previousResetKeyRef.current = resetKey;
+
+    setVisibleCount((currentCount) => {
+      if (didResetKeyChange) {
+        return enabled ? Math.min(items.length, normalizedInitialCount) : items.length;
+      }
+      if (!enabled) return items.length;
+      if (currentCount <= 0) return Math.min(items.length, normalizedInitialCount);
+      return Math.min(items.length, Math.max(currentCount, normalizedInitialCount));
+    });
+  }, [enabled, items.length, normalizedInitialCount, resetKey]);
 
   const hasMore = enabled && visibleCount < items.length;
 
