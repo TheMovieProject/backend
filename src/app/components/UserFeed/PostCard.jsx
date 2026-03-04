@@ -318,9 +318,9 @@ export default function PostCard({ item, onOpenPost }) {
           </div>
         </div>
 
-        <div className="mt-4 grid min-h-[144px] grid-cols-[84px_minmax(0,1fr)] gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
+        <div className="mt-4 flex min-h-[144px] items-start gap-4 sm:gap-5">
           {hasPoster ? (
-            <Link href={href} className="block">
+            <Link href={href} className="block shrink-0">
               <div className="overflow-hidden rounded-[16px] shadow-[0_10px_22px_rgba(0,0,0,0.18)]">
                 <Image
                   width={96}
@@ -332,33 +332,33 @@ export default function PostCard({ item, onOpenPost }) {
               </div>
             </Link>
           ) : (
-            <div className="h-[126px] w-[84px] rounded-[16px] bg-white/10 sm:h-[144px] sm:w-[96px]" />
+            <div className="h-[126px] w-[84px] shrink-0 rounded-[16px] bg-white/10 sm:h-[144px] sm:w-[96px]" />
           )}
 
-          <div className="min-w-0 py-1">
-            <Link href={href} className="block text-[1.1rem] font-semibold leading-tight text-white transition-colors hover:text-yellow-100 sm:text-[1.2rem]">
-              <span className="line-clamp-2">{title}</span>
-            </Link>
+          <div className="flex min-w-0 flex-1 flex-col justify-between py-1">
+            <div className="min-w-0">
+              <Link href={href} className="block text-[1.1rem] font-semibold leading-tight text-white transition-colors hover:text-yellow-100 sm:text-[1.2rem]">
+                <span className="line-clamp-2">{title}</span>
+              </Link>
 
-            {(movieReleaseYear || authorRating !== null) && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                {movieReleaseYear ? (
-                  <span className="rounded-full bg-white/6 px-2.5 py-1 text-white/60">
-                    {movieReleaseYear}
-                  </span>
-                ) : null}
-                {authorRating !== null ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 px-2.5 py-1 text-yellow-100">
-                    <FaStar className="text-yellow-400" />
-                    <span className="font-semibold">{authorRating}</span>
-                  </span>
-                ) : null}
-              </div>
-            )}
+              {(movieReleaseYear || authorRating !== null) && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  {movieReleaseYear ? (
+                    <span className="rounded-full bg-white/6 px-2.5 py-1 text-white/60">
+                      {movieReleaseYear}
+                    </span>
+                  ) : null}
+                  {authorRating !== null ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 px-2.5 py-1 text-yellow-100">
+                      <FaStar className="text-yellow-400" />
+                      <span className="font-semibold">{authorRating}</span>
+                    </span>
+                  ) : null}
+                </div>
+              )}
+            </div>
 
-            <p className="mt-2.5 line-clamp-4 text-[13px] leading-5 text-white/76 sm:text-sm">
-              {reviewText}
-            </p>
+            <p className="mt-3 line-clamp-4 text-[13px] leading-5 text-white/76 sm:text-sm">{reviewText}</p>
           </div>
         </div>
 

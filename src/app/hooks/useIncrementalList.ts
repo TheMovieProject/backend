@@ -44,7 +44,11 @@ export function useIncrementalList<T>(items: T[], options: UseIncrementalListOpt
   const hasMore = enabled && visibleCount < items.length;
 
   useEffect(() => {
-    if (!hasMore || typeof IntersectionObserver === "undefined") return;
+    if (!hasMore) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisibleCount(items.length);
+      return;
+    }
 
     const node = loadMoreRef.current;
     if (!node) return;
