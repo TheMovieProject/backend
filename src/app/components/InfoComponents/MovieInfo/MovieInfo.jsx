@@ -50,11 +50,13 @@ const MovieInfo = ({
 }) => {
   const [isLiked, setIsLiked] = useState(!!defaultLiked);
   const [isInWatchlist, setIsInWatchlist] = useState(!!defaultInWatchlist);
+  const [isCastModalOpen, setIsCastModalOpen] = useState(false);
 
   const likeBtnRef = useRef(null);
 
   const director = useMemo(() => getDirectorPerson(item?.credits?.crew || []), [item]);
-  const topCast = useMemo(() => getTopCast(item?.credits?.cast || [], 8), [item]);
+  const allCast = useMemo(() => item?.credits?.cast || [], [item]);
+  const topCast = useMemo(() => getTopCast(allCast, 8), [allCast]);
   const inTheaters = useMemo(() => isNewInTheaters(item?.release_date), [item]);
 
   useEffect(() => {
@@ -65,6 +67,24 @@ const MovieInfo = ({
   useEffect(() => {
     setIsInWatchlist(!!defaultInWatchlist);
   }, [defaultInWatchlist]);
+
+  useEffect(() => {
+    setIsCastModalOpen(false);
+  }, [item?.id]);
+
+  useEffect(() => {
+    if (!isCastModalOpen) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setIsCastModalOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isCastModalOpen]);
 
   // --- API helpers ---
   async function likeOnServer() {
@@ -291,8 +311,19 @@ const MovieInfo = ({
 
                   {/* Top cast headshots */}
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3 md:p-4">
-  <div className="text-xs md:text-sm text-yellow-400 uppercase tracking-wide mb-2 md:mb-3">
-    Top Cast
+  <div className="mb-2 flex items-center justify-between gap-2 md:mb-3">
+    <div className="text-xs md:text-sm text-yellow-400 uppercase tracking-wide">
+      Top Cast
+    </div>
+    {allCast.length > 0 ? (
+      <button
+        type="button"
+        onClick={() => setIsCastModalOpen(true)}
+        className="rounded-full border border-yellow-500/35 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-yellow-200 transition hover:bg-yellow-500/20"
+      >
+        More
+      </button>
+    ) : null}
   </div>
   
   {/* Mobile & Tablet: New responsive design */}
@@ -456,6 +487,71 @@ const MovieInfo = ({
           </div>
         </div>
       </div>
+
+      {isCastModalOpen ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="All cast members"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setIsCastModalOpen(false)}
+            aria-label="Close cast list"
+          />
+
+          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-yellow-500/25 bg-[#16120a]/95 shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6 sm:py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-300">All Cast Members</h3>
+                <p className="text-xs text-white/60">{allCast.length} people</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCastModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close cast list"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
+              <div className="space-y-2">
+                {allCast.map((person, idx) => (
+                  <Link
+                    href={`/people/${person.id}`}
+                    key={person.cast_id || person.credit_id || person.id || idx}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 transition hover:border-yellow-500/35 hover:bg-white/[0.08]"
+                    title={`${person.name}${person.character ? ` as ${person.character}` : ""}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-yellow-500/30">
+                        <Image
+                          src={person.profile_path ? tmdbImg(person.profile_path, "w185") : ProfileImage}
+                          alt={person.name || "Cast member"}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-white">{person.name}</div>
+                      </div>
+                    </div>
+
+                    <div className="max-w-[48%] truncate text-right text-xs text-yellow-100/80 sm:text-sm">
+                      {person.character || "Unknown role"}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
