@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import Portal from "../Portal/Portal";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X, Heart, Flame, MessageCircle, Clock, Smile, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Heart, Flame, MessageCircle, Clock, Smile, Send, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEntity, useEntityStore } from "@/app/stores/entityStores";
+import { htmlToPlainText } from "@/app/libs/textUtils";
  
 /* ---------- time helper ---------- */
 const timeAgo = (iso) => {
@@ -90,6 +91,15 @@ export default function PostModal({ post, onClose, onReactionUpdate }) {
   const userId = post.user?.id;
   const createdAt = post.createdAt;
   const hasImage = !!post.thumbnail;
+  const postBody = htmlToPlainText(post.content || post.excerpt || post.title);
+  const isBlogPost = entityType === "blog";
+  const postHref =
+    entityType === "review"
+      ? post?._raw?.movie?.tmdbId
+        ? `/movies/${post._raw.movie.tmdbId}`
+        : "#"
+      : `/blog/${post.id}`;
+  const shouldShowReadMore = isBlogPost && postBody.length > 260;
   const emojis = ["😂", "😍", "😮", "😢", "😡", "👍", "🔥", "✨", "🎯", "💯"];
 
   /* ---------- fetch comments as TREE ---------- */
@@ -275,9 +285,9 @@ async function react(kind) {
       <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center">
         <div className="bg-black rounded-2xl border border-white/10 shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex">
           {/* LEFT: Image */}
-          <div className="flex-1 bg-black flex items-center justify-center min-w-0">
+          <div className="hidden min-w-0 flex-1 items-center justify-center bg-black lg:flex">
   {hasImage ? (
-    <div className="relative w-full h-full hidden lg:block"> {/* Hide on mobile, show on lg and up */}
+    <div className="relative h-full w-full">
       <Image
         src={post.thumbnail}
         alt={post.title}
@@ -287,16 +297,17 @@ async function react(kind) {
       />
     </div>
   ) : (
-    <div className="h-full w-full hidden lg:grid place-items-center text-white/40">
+    <div className="grid h-full w-full place-items-center text-white/40">
       No image
     </div>
   )}
 </div>
 
           {/* RIGHT: Content */}
-          <div className="flex flex-col w-96 min-w-96 border-l border-white/10">
+          <div className="flex min-h-0 w-full flex-col border-white/10 lg:min-w-96 lg:w-96 lg:border-l">
             {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+            <div className="shrink-0 border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-3">
               <Link
                 href={userId ? `/profile/${userId}` : "#"}
                 className="relative w-8 h-8 overflow-hidden rounded-full ring-1 ring-white/10 shrink-0"
@@ -317,17 +328,39 @@ async function react(kind) {
               <button onClick={onClose} className="text-white/70 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
+              </div>
             </div>
 
             {/* Post text */}
-            <div className="px-4 py-3 border-b border-white/10"> 
-              <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
-                {post.content || post.excerpt || post.title}
-              </p>
+            <div className="shrink-0 border-b border-white/10 px-4 py-3">
+              <div className={`relative ${isBlogPost ? "min-h-[152px]" : ""}`}>
+                <p
+                  className={`text-sm leading-relaxed text-white/90 whitespace-pre-wrap ${
+                    isBlogPost ? "line-clamp-6 min-h-[120px]" : ""
+                  }`}
+                >
+                  {postBody}
+                </p>
+                {shouldShowReadMore ? (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black via-black/90 to-transparent" />
+                ) : null}
+              </div>
+              {isBlogPost ? (
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="text-xs uppercase tracking-[0.14em] text-white/40">Preview</span>
+                  <Link
+                    href={postHref}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-yellow-300 hover:text-yellow-200"
+                  >
+                    Read more...
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              ) : null}
             </div>
 
             {/* Comments list (ROOTS only; replies behind a toggle) */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 space-y-5">
               {loading ? (
                 <div className="flex-1 flex items-center justify-center flex-col space-y-3">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-500"></div>
@@ -344,7 +377,7 @@ async function react(kind) {
             </div>
 
             {/* Actions + input */}
-            <div className="border-t border-white/10 bg-black">
+            <div className="shrink-0 border-t border-white/10 bg-black">
               <div className="flex items-center gap-4 px-4 py-3">
                 <button
                   onClick={() => react("like")}

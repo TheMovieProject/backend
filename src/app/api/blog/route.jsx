@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import prisma from "@/app/libs/prismaDB";
 import { NextResponse } from "next/server";
+import { htmlToPlainText, truncateText } from "@/app/libs/textUtils";
 
 const MAX_LIMIT = 100;
 
@@ -61,7 +62,7 @@ export async function GET(req) {
       blogs.map((blog) => ({
         ...blog,
         commentsCount: blog.comments?.length ?? 0,
-        excerpt: blog.content ? blog.content.slice(0, 220) : "",
+        excerpt: truncateText(htmlToPlainText(blog.content ?? ""), 220),
       })),
       { status: 200 }
     );

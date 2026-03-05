@@ -2,6 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
+import { useIncrementalList } from '@/app/hooks/useIncrementalList';
+import { useRafThrottledCallback } from '@/app/hooks/useRafThrottledCallback';
 
 const PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
@@ -15,15 +18,17 @@ export default function PollPage() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const debouncedQuery = useDebouncedValue(query, 180);
+  const handleScroll = useRafThrottledCallback(() => {
+    setScrolled(window.scrollY > 20);
+  });
 
   // Scroll effect for header
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   // Fetch ranked list from your backend
   const fetchPollList = async () => {
@@ -105,7 +110,7 @@ export default function PollPage() {
 
   // filter + rank (server already returns in rank order, but keep client sort as a safety)
   const ranked = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     const filtered = q
       ? movies.filter((m) => (m.title || '').toLowerCase().includes(q))
       : movies.slice();
@@ -114,7 +119,21 @@ export default function PollPage() {
       if ((b.votes ?? 0) !== (a.votes ?? 0)) return (b.votes ?? 0) - (a.votes ?? 0);
       return (a.title || '').localeCompare(b.title || '');
     });
-  }, [movies, query]);
+  }, [debouncedQuery, movies]);
+  const maxVotes = useMemo(
+    () => Math.max(...ranked.map((movie) => movie.votes ?? 0), 1),
+    [ranked]
+  );
+  const {
+    hasMore,
+    loadMoreRef,
+    visibleItems: visibleRanked,
+  } = useIncrementalList(ranked, {
+    initialCount: 20,
+    increment: 12,
+    enabled: ranked.length > 20,
+    resetKey: debouncedQuery.trim().toLowerCase(),
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-white pt-20">
@@ -181,15 +200,15 @@ export default function PollPage() {
           <>
             <div className="mb-6 flex items-center justify-between">
               <span className="text-sm text-zinc-400">
-                Showing <b className="text-white">{ranked.length}</b> movies
+                Showing <b className="text-white">{visibleRanked.length}</b>
+                {visibleRanked.length !== ranked.length ? ` of ${ranked.length}` : ''} movies
               </span>
               <span className="text-sm text-zinc-400">Most votes → top</span>
             </div>
 
             <ul className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4" role="list">
-              {ranked.map((m, idx) => {
+              {visibleRanked.map((m, idx) => {
                 const poster = m.posterUrl || PLACEHOLDER;
-                const maxVotes = Math.max(...ranked.map((x) => x.votes ?? 0), 1);
                 const pct = Math.round(((m.votes ?? 0) / maxVotes) * 100);
 
                 return (
@@ -265,6 +284,7 @@ export default function PollPage() {
                 );
               })}
             </ul>
+            {hasMore ? <div ref={loadMoreRef} className="h-8 w-full" aria-hidden="true" /> : null}
           </>
         ) : (
           <div className="flex h-[60vh] items-center justify-center">

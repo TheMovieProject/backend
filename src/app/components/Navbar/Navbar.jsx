@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Menu, Search, X } from "lucide-react";
 import { getGsap } from "@/app/libs/gsapClient";
+import { useRafThrottledCallback } from "@/app/hooks/useRafThrottledCallback";
 import Logout from "../Logout/Logout";
 import NotificationBell from "../Notification/Notification";
 import logo from "../../../../public/img/logo.png";
@@ -24,19 +25,19 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchRec, setSearchRec] = useState([]);
   const deferredQuery = useDeferredValue(query);
+  const handleScroll = useRafThrottledCallback(() => {
+    setScrolled(window.scrollY > 20);
+  });
 
   const searchOverlayRef = useRef(null);
   const searchInputRef = useRef(null);
   const navbarRef = useRef(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   useEffect(() => {
     if (!searchOverlayRef.current) return;

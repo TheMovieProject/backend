@@ -10,6 +10,7 @@ import {
   loadMovieWatchlists,
   invalidateWatchlistsCache,
 } from "@/lib/watchlists-client";
+import { useRafThrottledCallback } from "@/app/hooks/useRafThrottledCallback";
 
 type MovieInput = {
   id: string | number;
@@ -117,6 +118,33 @@ export default function AddToWatchlistControlRevamp({
   const defaultList =
     visibleWatchlists.find((list) => isDefaultWatchlist(list, data.defaultWatchlistId)) || null;
   const collectionLists = visibleWatchlists.filter((list) => list.id !== defaultList?.id);
+  const updatePanelPosition = useRafThrottledCallback(() => {
+    if (!panelOpen || typeof window === "undefined") return;
+
+    const anchor = rootRef.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const viewportPadding = 8;
+    const gap = 10;
+    const preferredWidth = compact ? 340 : 368;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const width = Math.min(preferredWidth, Math.max(280, viewportWidth - viewportPadding * 2));
+    const spaceBelow = Math.max(0, viewportHeight - rect.bottom - viewportPadding);
+    const spaceAbove = Math.max(0, rect.top - viewportPadding);
+    const comfortHeight = compact ? 380 : 430;
+    const openUp = spaceBelow < comfortHeight && spaceAbove > spaceBelow;
+    const top = openUp ? Math.max(viewportPadding, rect.top - gap) : rect.bottom + gap;
+    const left = Math.min(
+      Math.max(viewportPadding, rect.right - width),
+      Math.max(viewportPadding, viewportWidth - width - viewportPadding)
+    );
+    const availableHeight = openUp ? spaceAbove - gap : spaceBelow - gap;
+    const maxHeight = Math.max(240, Math.min(620, availableHeight));
+
+    setPanelPosition({ top, left, width, maxHeight, openUp });
+  });
 
   useEffect(() => {
     function onDocumentClick(event: MouseEvent) {
@@ -149,32 +177,6 @@ export default function AddToWatchlistControlRevamp({
   useEffect(() => {
     if (!panelOpen || typeof window === "undefined") return;
 
-    const updatePanelPosition = () => {
-      const anchor = rootRef.current;
-      if (!anchor) return;
-
-      const rect = anchor.getBoundingClientRect();
-      const viewportPadding = 8;
-      const gap = 10;
-      const preferredWidth = compact ? 340 : 368;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const width = Math.min(preferredWidth, Math.max(280, viewportWidth - viewportPadding * 2));
-      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - viewportPadding);
-      const spaceAbove = Math.max(0, rect.top - viewportPadding);
-      const comfortHeight = compact ? 380 : 430;
-      const openUp = spaceBelow < comfortHeight && spaceAbove > spaceBelow;
-      const top = openUp ? Math.max(viewportPadding, rect.top - gap) : rect.bottom + gap;
-      const left = Math.min(
-        Math.max(viewportPadding, rect.right - width),
-        Math.max(viewportPadding, viewportWidth - width - viewportPadding)
-      );
-      const availableHeight = openUp ? spaceAbove - gap : spaceBelow - gap;
-      const maxHeight = Math.max(240, Math.min(620, availableHeight));
-
-      setPanelPosition({ top, left, width, maxHeight, openUp });
-    };
-
     updatePanelPosition();
     window.addEventListener("resize", updatePanelPosition);
     window.addEventListener("scroll", updatePanelPosition, true);
@@ -182,7 +184,7 @@ export default function AddToWatchlistControlRevamp({
       window.removeEventListener("resize", updatePanelPosition);
       window.removeEventListener("scroll", updatePanelPosition, true);
     };
-  }, [panelOpen, compact]);
+  }, [compact, panelOpen, updatePanelPosition]);
 
   const emitStatus = (nextData: ApiState) => {
     if (!onStatusChange) return;

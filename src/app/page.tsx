@@ -7,20 +7,39 @@ import { useSession } from "next-auth/react";
 
 const DeferredFeedList = dynamic(() => import("@/app/components/UserFeed/UserFeed"), {
   loading: () => (
-    <div className="min-h-[55vh] rounded-3xl border border-white/10 bg-black/20 p-6 animate-pulse">
-      <div className="mb-6 h-8 w-40 rounded bg-white/10" />
-      <div className="columns-1 sm:columns-2 xl:columns-3 [column-gap:1rem]">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="mb-4 break-inside-avoid rounded-2xl border border-white/10 bg-white/5 p-4"
-          >
-            <div className="h-44 rounded-xl bg-white/10" />
-            <div className="mt-4 h-4 w-4/5 rounded bg-white/10" />
-            <div className="mt-2 h-3 w-1/2 rounded bg-white/10" />
-          </div>
-        ))}
+    <div className="mx-auto max-w-[760px] min-h-[55vh] space-y-4 animate-pulse">
+      <div className="p-1">
+        <div className="h-8 w-40 rounded bg-white/10" />
+        <div className="mt-3 h-4 w-72 rounded bg-white/10" />
       </div>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="rounded-[24px] bg-black/10 p-5 shadow-[0_12px_28px_rgba(0,0,0,0.14)]">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-white/10" />
+              <div className="space-y-2">
+                <div className="h-4 w-24 rounded bg-white/10" />
+                <div className="h-3 w-16 rounded bg-white/10" />
+              </div>
+            </div>
+            <div className="h-7 w-16 rounded-full bg-white/10" />
+          </div>
+          <div className="grid min-h-[144px] grid-cols-[96px_minmax(0,1fr)] gap-4">
+            <div className="h-[144px] w-[96px] rounded-[16px] bg-white/10" />
+            <div className="py-1">
+              <div className="h-6 w-40 rounded bg-white/10" />
+              <div className="mt-3 h-5 w-16 rounded-full bg-white/10" />
+              <div className="mt-3 h-4 w-full rounded bg-white/10" />
+              <div className="mt-2 h-4 w-5/6 rounded bg-white/10" />
+            </div>
+          </div>
+          <div className="mt-4 flex gap-5">
+            <div className="h-5 w-10 rounded bg-white/10" />
+            <div className="h-5 w-10 rounded bg-white/10" />
+            <div className="h-5 w-10 rounded bg-white/10" />
+          </div>
+        </div>
+      ))}
     </div>
   ),
 });
