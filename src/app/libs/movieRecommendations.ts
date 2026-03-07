@@ -596,8 +596,7 @@ function buildSubtitle(seedDetails: TmdbMovieDetails) {
   const genres = (seedDetails.genres || []).slice(0, 2).map((genre) => genre.name);
 
   return {
-    subtitle:
-      "Ranked with matrix factorization from audience behavior, then re-weighted by genre, actor, and director similarity.",
+    subtitle: "",
     signals: {
       director,
       actors,

@@ -26,6 +26,7 @@ export async function createNotification(input: NotificationInput) {
       title: input.title,
       body: input.body ?? null,
       link: input.link ?? null,
+      readAt: null,
     },
     include: {
       actor: {

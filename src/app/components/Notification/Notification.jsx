@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bell, Flame, Heart, UserPlus } from "lucide-react";
+import { Flame, Heart, UserPlus } from "lucide-react";
 import { formatRelativeTime } from "@/app/libs/dateUtils";
 
 const NOTIFICATION_POLL_INTERVAL = 30000;
@@ -17,7 +17,7 @@ function typeIcon(type) {
     case "REACTION_FIRE":
       return <Flame className="w-4 h-4 text-orange-400" />;
     default:
-      return <Bell className="w-4 h-4" />;
+      return <span className="text-sm leading-none">🔥</span>;
   }
 }
 
@@ -62,13 +62,15 @@ function NotificationItem({ item, onNavigate }) {
   );
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ docked = false }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
   const dropdownRef = useRef(null);
   const preparedRef = useRef(false);
+  const latestFetchIdRef = useRef(0);
 
   const sorted = useMemo(
     () =>
@@ -84,13 +86,17 @@ export default function NotificationBell() {
   );
 
   const effectiveUnreadCount = unreadCount > 0 ? unreadCount : localUnreadCount;
-  const shouldScrollList = sorted.length > 6;
 
   const fetchNotifications = useCallback(async () => {
+    const fetchId = ++latestFetchIdRef.current;
     try {
-      const res = await fetch("/api/notifications?limit=40", { cache: "no-store" });
+      const res = await fetch("/api/notifications?limit=40", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
       if (!res.ok) return;
       const data = await res.json();
+      if (fetchId !== latestFetchIdRef.current) return;
       const nextNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
       const nextUnreadCount =
         typeof data?.unreadCount === "number"
@@ -139,8 +145,8 @@ export default function NotificationBell() {
       }
     }
 
-    window.addEventListener("mousedown", onClickOutside);
-    return () => window.removeEventListener("mousedown", onClickOutside);
+    window.addEventListener("pointerdown", onClickOutside);
+    return () => window.removeEventListener("pointerdown", onClickOutside);
   }, []);
 
   useEffect(() => {
@@ -156,16 +162,25 @@ export default function NotificationBell() {
   }, [open, fetchNotifications]);
 
   const markRead = async () => {
-    if (!effectiveUnreadCount) return;
+    if (!effectiveUnreadCount || markingRead) return;
+    setMarkingRead(true);
+    latestFetchIdRef.current += 1;
     try {
-      const res = await fetch("/api/notifications/mark-read", { method: "POST" });
+      const res = await fetch("/api/notifications/mark-read", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+      });
       if (!res.ok) {
         throw new Error(`mark-read failed (${res.status})`);
       }
       setUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      await fetchNotifications();
     } catch (error) {
       console.error("Failed to mark notifications as read", error);
+    } finally {
+      setMarkingRead(false);
     }
   };
 
@@ -178,31 +193,38 @@ export default function NotificationBell() {
     void markRead();
   };
 
+  const triggerClassName = docked
+    ? "relative h-10 w-10 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition grid place-items-center"
+    : "relative p-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition";
+  const triggerEmojiClassName = docked ? "text-lg leading-none" : "text-base leading-none";
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={toggle}
         onMouseEnter={() => void prepareNotifications()}
         onFocus={() => void prepareNotifications()}
-        className="relative p-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition"
+        className={triggerClassName}
         aria-label="Notifications"
       >
-        <Bell className="h-5 w-5 text-white" />
+        <span aria-hidden="true" className={triggerEmojiClassName}>
+          🔥
+        </span>
         {effectiveUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full bg-red-500 text-white text-[10px] font-bold grid place-items-center px-1">
             {effectiveUnreadCount > 99 ? "99+" : effectiveUnreadCount}
           </span>
         )}
-        {effectiveUnreadCount === 0 && (
+        {!docked && effectiveUnreadCount === 0 && (
           <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-white/30" />
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-[360px] max-w-[92vw] rounded-2xl border border-white/20 bg-black/90 backdrop-blur-2xl shadow-2xl overflow-hidden z-[80]">
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
+        <div className="fixed left-2 right-2 bottom-[5.25rem] mt-0 rounded-2xl border border-white/20 bg-black/90 backdrop-blur-2xl shadow-2xl overflow-hidden z-[90] sm:absolute sm:right-0 sm:left-auto sm:top-full sm:bottom-auto sm:mt-3 sm:w-[360px] sm:max-w-[92vw]">
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
             <h3 className="text-sm font-semibold text-white">Notifications</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span
                 className={`text-xs ${
                   effectiveUnreadCount > 0 ? "text-yellow-300" : "text-white/60"
@@ -214,19 +236,16 @@ export default function NotificationBell() {
                 <button
                   type="button"
                   onClick={markRead}
-                  className="text-[11px] text-white/80 hover:text-white px-2 py-1 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 transition"
+                  disabled={markingRead}
+                  className="text-[11px] text-white/80 hover:text-white px-2 py-1 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed transition"
                 >
-                  Mark all read
+                  {markingRead ? "Marking..." : "Mark all read"}
                 </button>
               ) : null}
             </div>
           </div>
 
-          <div
-            className={`p-2 space-y-2 ${
-              shouldScrollList ? "max-h-[420px] overflow-y-auto" : ""
-            }`}
-          >
+          <div className="p-2 space-y-2 max-h-[min(65vh,420px)] overflow-y-auto">
             {!loaded ? (
               <div className="p-4 text-sm text-white/60">Loading...</div>
             ) : sorted.length === 0 ? (

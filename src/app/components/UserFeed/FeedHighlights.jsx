@@ -47,7 +47,6 @@ export default function FeedHighlights() {
     <section className="rounded-2xl border border-white/10 bg-black/25 p-3 md:p-4 space-y-5">
       <header>
         <h3 className="text-white text-lg font-semibold">Social Pulse</h3>
-        <p className="text-xs text-white/60">Friends, buzz meter, and poll activity.</p>
       </header>
 
       {loading ? (

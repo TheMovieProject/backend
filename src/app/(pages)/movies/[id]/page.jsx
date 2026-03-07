@@ -49,7 +49,6 @@ const Info = () => {
   const [defaultInWatchlist, setDefaultInWatchlist] = useState(false);
   const [defaultInLiked, setDefaultInLiked] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
-  const [recommendationsMeta, setRecommendationsMeta] = useState(null);
   const params = useParams();
   const movieId = params.id;
 
@@ -101,7 +100,6 @@ const Info = () => {
           trailerUrl: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
         }));
         setRecommendations((recommendationsData?.items || []).slice(0, 18));
-        setRecommendationsMeta(recommendationsData || null);
 
         if (process.env.NEXT_PUBLIC_OMDB_API_KEY && movieData?.imdb_id) {
           const omdbRes = await fetch(
@@ -139,7 +137,6 @@ const Info = () => {
         setLoading(true);
         setError(null);
         setRecommendations([]);
-        setRecommendationsMeta(null);
 
         const [
           movieResponse,
@@ -245,7 +242,6 @@ const Info = () => {
         <SimilarMovies
           item={item}
           recommendations={recommendations}
-          subtitle={recommendationsMeta?.subtitle}
         />
 
         <MovieUtilityPanel

@@ -13,6 +13,15 @@ import NotificationBell from "../Notification/Notification";
 import logo from "../../../../public/img/logo.png";
 
 const PROJECT_ICON = "/img/logo.png";
+const DEFAULT_PROFILE_SRC = "/img/profile.png";
+
+function normalizeAvatarSrc(value) {
+  if (typeof value !== "string") return null;
+  const src = value.trim();
+  if (!src) return null;
+  if (src === "null" || src === "undefined" || src === "[object Object]") return null;
+  return src;
+}
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -191,6 +200,52 @@ export default function Navbar() {
     { href: "/movies", label: "Movies" },
     { href: "/write", label: "Write" },
   ];
+  const preferredProfileAvatar =
+    normalizeAvatarSrc(session?.user?.avatarUrl) ||
+    normalizeAvatarSrc(session?.user?.image) ||
+    DEFAULT_PROFILE_SRC;
+  const [profileAvatarSrc, setProfileAvatarSrc] = useState(preferredProfileAvatar);
+
+  useEffect(() => {
+    setProfileAvatarSrc(preferredProfileAvatar);
+  }, [preferredProfileAvatar]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return undefined;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const loadProfileAvatar = async () => {
+      try {
+        const res = await fetch(`/api/user/${session.user.id}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const nextAvatar =
+          normalizeAvatarSrc(data?.avatarUrl) ||
+          normalizeAvatarSrc(data?.image) ||
+          null;
+        if (!nextAvatar || cancelled) return;
+
+        setProfileAvatarSrc(nextAvatar);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.error("Failed to load profile avatar", error);
+        }
+      }
+    };
+
+    void loadProfileAvatar();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [session?.user?.id]);
 
   return (
     <>
@@ -200,7 +255,7 @@ export default function Navbar() {
           scrolled ? "bg-white/10 backdrop-blur-xl shadow-lg" : "bg-transparent"
         }`}
       >
-        <div className="flex justify-between items-center h-16 px-6">
+        <div className="flex justify-between items-center h-16 px-4 sm:px-6">
           <div className="flex-1 flex justify-start">
             <button
               type="button"
@@ -218,17 +273,20 @@ export default function Navbar() {
             <Link
               href="/"
               prefetch
-              className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 text-white hover:opacity-80 transition-opacity duration-300 min-w-0"
             >
               <Image src={logo} alt="Movie Project Logo" width={16} height={16} />
-              <span className="text-xs font-light tracking-widest text-white">
+              <span className="sm:hidden text-[10px] font-semibold tracking-[0.18em] text-white whitespace-nowrap">
+                THEMOVIEPROJECT
+              </span>
+              <span className="hidden sm:inline text-xs font-light tracking-widest text-white">
                 MOVIE PROJECT
               </span>
             </Link>
           </div>
 
           <div className="flex-1 flex justify-end">
-            <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-3">
               {session ? <NotificationBell /> : null}
               <button
                 type="button"
@@ -252,14 +310,58 @@ export default function Navbar() {
                 </div>
               </button>
             </div>
+            <div className="sm:hidden w-5" />
           </div>
         </div>
       </div>
 
+      {session ? (
+        <div className="fixed bottom-0 left-0 right-0 z-[70] sm:hidden pointer-events-none">
+          <div className="mx-3 mb-3 rounded-2xl border border-white/20 bg-black/70 backdrop-blur-2xl shadow-2xl pointer-events-auto">
+            <div className="grid grid-cols-3 gap-2 p-2">
+              <button
+                type="button"
+                onClick={openSearch}
+                aria-label="Open search"
+                className="h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+              >
+                <Search className="h-5 w-5 text-white/90" />
+              </button>
+
+              <div className="flex items-center justify-center">
+                <NotificationBell docked />
+              </div>
+
+              <Link
+                href={`/profile/${session.user.id}`}
+                prefetch
+                aria-label="Open profile"
+                className="h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+              >
+                <div className="relative block h-7 w-7 shrink-0 rounded-full overflow-hidden ring-1 ring-white/30">
+                  <Image
+                    src={profileAvatarSrc}
+                    alt="Profile"
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                    onError={() => {
+                      if (profileAvatarSrc !== DEFAULT_PROFILE_SRC) {
+                        setProfileAvatarSrc(DEFAULT_PROFILE_SRC);
+                      }
+                    }}
+                  />
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {searchOpen && (
         <div
           ref={searchOverlayRef}
-          className="fixed top-0 left-0 right-0 z-[60] bg-white/10 backdrop-blur-xl border-b border-white/20 py-4"
+          className="fixed top-0 left-0 right-0 z-[100] bg-white/10 backdrop-blur-xl border-b border-white/20 py-4"
         >
           <div className="flex items-center h-16 px-6">
             <button
@@ -323,7 +425,7 @@ export default function Navbar() {
       )}
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-xl">
           <button
             type="button"
             onClick={() => setMobileOpen(false)}

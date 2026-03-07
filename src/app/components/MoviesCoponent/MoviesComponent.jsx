@@ -8,7 +8,6 @@ import MovieBlock from "@/app/components/MovieBlock/MovieBlock";
 
 const IMG_BASE = "https://image.tmdb.org/t/p/w500";
 const SECTION_HEADING_CLASS = "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white";
-const SECTION_SUBTITLE_CLASS = "text-sm md:text-base text-yellow-100/80";
 
 function posterSrc(item) {
   const posterPath = item?.posterPath ?? item?.poster_path;
@@ -58,14 +57,13 @@ function toMovieBlockItem(item) {
   };
 }
 
-function Rail({ title, subtitle, items = [] }) {
+function Rail({ title, items = [] }) {
   if (!items?.length) return null;
   return (
     <section className="space-y-3">
       <div className="flex justify-center text-center">
         <div className="space-y-1">
           <h2 className={SECTION_HEADING_CLASS}>{title}</h2>
-          {subtitle ? <p className={SECTION_SUBTITLE_CLASS}>{subtitle}</p> : null}
         </div>
       </div>
 
@@ -233,10 +231,6 @@ export default function MoviesComponent() {
                   : "Mood-Aware Movie Discovery"}
               </h1>
 
-              <p className={`${SECTION_SUBTITLE_CLASS} max-w-3xl`}>
-                {data?.occasionSpotlight?.subtitle}
-              </p>
-
               <div className="flex flex-wrap items-center gap-2 text-xs text-white/90">
                 {weatherMeta.weather === "cold" ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
@@ -262,7 +256,6 @@ export default function MoviesComponent() {
           <div className="lg:col-span-2 rounded-2xl border border-white/20 bg-black/30 p-4 md:p-5">
             <Rail
               title={data?.occasionSpotlight?.title || "Occasion Picks"}
-              subtitle="Festival/season first, then weather context."
               items={data?.occasionSpotlight?.items || []}
             />
           </div>
@@ -301,10 +294,6 @@ export default function MoviesComponent() {
         {data?.becauseYouWatched ? (
           <Rail
             title={`Because you watched ${data.becauseYouWatched.seedMovieTitle}`}
-            subtitle={
-              data?.becauseYouWatched?.subtitle ||
-              "Ranked with matrix factorization from audience behavior, then re-weighted by genre, actor, and director similarity."
-            }
             items={data.becauseYouWatched.items}
           />
         ) : null}
@@ -313,7 +302,6 @@ export default function MoviesComponent() {
           <Rail
             key={`genre-${bucket.id}`}
             title={`${bucket.name} Picks`}
-            subtitle="Dynamic genre spotlight"
             items={bucket.items || []}
           />
         ))}
@@ -322,7 +310,6 @@ export default function MoviesComponent() {
           <Rail
             key={`director-${bucket.personId || bucket.name}`}
             title={`${bucket.name} Spotlight`}
-            subtitle="Director-driven picks"
             items={bucket.items || []}
           />
         ))}
@@ -331,7 +318,6 @@ export default function MoviesComponent() {
           <Rail
             key={`actor-${bucket.personId || bucket.name}`}
             title={`${bucket.name} Spotlight`}
-            subtitle="Actor filmography highlights"
             items={bucket.items || []}
           />
         ))}
@@ -343,7 +329,6 @@ export default function MoviesComponent() {
                 <CalendarDays className="h-5 w-5 text-yellow-300" />
                 Release Calendar
               </h3>
-              <p className={SECTION_SUBTITLE_CLASS}>Grid + month-group views</p>
             </div>
             <div className="inline-flex rounded-full border border-white/20 bg-black/30 p-1">
               <button
