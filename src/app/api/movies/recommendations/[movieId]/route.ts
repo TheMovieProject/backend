@@ -38,8 +38,7 @@ export async function GET(
       recommendations || {
         seedMovieTitle: "",
         seedTmdbId: movieId,
-        subtitle:
-          "Ranked with matrix factorization from audience behavior, then re-weighted by genre, actor, and director similarity.",
+        subtitle: "",
         signals: {
           director: null,
           actors: [],

@@ -383,10 +383,7 @@ export async function GET(req: NextRequest) {
       },
       occasionSpotlight: {
         title: occasionTitle,
-        subtitle:
-          seasonal.type === "festival"
-            ? "Occasion-first picks inspired by ongoing Indian celebrations."
-            : "Mood-first picks based on seasonal/weather context.",
+        subtitle: "",
         items: occasionItems,
       },
       categories: {

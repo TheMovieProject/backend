@@ -22,7 +22,11 @@ export async function POST() {
     await prisma.notification.updateMany({
       where: {
         userId,
-        readAt: null,
+        OR: [
+          { readAt: null },
+          // Handle legacy Mongo records where readAt is unset.
+          { readAt: { isSet: false } as any },
+        ],
       },
       data: {
         readAt: new Date(),

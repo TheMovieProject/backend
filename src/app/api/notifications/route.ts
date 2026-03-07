@@ -41,7 +41,11 @@ export async function GET(req: NextRequest) {
     const unreadCount = await prisma.notification.count({
       where: {
         userId: me.id,
-        readAt: null,
+        OR: [
+          { readAt: null },
+          // Mongo documents created before readAt existed can have the field missing.
+          { readAt: { isSet: false } as any },
+        ],
       },
     });
 

@@ -468,9 +468,9 @@ const getProductionCompanies = (companies) =>
   (companies || []).map((c) => c.name).join(", ") || "Unknown";
 
 const InfoRow = ({ label, value }) => (
-  <div className="space-y-1 rounded-xl border border-white/10 bg-white/5 p-3 w-[20rem] lg:w-[25rem]">
+  <div className="mx-auto w-[97%] space-y-1 rounded-xl border border-white/10 bg-white/5 p-3">
     <dt className="text-xs font-medium text-yellow-400 uppercase tracking-wide">{label}</dt>
-    <dd className="text-base text-white font-light">{value}</dd>
+    <dd className="break-words text-base text-white font-light">{value}</dd>
   </div>
 );
 

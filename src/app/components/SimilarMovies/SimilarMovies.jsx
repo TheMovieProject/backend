@@ -2,7 +2,6 @@
 import MovieBlock from "@/app/components/MovieBlock/MovieBlock";
 
 const SECTION_HEADING_CLASS = "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white";
-const SECTION_SUBTITLE_CLASS = "text-sm md:text-base text-white/70";
 
 function toMovieBlockItem(movie) {
   return {
@@ -16,14 +15,11 @@ function toMovieBlockItem(movie) {
   };
 }
 
-export default function SimilarMovies({ item, recommendations = [], subtitle }) {
+export default function SimilarMovies({ item, recommendations = [] }) {
   if (!recommendations.length) {
     return (
       <section className="mt-10 rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl p-4 md:p-6 text-center">
         <h2 className={SECTION_HEADING_CLASS}>Because you watched {item?.title || "this movie"}</h2>
-        <p className={`mt-2 ${SECTION_SUBTITLE_CLASS}`}>
-          Hybrid recommendations are still warming up for this title.
-        </p>
       </section>
     );
   }
@@ -34,18 +30,11 @@ export default function SimilarMovies({ item, recommendations = [], subtitle }) 
         <h2 className={SECTION_HEADING_CLASS}>
           Because you watched {item?.title || "this movie"}
         </h2>
-        <p className={`mx-auto max-w-3xl ${SECTION_SUBTITLE_CLASS}`}>
-          {subtitle ||
-            "Ranked with matrix factorization from audience behavior, then re-weighted by genre, actor, and director similarity."}
-        </p>
       </header>
 
-      <div
-        className="grid justify-center gap-x-6 gap-y-10 pt-6"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 170px))" }}
-      >
+      <div className="grid grid-cols-2 gap-x-3 gap-y-8 pt-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {recommendations.slice(0, 12).map((movie, index) => (
-          <div key={`hybrid-${movie.id}`} className="w-[150px] sm:w-[170px] pt-8">
+          <div key={`hybrid-${movie.id}`} className="w-full max-w-[170px] justify-self-center pt-8">
             <MovieBlock item={toMovieBlockItem(movie)} index={index} />
           </div>
         ))}

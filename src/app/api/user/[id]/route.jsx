@@ -1,6 +1,7 @@
 import prisma from "@/app/api/auth/[...nextauth]/connect";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/app/api/auth/[...nextauth]/options";
+import { sanitizeAvatarUrl } from "@/app/libs/auth_security";
 
 export async function GET(request, { params }) {
   try {
@@ -70,13 +71,15 @@ export async function PUT(request, { params }) {
 
     const body = await request.json();
     const { username, bio, avatarUrl, movieGenres } = body;
+    const avatarUrlProvided = Object.prototype.hasOwnProperty.call(body ?? {}, "avatarUrl");
+    const normalizedAvatarUrl = sanitizeAvatarUrl(avatarUrl);
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         username: username || undefined,
         bio: bio || undefined,
-        avatarUrl: avatarUrl || undefined,
+        avatarUrl: avatarUrlProvided ? normalizedAvatarUrl : undefined,
         movieGenres: movieGenres || undefined,
       },
       select: {
