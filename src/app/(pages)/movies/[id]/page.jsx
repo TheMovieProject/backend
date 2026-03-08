@@ -228,7 +228,7 @@ const Info = () => {
     <div className="min-h-screen bg-yellow-600 text-white">
       <Hero item={item} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative z-10 mx-auto -mt-10 max-w-7xl px-3 pb-10 sm:-mt-14 sm:px-6 sm:pb-12 lg:-mt-20 lg:px-8 lg:pb-16">
         <MovieInfo
           item={item}
           averageRating={averageRating}

@@ -1,87 +1,47 @@
-'use client'
-import Image from "next/image"
+'use client';
+
+import Image from "next/image";
+
+function heroImage(item) {
+  if (item?.backdrop_path) return `https://image.tmdb.org/t/p/original${item.backdrop_path}`;
+  if (item?.poster_path) return `https://image.tmdb.org/t/p/w780${item.poster_path}`;
+  return "/img/logo.png";
+}
 
 const Hero = ({ item }) => {
   return (
-    <div className="relative h-screen overflow-hidden p-10">
-      {/* Background Image */}
+    <section className="relative h-[34vh] min-h-[240px] max-h-[340px] overflow-hidden sm:h-[90vh] sm:min-h-[520px] sm:max-h-none">
       <Image
-        src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`} 
-        alt={item.title}
+        src={heroImage(item)}
+        alt={item?.title || "Movie backdrop"}
         fill
         className="object-cover object-center"
+        sizes="100vw"
         priority
       />
-      
-      {/* Gradient Overlays */}
-      {/* <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 to-transparent" /> */}
-      
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-10 lg:p-12">
-        <div className="max-w-7xl mx-auto">
-          {/* Title and Tagline */}
-          <div className="mb-8">
-            <h1 className="text-5xl w-[40%] lg:text-7xl font-bold text-gray-300 mb-4 leading-tight tracking-tight">
-              {item.title}
+
+      <div className="absolute inset-0 bg-gradient-to-t from-yellow-600 via-[#1a1308]/72 to-black/25" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+
+      <div className="absolute inset-x-0 bottom-0 z-10">
+        <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-24 lg:px-8 lg:pb-20">
+          <div className="max-w-3xl">
+            <h1 className="max-w-[18ch] text-3xl font-black leading-[0.96] tracking-tight text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)] sm:max-w-[16ch] sm:text-5xl md:text-6xl lg:max-w-[15ch] lg:text-7xl">
+              {item?.title || item?.original_title || "Movie"}
             </h1>
-            {/* {item.tagline && (
-              <p className="text-xl lg:text-2xl text-yellow-400 font-light italic">
+
+            {item?.tagline ? (
+              <p className="mt-3 max-w-2xl text-sm text-yellow-50/80 sm:text-base md:text-lg">
                 {item.tagline}
               </p>
-            )} */}
+            ) : null}
           </div>
-
-          {/* Movie Details */}
-          {/* <div className="flex flex-wrap items-center gap-6 text-white"> */}
-            {/* Release Year */}
-            {/* <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-yellow-400">
-                {new Date(item.release_date).getFullYear()}
-              </span>
-            </div> */}
-
-            {/* Runtime */}
-            {/* {item.runtime && (
-              <>
-                <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
-                <span className="text-lg font-medium">{item.runtime} mins</span>
-              </>
-            )} */}
-
-            {/* Genres */}
-            {/* {item.genres && item.genres.length > 0 && (
-              <>
-                <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
-                <div className="flex flex-wrap gap-2">
-                  {item.genres.map((genre, index) => (
-                    <span 
-                      key={genre.id}
-                      className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm border border-yellow-500/30"
-                    >
-                      {genre.name}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )} */}
-          {/* </div> */}
-
-          {/* Overview */}
-          {/* {item.overview && (
-            <div className="mt-6 max-w-2xl">
-              <p className="text-lg text-gray-300 leading-relaxed line-clamp-3">
-                {item.overview}
-              </p>
-            </div>
-          )} */}
         </div>
       </div>
 
-      {/* Bottom Gradient Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-yellow-600 to-transparent" />
-    </div>
-  )
-}
+      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-yellow-600 to-transparent sm:h-28" />
+    </section>
+  );
+};
 
-export default Hero
+export default Hero;
